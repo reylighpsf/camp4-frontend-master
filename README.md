@@ -1,44 +1,13 @@
-## Frontend Routes
-
-Route halaman yang dipakai frontend:
-
-```txt
-/sign-in       Halaman login
-/sign-up       Halaman registrasi
-/              Halaman todo, butuh login
-/admin         Halaman admin, butuh role admin
-/unauthorized  Halaman saat role tidak diizinkan
-```
-
-Catatan: route frontend berbeda dengan endpoint API. Contoh, halaman `/sign-in` akan memanggil endpoint API `POST /auth/local/signin`.
-
-Letak definisi route:
-
-```txt
-src/app/router.jsx
-```
-
-## Auth Endpoints
-
 ### Sign Up
 
-Route frontend:
+| Item | Value |
+| --- | --- |
+| Frontend route | `/sign-up` |
+| Method | `POST` |
+| Endpoint | `/auth/local/sign-up` |
+| Full URL | `http://localhost:3000/api/auth/local/sign-up` |
 
-```txt
-/sign-up
-```
-
-```txt
-POST /auth/local/signup
-```
-
-Full URL development:
-
-```txt
-POST http://localhost:3000/api/auth/local/signup
-```
-
-Payload dari frontend:
+Payload:
 
 ```json
 {
@@ -49,39 +18,28 @@ Payload dari frontend:
 }
 ```
 
+Kode endpoint:
+
+```js
+signup: (data) => api.post("/auth/local/sign-up", data)
+```
+
 Dipakai oleh:
 
 ```txt
 src/pages/auth/Signup.jsx
-src/features/auth/authContext.jsx
-src/features/auth/authApi.js
-```
-
-Letak kode endpoint:
-
-```js
-signup: (data) => api.post("/auth/local/signup", data)
 ```
 
 ### Sign In
 
-Route frontend:
+| Item | Value |
+| --- | --- |
+| Frontend route | `/sign-in` |
+| Method | `POST` |
+| Endpoint | `/auth/local/sign-in` |
+| Full URL | `http://localhost:3000/api/auth/local/sign-in` |
 
-```txt
-/sign-in
-```
-
-```txt
-POST /auth/local/signin
-```
-
-Full URL development:
-
-```txt
-POST http://localhost:3000/api/auth/local/signin
-```
-
-Payload dari frontend:
+Payload:
 
 ```json
 {
@@ -90,35 +48,29 @@ Payload dari frontend:
 }
 ```
 
+Kode endpoint:
+
+```js
+signin: (data) => api.post("/auth/local/sign-in", data)
+```
+
 Dipakai oleh:
 
 ```txt
 src/pages/auth/Signin.jsx
-src/features/auth/authContext.jsx
-src/features/auth/authApi.js
-```
-
-Letak kode endpoint:
-
-```js
-signin: (data) => api.post("/auth/local/signin", data)
 ```
 
 ### Get Current User
 
-```txt
-GET /auth/user/me
-```
+| Item | Value |
+| --- | --- |
+| Method | `GET` |
+| Endpoint | `/auth/user/me` |
+| Full URL | `http://localhost:3000/api/auth/user/me` |
 
-Full URL development:
+Endpoint ini dipanggil setelah sign in/sign up berhasil untuk mengambil data user aktif.
 
-```txt
-GET http://localhost:3000/api/auth/user/me
-```
-
-Endpoint ini dipanggil setelah sign in/sign up untuk mengambil data user aktif.
-
-Response yang dibutuhkan frontend:
+Response minimal yang dibutuhkan frontend:
 
 ```json
 {
@@ -129,7 +81,7 @@ Response yang dibutuhkan frontend:
 }
 ```
 
-Untuk admin page, frontend membutuhkan role:
+Untuk membuka halaman `/admin`, user harus memiliki:
 
 ```json
 {
@@ -137,7 +89,7 @@ Untuk admin page, frontend membutuhkan role:
 }
 ```
 
-Letak kode endpoint:
+Kode endpoint:
 
 ```js
 me: () => api.get("/auth/user/me")
@@ -145,19 +97,13 @@ me: () => api.get("/auth/user/me")
 
 ### Logout
 
-```txt
-DELETE /auth/remove-session
-```
+| Item | Value |
+| --- | --- |
+| Method | `DELETE` |
+| Endpoint | `/auth/remove-session` |
+| Full URL | `http://localhost:3000/api/auth/remove-session` |
 
-Full URL development:
-
-```txt
-DELETE http://localhost:3000/api/auth/remove-session
-```
-
-Dipakai saat user klik tombol logout.
-
-Letak kode endpoint:
+Kode endpoint:
 
 ```js
 logout: () => api.delete("/auth/remove-session")
@@ -165,28 +111,22 @@ logout: () => api.delete("/auth/remove-session")
 
 ### Refresh Token
 
-```txt
-POST /auth/refresh-token
-```
+| Item | Value |
+| --- | --- |
+| Method | `POST` |
+| Endpoint | `/auth/refresh-token` |
+| Full URL | `http://localhost:3000/api/auth/refresh-token` |
 
-Full URL development:
-
-```txt
-POST http://localhost:3000/api/auth/refresh-token
-```
-
-Endpoint ini dipakai otomatis oleh Axios interceptor saat response `401`, kecuali request logout dan refresh token itu sendiri.
+Endpoint ini dipanggil otomatis oleh Axios interceptor ketika response API bernilai `401`.
 
 ## Todo Endpoints
 
-Endpoint todo dipakai oleh modul:
+File utama:
 
 ```txt
 src/features/todos/todoApi.js
 src/axios/axios.js
 ```
-
-Jika backend belum tersedia, sesuaikan endpoint berikut dengan file `todoApi.js`.
 
 ### Get Todos
 
@@ -250,17 +190,3 @@ Atau array:
     "message": "Password minimal 6 karakter"
   }
 ]
-```
-
-## File Penting
-
-```txt
-.env
-.env.example
-src/features/auth/authApi.js
-src/features/auth/authContext.jsx
-src/pages/auth/Signin.jsx
-src/pages/auth/Signup.jsx
-src/axios/axios.js
-src/features/todos/todoApi.js
-```
