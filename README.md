@@ -4,8 +4,8 @@
 | --- | --- |
 | Frontend route | `/sign-up` |
 | Method | `POST` |
-| Endpoint | `/auth/local/signup` |
-| Full URL | `http://localhost:3000/api/auth/local/signup` |
+| Endpoint | `/auth/local/sign-up` |
+| Full URL | `http://localhost:3000/api/auth/local/sign-up` |
 
 Payload:
 
@@ -21,7 +21,7 @@ Payload:
 Kode endpoint:
 
 ```js
-signup: (data) => api.post("/auth/local/signup", data)
+signup: (data) => api.post("/auth/local/sign-up", data)
 ```
 
 Dipakai oleh:
@@ -36,8 +36,8 @@ src/pages/auth/Signup.jsx
 | --- | --- |
 | Frontend route | `/sign-in` |
 | Method | `POST` |
-| Endpoint | `/auth/local/signin` |
-| Full URL | `http://localhost:3000/api/auth/local/signin` |
+| Endpoint | `/auth/local/sign-in` |
+| Full URL | `http://localhost:3000/api/auth/local/sign-in` |
 
 Payload:
 
@@ -51,7 +51,7 @@ Payload:
 Kode endpoint:
 
 ```js
-signin: (data) => api.post("/auth/local/signin", data)
+signin: (data) => api.post("/auth/local/sign-in", data)
 ```
 
 Dipakai oleh:
@@ -190,4 +190,3 @@ Atau array:
     "message": "Password minimal 6 karakter"
   }
 ]
-
