@@ -1,32 +1,32 @@
-# Frontend API Requirements
+## Frontend Routes
 
-Dokumen ini berisi daftar endpoint backend yang dibutuhkan oleh frontend.
-
-## Base URL
-
-Frontend membaca base URL dari file `.env`.
-
-```env
-VITE_API_URL=http://localhost:3000/api
-VITE_SERVER_URL=http://localhost:3000/api
-```
-
-Catatan:
-
-- Endpoint auth memakai `VITE_API_URL`.
-- Endpoint todo memakai `VITE_SERVER_URL`.
-- Jika memakai cookie/session, backend harus mengaktifkan CORS credentials.
-
-Contoh CORS untuk development:
+Route halaman yang dipakai frontend:
 
 ```txt
-Access-Control-Allow-Origin: http://127.0.0.1:5174
-Access-Control-Allow-Credentials: true
+/sign-in       Halaman login
+/sign-up       Halaman registrasi
+/              Halaman todo, butuh login
+/admin         Halaman admin, butuh role admin
+/unauthorized  Halaman saat role tidak diizinkan
+```
+
+Catatan: route frontend berbeda dengan endpoint API. Contoh, halaman `/sign-in` akan memanggil endpoint API `POST /auth/local/signin`.
+
+Letak definisi route:
+
+```txt
+src/app/router.jsx
 ```
 
 ## Auth Endpoints
 
 ### Sign Up
+
+Route frontend:
+
+```txt
+/sign-up
+```
 
 ```txt
 POST /auth/local/signup
@@ -64,6 +64,12 @@ signup: (data) => api.post("/auth/local/signup", data)
 ```
 
 ### Sign In
+
+Route frontend:
+
+```txt
+/sign-in
+```
 
 ```txt
 POST /auth/local/signin

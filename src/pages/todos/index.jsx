@@ -14,7 +14,7 @@ export default function TodosPage() {
     } catch (e) {
       console.error(e);
     } finally {
-      navigate("/signin");
+      navigate("/sign-in");
     }
   };
 

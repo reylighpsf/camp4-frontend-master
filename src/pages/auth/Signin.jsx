@@ -497,7 +497,7 @@ export default function Signin() {
             </form>
 
             <p className="auth-footer">
-              New to Vocafit? <Link to="/signup">Join Us</Link>
+              New to Vocafit? <Link to="/sign-up">Join Us</Link>
             </p>
           </section>
 

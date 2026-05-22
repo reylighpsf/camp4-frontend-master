@@ -7,7 +7,7 @@ export default function AdminPage() {
 
   const handleLogout = async () => {
     await signout();
-    navigate("/signin");
+    navigate("/sign-in");
   };
 
   return (
