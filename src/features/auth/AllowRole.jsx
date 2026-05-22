@@ -5,7 +5,7 @@ const AllowRole = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useAuth();
 
   if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/signin" replace />;
+  if (!user) return <Navigate to="/sign-in" replace />;
   if (!allowedRoles.includes(user.role))
     return <Navigate to="/unauthorized" replace />;
   return children;

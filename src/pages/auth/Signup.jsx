@@ -470,7 +470,7 @@ export default function Signup() {
               </form>
 
               <p className="auth-footer">
-                Already have an account? <Link to="/signin">Sign In</Link>
+                Already have an account? <Link to="/sign-in">Sign In</Link>
               </p>
             </div>
           </section>

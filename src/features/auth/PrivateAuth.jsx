@@ -5,7 +5,7 @@ const PrivateAuth = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/signin" replace />;
+  if (!user) return <Navigate to="/sign-in" replace />;
   return children;
 };
 

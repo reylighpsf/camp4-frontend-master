@@ -5,7 +5,7 @@ import PrivateAuth from "../features/auth/PrivateAuth";
 import PublicAuth from "../features/auth/PublicAuth";
 import AllowRole from "../features/auth/AllowRole";
 
-const TodosPage = React.lazy(() => import("../pages/Todos"));
+const TodosPage = React.lazy(() => import("../pages/todos"));
 const SigninPage = React.lazy(() => import("../pages/auth/Signin"));
 const SignupPage = React.lazy(() => import("../pages/auth/Signup"));
 const AdminPage = React.lazy(() => import("../pages/Admin"));
@@ -15,7 +15,7 @@ const NotFound = React.lazy(() => import("../pages/NotFound"));
 export const router = createBrowserRouter([
   // PUBLIC
   {
-    path: "/signin",
+    path: "/sign-in",
     element: (
       <PublicAuth>
         <SigninPage />
@@ -23,7 +23,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/signup",
+    path: "/sign-up",
     element: (
       <PublicAuth>
         <SignupPage />
