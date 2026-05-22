@@ -1,0 +1,17 @@
+@import "tailwindcss";
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  background: #0a0a14;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
