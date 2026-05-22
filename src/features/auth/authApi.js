@@ -32,8 +32,8 @@ api.interceptors.response.use(
 );
 
 export const authApi = {
-  signup: (data) => api.post("/auth/local/signup", data),
-  signin: (data) => api.post("/auth/local/signin", data),
+  signup: (data) => api.post("/auth/local/sign-up", data),
+  signin: (data) => api.post("/auth/local/sign-in", data),
   me: () => api.get("/auth/user/me"),
   logout: () => api.delete("/auth/remove-session"),
 };
