@@ -1,7 +1,6 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { authApi } from "./authApi";
-
-const AuthContext = createContext();
+import { AuthContext } from "./authContextValue";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -10,21 +9,28 @@ export const AuthProvider = ({ children }) => {
   const fetchMe = async () => {
     try {
       const res = await authApi.me();
-      setUser(res.data?.data || null);
+      const currentUser = res.data?.data || null;
+      setUser(currentUser);
+      return currentUser;
     } catch {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchMe();
+    const timeoutId = setTimeout(() => {
+      fetchMe();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const signin = async (data) => {
     await authApi.signin(data);
-    await fetchMe();
+    return await fetchMe();
   };
 
   const signup = async (data) => {
@@ -42,5 +48,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => useContext(AuthContext);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export default function ConfirmDialog({
   isOpen,
@@ -8,8 +8,7 @@ export default function ConfirmDialog({
   onCancel,
   isLoading: externalIsLoading = false,
 }) {
-  const [isLoading, setIsLoading] = useState(false);
-  const loading = isLoading || externalIsLoading;
+  const loading = externalIsLoading;
 
   useEffect(() => {
     if (!isOpen) return;

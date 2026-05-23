@@ -1,13 +1,11 @@
 import { Navigate } from "react-router";
-import { useAuth } from "./authContext";
+import { useAuth } from "./useAuth";
 
-const AllowRole = ({ children, allowedRoles = [] }) => {
+const PrivateAuth = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/sign-in" replace />;
-  if (!allowedRoles.includes(user.role))
-    return <Navigate to="/unauthorized" replace />;
   return children;
 };
 
@@ -15,6 +13,7 @@ function LoadingScreen() {
   return (
     <>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap');
         .loading-screen {
           min-height: 100vh;
           min-height: 100dvh;
@@ -70,4 +69,4 @@ function LoadingScreen() {
   );
 }
 
-export default AllowRole;
+export default PrivateAuth;

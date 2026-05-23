@@ -1,11 +1,11 @@
 import { Navigate } from "react-router";
-import { useAuth } from "./authContext";
+import { useAuth } from "./useAuth";
 
 const PublicAuth = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) return <LoadingScreen />;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to={user.role === "admin" ? "/admin" : "/"} replace />;
   return children;
 };
 

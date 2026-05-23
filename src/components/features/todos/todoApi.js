@@ -1,4 +1,4 @@
-import { request } from "../../axios/axios";
+import { request } from "../../../axios/axios";
 import { todoSchema } from "./todoSchema";
 
 export const todoApi = {

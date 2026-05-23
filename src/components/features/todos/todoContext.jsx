@@ -1,7 +1,6 @@
-import { createContext, useReducer, useContext, useEffect } from "react";
+import { useReducer, useEffect } from "react";
 import { todoApi } from "./todoApi";
-
-const TodoContext = createContext();
+import { TodoContext } from "./todoContextValue";
 
 const initialState = {
   todos: [],
@@ -65,5 +64,3 @@ export const TodoProvider = ({ children }) => {
     </TodoContext.Provider>
   );
 };
-
-export const useTodos = () => useContext(TodoContext);

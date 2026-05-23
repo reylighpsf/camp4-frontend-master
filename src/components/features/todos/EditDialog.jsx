@@ -5,7 +5,12 @@ export default function EditDialog({ isOpen, todo, onConfirm, onCancel }) {
   const inputRef = useRef(null);
 
   useEffect(() => {
-    if (todo) setTitle(todo.title);
+    if (!todo) return;
+    const timeoutId = setTimeout(() => {
+      setTitle(todo.title);
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [todo]);
 
   useEffect(() => {
