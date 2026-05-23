@@ -1,16 +1,16 @@
-import React from "react";
 import { createBrowserRouter } from "react-router";
 
-import PrivateAuth from "../features/auth/PrivateAuth";
-import PublicAuth from "../features/auth/PublicAuth";
-import AllowRole from "../features/auth/AllowRole";
-
-const TodosPage = React.lazy(() => import("../pages/todos"));
-const SigninPage = React.lazy(() => import("../pages/auth/Signin"));
-const SignupPage = React.lazy(() => import("../pages/auth/Signup"));
-const AdminPage = React.lazy(() => import("../pages/Admin"));
-const UnauthorizedPage = React.lazy(() => import("../pages/Unauthorized"));
-const NotFound = React.lazy(() => import("../pages/NotFound"));
+import PrivateAuth from "../components/features/auth/PrivateAuth";
+import PublicAuth from "../components/features/auth/PublicAuth";
+import AllowRole from "../components/features/auth/AllowRole";
+import TodosPage from "../pages/todos";
+import SigninPage from "../pages/auth/Signin";
+import SignupPage from "../pages/auth/Signup";
+import VerifyEmailPage from "../pages/auth/VerifyEmail";
+import VerifyEmailResultPage from "../pages/auth/VerifyEmailResult";
+import AdminPage from "../pages/admin/Admin";
+import UnauthorizedPage from "../pages/Unauthorized";
+import NotFound from "../pages/NotFound";
 
 export const router = createBrowserRouter([
   // PUBLIC
@@ -29,6 +29,18 @@ export const router = createBrowserRouter([
         <SignupPage />
       </PublicAuth>
     ),
+  },
+  {
+    path: "/verify-email",
+    element: <VerifyEmailPage />,
+  },
+  {
+    path: "/verify-email/result",
+    element: <VerifyEmailResultPage />,
+  },
+  {
+    path: "/verify-email/:token",
+    element: <VerifyEmailResultPage />,
   },
 
   // PRIVATE
