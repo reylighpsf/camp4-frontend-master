@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link, useLocation } from "react-router";
 import { useAuth } from "../../features/auth/authContext";
 import signinGym from "../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../assets/auth/vocafit-logo.png";
@@ -85,12 +85,18 @@ function Toast({ message, onClose }) {
 export default function Signin() {
   const { signin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState({});
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const notice = location.state?.notice;
+    if (notice) setToast(notice);
+  }, [location.state]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -129,6 +135,8 @@ export default function Signin() {
       const res = err.response?.data;
       if (Array.isArray(res)) {
         setToast(res.map((e) => e.message).join(", "));
+      } else if (res?.error) {
+        setToast(res.error);
       } else if (res?.message) {
         setToast(res.message);
       } else {
