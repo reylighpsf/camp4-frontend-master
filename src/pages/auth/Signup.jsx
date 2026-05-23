@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router";
-import { useAuth } from "../../features/auth/authContext";
+import { useAuth } from "../../components/features/auth/useAuth";
 import signupGym from "../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../assets/auth/vocafit-logo.png";
 
@@ -100,14 +100,19 @@ export default function Signup() {
 
   useEffect(() => {
     if (!form.image) {
-      setImagePreviewUrl("");
-      return;
+      const timeoutId = setTimeout(() => {
+        setImagePreviewUrl("");
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
 
     const previewUrl = URL.createObjectURL(form.image);
-    setImagePreviewUrl(previewUrl);
+    const timeoutId = setTimeout(() => {
+      setImagePreviewUrl(previewUrl);
+    }, 0);
 
     return () => {
+      clearTimeout(timeoutId);
       URL.revokeObjectURL(previewUrl);
     };
   }, [form.image]);

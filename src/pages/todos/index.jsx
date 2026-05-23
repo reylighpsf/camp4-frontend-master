@@ -1,8 +1,8 @@
-import { TodoProvider } from "../../features/todos/todoContext";
-import TodoForm from "../../features/todos/TodoForm";
-import TodoList from "../../features/todos/TodoList";
+import { TodoProvider } from "../../components/features/todos/todoContext";
+import TodoForm from "../../components/features/todos/TodoForm";
+import TodoList from "../../components/features/todos/TodoList";
 import { useNavigate } from "react-router";
-import { useAuth } from "../../features/auth/authContext";
+import { useAuth } from "../../components/features/auth/useAuth";
 
 export default function TodosPage() {
   const navigate = useNavigate();

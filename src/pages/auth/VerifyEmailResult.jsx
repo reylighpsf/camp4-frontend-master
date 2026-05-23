@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import signupGym from "../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../assets/auth/vocafit-logo.png";
-import { authApi } from "../../features/auth/authApi";
+import { authApi } from "../../components/features/auth/authApi";
 
 export default function VerifyEmailResult() {
   const { token } = useParams();
@@ -14,17 +14,19 @@ export default function VerifyEmailResult() {
     if (!token) {
       const statusFromQuery = searchParams.get("status");
       const messageFromQuery = searchParams.get("message");
+      const timeoutId = setTimeout(() => {
+        if (statusFromQuery === "success") {
+          setStatus("success");
+        } else if (statusFromQuery === "error") {
+          setStatus("error");
+        } else {
+          setStatus("error");
+        }
 
-      if (statusFromQuery === "success") {
-        setStatus("success");
-      } else if (statusFromQuery === "error") {
-        setStatus("error");
-      } else {
-        setStatus("error");
-      }
+        setMessage(messageFromQuery || "Verification status is not available.");
+      }, 0);
 
-      setMessage(messageFromQuery || "Verification status is not available.");
-      return;
+      return () => clearTimeout(timeoutId);
     }
 
     let isMounted = true;
