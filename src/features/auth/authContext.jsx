@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   const fetchMe = async () => {
     try {
       const res = await authApi.me();
-      setUser(res.data);
+      setUser(res.data?.data || null);
     } catch {
       setUser(null);
     } finally {
@@ -29,7 +29,6 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (data) => {
     await authApi.signup(data);
-    await fetchMe();
   };
 
   const logout = async () => {
