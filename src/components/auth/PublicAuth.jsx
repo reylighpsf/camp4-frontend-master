@@ -5,7 +5,8 @@ const PublicAuth = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) return <LoadingScreen />;
-  if (user) return <Navigate to={user.role === "admin" ? "/admin" : "/"} replace />;
+  if (user)
+    return <Navigate to={user.role === "pengurus" ? "/admin" : "/member"} replace />;
   return children;
 };
 

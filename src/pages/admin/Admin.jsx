@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { useAuth } from "../../components/features/auth/useAuth";
+import { useAuth } from "../../components/auth/useAuth";
 import gymImage from "../../assets/auth/signup-gym.jpg";
 import AdminSidebar, { Icon } from "../../components/admin/AdminSidebar";
 
