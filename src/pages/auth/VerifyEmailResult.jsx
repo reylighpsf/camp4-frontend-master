@@ -4,16 +4,28 @@ import signupGym from "../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../assets/auth/vocafit-logo.png";
 import { authApi } from "../../components/auth/authApi";
 
+const verificationRequests = new Map();
+
+const getVerificationRequest = (token) => {
+  if (!verificationRequests.has(token)) {
+    verificationRequests.set(token, authApi.verifyEmail(token));
+  }
+
+  return verificationRequests.get(token);
+};
+
 export default function VerifyEmailResult() {
   const { token } = useParams();
   const [searchParams] = useSearchParams();
+  const queryString = searchParams.toString();
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!token) {
-      const statusFromQuery = searchParams.get("status");
-      const messageFromQuery = searchParams.get("message");
+      const params = new URLSearchParams(queryString);
+      const statusFromQuery = params.get("status");
+      const messageFromQuery = params.get("message");
       const timeoutId = setTimeout(() => {
         if (statusFromQuery === "success") {
           setStatus("success");
@@ -34,15 +46,19 @@ export default function VerifyEmailResult() {
     const verify = async () => {
       setStatus("loading");
       setMessage("");
+
       try {
-        const res = await authApi.verifyEmail(token);
+        const res = await getVerificationRequest(token);
         if (!isMounted) return;
+
         setStatus("success");
         setMessage(
           res.data?.message || "Email verified successfully. You can now login.",
         );
       } catch (err) {
         if (!isMounted) return;
+
+        verificationRequests.delete(token);
         setStatus("error");
         setMessage(
           err.response?.data?.error ||
@@ -53,10 +69,11 @@ export default function VerifyEmailResult() {
     };
 
     verify();
+
     return () => {
       isMounted = false;
     };
-  }, [token, searchParams]);
+  }, [token, queryString]);
 
   return (
     <>
