@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import vocafitLogo from "../../assets/auth/vocafit-logo.png";
+import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
 
 export default function Footer() {
   return (

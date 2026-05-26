@@ -1,9 +1,17 @@
-import Home from "../../components/landing/Home";
-import Explore from "../../components/landing/Explore";
-import Facilities from "../../components/landing/Facilities";
-import Footer from "../../components/landing/Footer";
+import { useEffect } from "react";
+import Home from "../../components/landing/home/Home";
+import Explore from "../../components/landing/explore/Explore";
+import Facilities from "../../components/landing/facilities/Facilities";
+import Footer from "../../components/landing/footer/Footer";
 
-export default function LandingPage() {
+export default function LandingPage({ scrollToExplore = false }) {
+  useEffect(() => {
+    if (!scrollToExplore) return;
+
+    const exploreSection = document.getElementById("explore");
+    exploreSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [scrollToExplore]);
+
   return (
     <main className="landing-page">
       <style>{`
@@ -245,6 +253,19 @@ export default function LandingPage() {
           color: #fff;
         }
 
+        .explore-tabs button.is-active {
+          background: #0a1185;
+          color: #fff;
+        }
+
+        .explore-status {
+          color: #0a1185;
+          font-size: clamp(12px, 0.9vw, 14px);
+          font-weight: 800;
+          margin: 0 auto 18px;
+          text-align: center;
+        }
+
         .explore-grid {
           display: grid;
           grid-template-columns: repeat(3, minmax(220px, 1fr));
@@ -256,8 +277,19 @@ export default function LandingPage() {
           background: #d9d9d9;
           border-radius: 8px;
           color: #202020;
-          padding: clamp(16px, 1.7vw, 24px);
+          overflow: hidden;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .explore-card-image {
+          aspect-ratio: 16 / 9;
+          display: block;
+          object-fit: cover;
+          width: 100%;
+        }
+
+        .explore-card-body {
+          padding: clamp(16px, 1.7vw, 24px);
         }
 
         .explore-card span {

@@ -1,4 +1,4 @@
-import gymImage from "../../assets/auth/signup-gym.jpg";
+import gymImage from "../../../assets/auth/signup-gym.jpg";
 
 const facilities = [
   "Cardio Area",

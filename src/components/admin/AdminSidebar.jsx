@@ -1,3 +1,4 @@
+import { NavLink } from "react-router";
 import vocafitLogo from "../../assets/auth/vocafit-logo.png";
 
 const iconProps = {
@@ -63,22 +64,25 @@ const icons = {
 };
 
 const navItems = [
-  { label: "Dashboard", icon: icons.dashboard, active: true },
-  { label: "News Update", icon: icons.news },
-  { label: "Payments", icon: icons.payments },
-  { label: "Active Member", icon: icons.members },
-  { label: "Trainer", icon: icons.trainer },
+  { label: "Dashboard", icon: icons.dashboard, to: "/admin" },
+  { label: "News Update", icon: icons.news, to: "/admin/news-update" },
+  { label: "Payments", icon: icons.payments, to: "/admin/payments" },
+  { label: "Active Member", icon: icons.members, to: "/admin/active-member" },
+  { label: "Trainer", icon: icons.trainer, to: "/admin/trainer" },
 ];
 
 function SidebarButton({ item }) {
   return (
-    <button
-      className={`admin-sidebar__button${item.active ? " admin-sidebar__button--active" : ""}`}
-      type="button"
+    <NavLink
+      className={({ isActive }) =>
+        `admin-sidebar__button${isActive ? " admin-sidebar__button--active" : ""}`
+      }
+      end={item.to === "/admin"}
+      to={item.to}
     >
       <span className="admin-sidebar__icon">{item.icon}</span>
       <span className="admin-sidebar__label">{item.label}</span>
-    </button>
+    </NavLink>
   );
 }
 
@@ -149,6 +153,7 @@ export default function AdminSidebar({ onLogout }) {
           font-size: 14px;
           cursor: pointer;
           text-align: left;
+          text-decoration: none;
         }
 
         .admin-sidebar__button--active {

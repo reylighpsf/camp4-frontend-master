@@ -1,6 +1,6 @@
 import { Link } from "react-router";
-import heroImage from "../../assets/auth/signup-gym.jpg";
-import vocafitLogo from "../../assets/auth/vocafit-logo.png";
+import heroImage from "../../../assets/auth/signup-gym.jpg";
+import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
 
 export default function Home() {
   return (
@@ -16,6 +16,7 @@ export default function Home() {
         </Link>
         <div className="landing-links">
           <a href="#home">Home</a>
+          <Link to="/explore">Explore</Link>
           <a href="#facilities">Facilities</a>
           <Link to="/sign-in">Sign In</Link>
           <Link className="nav-join" to="/sign-up">

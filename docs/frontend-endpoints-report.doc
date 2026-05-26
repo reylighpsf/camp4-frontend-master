@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Frontend Endpoints Report - Vocafit</title>
+  <style>
+    body {
+      color: #111827;
+      font-family: Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.45;
+    }
+    h1 {
+      color: #080478;
+      font-size: 22pt;
+      margin-bottom: 4pt;
+    }
+    h2 {
+      border-bottom: 1px solid #cfd4dc;
+      color: #080478;
+      font-size: 16pt;
+      margin-top: 22pt;
+      padding-bottom: 4pt;
+    }
+    h3 {
+      color: #1f2937;
+      font-size: 13pt;
+      margin-top: 16pt;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 8pt 0 16pt;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #cfd4dc;
+      padding: 7pt;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #eef2ff;
+      color: #111827;
+      font-weight: bold;
+    }
+    code {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      font-family: Consolas, monospace;
+      padding: 1pt 3pt;
+    }
+    .meta {
+      color: #4b5563;
+      margin-bottom: 18pt;
+    }
+    .status-ready {
+      color: #166534;
+      font-weight: bold;
+    }
+    .status-needed {
+      color: #b45309;
+      font-weight: bold;
+    }
+    .status-existing {
+      color: #1d4ed8;
+      font-weight: bold;
+    }
+    .note {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      margin: 10pt 0;
+      padding: 9pt;
+    }
+  </style>
+</head>
+<body>
+  <h1>Frontend Endpoints Report - Vocafit</h1>
+  <p class="meta">
+    Dibuat untuk backend developer. Dokumen ini merangkum endpoint yang dipakai dan dibutuhkan oleh frontend Vocafit.
+  </p>
+
+  <h2>Base URL</h2>
+  <table>
+    <tr>
+      <th>Area</th>
+      <th>Environment Variable</th>
+      <th>Default Base URL</th>
+      <th>Catatan</th>
+    </tr>
+    <tr>
+      <td>Auth, Admin, Member feature API</td>
+      <td><code>VITE_API_URL</code></td>
+      <td><code>http://localhost:8080/api</code></td>
+      <td>Dipakai oleh <code>src/components/features/auth/authApi.js</code> dan hooks News Update.</td>
+    </tr>
+    <tr>
+      <td>Todo legacy/example API</td>
+      <td><code>VITE_SERVER_URL</code></td>
+      <td><code>http://localhost:3000/api</code></td>
+      <td>Dipakai oleh <code>src/axios/axios.js</code> dan module todos.</td>
+    </tr>
+  </table>
+
+  <h2>Authentication Endpoints</h2>
+  <table>
+    <tr>
+      <th>Method</th>
+      <th>Endpoint</th>
+      <th>Status Frontend</th>
+      <th>Request</th>
+      <th>Expected Response</th>
+      <th>Dipakai di</th>
+    </tr>
+    <tr>
+      <td>POST</td>
+      <td><code>/auth/register</code></td>
+      <td><span class="status-ready">Sudah dipakai</span></td>
+      <td>
+        <code>multipart/form-data</code><br>
+        Fields: <code>email</code>, <code>password</code>, <code>fullName</code>, <code>image?</code>
+      </td>
+      <td>Registration success message.</td>
+      <td><code>Signup.jsx</code>, <code>authApi.signup</code></td>
+    </tr>
+    <tr>
+      <td>POST</td>
+      <td><code>/auth/login</code></td>
+      <td><span class="status-ready">Sudah dipakai</span></td>
+      <td>JSON: <code>{ email, password }</code></td>
+      <td>Set cookie/session token. Frontend lanjut fetch <code>/users/me</code>.</td>
+      <td><code>Signin.jsx</code>, <code>authApi.signin</code></td>
+    </tr>
+    <tr>
+      <td>POST</td>
+      <td><code>/auth/logout</code></td>
+      <td><span class="status-ready">Sudah dipakai</span></td>
+      <td>No body</td>
+      <td>Logout success and clear cookie/session.</td>
+      <td><code>authContext.jsx</code>, Admin/Member layout logout</td>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td><code>/auth/verify-email/:token</code></td>
+      <td><span class="status-ready">Sudah dipakai</span></td>
+      <td>URL param: <code>token</code></td>
+      <td>Verification status/message.</td>
+      <td><code>VerifyEmailResult.jsx</code></td>
+    </tr>
+  </table>
+
+  <h2>User Session Endpoint</h2>
+  <table>
+    <tr>
+      <th>Method</th>
+      <th>Endpoint</th>
+      <th>Status Frontend</th>
+      <th>Request</th>
+      <th>Expected Response</th>
+      <th>Dipakai di</th>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td><code>/users/me</code></td>
+      <td><span class="status-ready">Sudah dipakai</span></td>
+      <td>Cookie/session token</td>
+      <td>
+        <code>{ data: { id, email, full_name, role, profile_image_url, ... } }</code>
+      </td>
+      <td><code>authContext.jsx</code>, route guard, dashboard greeting</td>
+    </tr>
+  </table>
+
+  <h2>Admin News Update Endpoints</h2>
+  <p>
+    Fitur frontend berada di:
+    <code>src/pages/admin/components/news-update/</code>
+  </p>
+
+  <table>
+    <tr>
+      <th>Method</th>
+      <th>Endpoint</th>
+      <th>Status Frontend</th>
+      <th>Request</th>
+      <th>Expected Response</th>
+      <th>Catatan</th>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td><code>/news</code></td>
+      <td><span class="status-ready">Sudah dipakai</span></td>
+      <td>Query optional: <code>page</code>, <code>limit</code></td>
+      <td>
+        <code>{ success: true, page, limit, total_pages, data: [...] }</code><br>
+        Item fields: <code>id</code>, <code>title</code>, <code>content</code>, <code>author_id</code>, <code>image_url</code>, <code>created_at</code>
+      </td>
+      <td>Dipakai untuk tabel daftar news.</td>
+    </tr>
+    <tr>
+      <td>POST</td>
+      <td><code>/admin/news</code></td>
+      <td><span class="status-ready">Sudah dipakai</span></td>
+      <td>
+        <code>multipart/form-data</code><br>
+        Fields: <code>title</code>, <code>content</code>, <code>image?</code>
+      </td>
+      <td>
+        <code>{ success: true, data: { id, title, content, author_id, image_url, created_at } }</code>
+      </td>
+      <td>Dipakai saat submit popup tambah news.</td>
+    </tr>
+    <tr>
+      <td>PUT</td>
+      <td><code>/admin/news/:id</code></td>
+      <td><span class="status-needed">Frontend siap, backend perlu dibuat</span></td>
+      <td>
+        <code>multipart/form-data</code><br>
+        URL param: <code>id</code><br>
+        Fields: <code>title</code>, <code>content</code>, <code>image?</code>
+      </td>
+      <td>
+        <code>{ success: true, data: { id, title, content, author_id, image_url, created_at } }</code>
+      </td>
+      <td>Dipakai tombol Edit pada tabel news.</td>
+    </tr>
+    <tr>
+      <td>DELETE</td>
+      <td><code>/admin/news/:id</code></td>
+      <td><span class="status-needed">Frontend siap, backend perlu dibuat/disambungkan</span></td>
+      <td>URL param: <code>id</code></td>
+      <td><code>{ success: true, message: "News deleted successfully" }</code></td>
+      <td>Dipakai tombol Delete pada tabel news.</td>
+    </tr>
+  </table>
+
+  <div class="note">
+    <strong>Catatan penting News Update:</strong>
+    Frontend mengirim field isi berita sebagai <code>content</code>, bukan <code>description</code>,
+    karena database backend memakai kolom <code>news.content</code>.
+  </div>
+
+  <h2>Admin Dashboard Endpoints Yang Dibutuhkan Nanti</h2>
+  <p>
+    Halaman admin sudah memiliki struktur halaman untuk Dashboard, Payments, Active Member, Trainer, dan News Update.
+    Beberapa halaman masih placeholder dan membutuhkan endpoint berikut saat integrasi backend.
+  </p>
+
+  <h3>Admin Dashboard Summary</h3>
+  <table>
+    <tr>
+      <th>Method</th>
+      <th>Endpoint</th>
+      <th>Status</th>
+      <th>Expected Data</th>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td><code>/admin/dashboard/summary</code></td>
+      <td><span class="status-needed">Dibutuhkan nanti</span></td>
+      <td>
+        <code>total_users</code>, <code>total_news</code>, <code>active_members</code>, <code>active_trainers</code>
+      </td>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td><code>/admin/dashboard/performance</code></td>
+      <td><span class="status-needed">Dibutuhkan nanti</span></td>
+      <td>Monthly member growth and revenue chart data.</td>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td><code>/admin/dashboard/recent-activities</code></td>
+      <td><span class="status-needed">Dibutuhkan nanti</span></td>
+      <td>Recent user/payment/trainer/news activity feed.</td>
+    </tr>
+  </table>
+
+  <h3>Admin Payments</h3>
+  <table>
+    <tr>
+      <th>Method</th>
+      <th>Endpoint</th>
+      <th>Status</th>
+      <th>Expected Data</th>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td><code>/admin/payments</code> or <code>/transactions</code></td>
+      <td><span class="status-needed">Dibutuhkan nanti</span></td>
+      <td>List payment transactions with user, type, amount, method, status, created_at.</td>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td><code>/transactions/cash/pending</code></td>
+      <td><span class="status-existing">Backend route terlihat ada</span></td>
+      <td>Pending cash payments.</td>
+    </tr>
+    <tr>
+      <td>POST</td>
+      <td><code>/transactions/cash/confirm</code></td>
+      <td><span class="status-existing">Backend route terlihat ada</span></td>
+      <td>Confirm cash payment payload according to backend contract.</td>
+    </tr>
+  </table>
+
+  <h3>Admin Active Member</h3>
+  <table>
+    <tr>
+      <th>Method</th>
+      <th>Endpoint</th>
+      <th>Status</th>
+      <th>Expected Data</th>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td><code>/admin/users</code></td>
+      <td><span class="status-existing">Backend route terlihat ada</span></td>
+      <td>Paginated users list: id, email, full_name, role, monthly_price, penalty_amount, created_at.</td>
+    </tr>
+    <tr>
+      <td>PUT</td>
+      <td><code>/admin/users/:id</code></td>
+      <td><span class="status-existing">Backend route terlihat ada</span></td>
+      <td>Update user role/penalty amount.</td>
+    </tr>
+    <tr>
+      <td>PATCH</td>
+      <td><code>/admin/users/:id/image</code></td>
+      <td><span class="status-existing">Backend route terlihat ada</span></td>
+      <td>Upload/update user image as multipart field <code>image</code>.</td>
+    </tr>
+  </table>
+
+  <h3>Admin Trainer</h3>
+  <table>
+    <tr>
+      <th>Method</th>
+      <th>Endpoint</th>
+      <th>Status</th>
+      <th>Expected Data</th>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td><code>/trainers</code></td>
+      <td><span class="status-existing">Backend route kemungkinan ada</span></td>
+      <td>List trainers.</td>
+    </tr>
+    <tr>
+      <td>POST</td>
+      <td><code>/trainers</code> or <code>/admin/trainers</code></td>
+      <td><span class="status-needed">Perlu disepakati</span></td>
+      <td><code>multipart/form-data</code>: name, bio, image?</td>
+    </tr>
+    <tr>
+      <td>POST</td>
+      <td><code>/trainers/schedules</code> or <code>/admin/trainers/:id/schedules</code></td>
+      <td><span class="status-needed">Perlu disepakati</span></td>
+      <td>Create trainer schedule.</td>
+    </tr>
+  </table>
+
+  <h2>Member Dashboard Endpoints Yang Dibutuhkan Nanti</h2>
+  <p>
+    Halaman member saat ini sebagian masih menggunakan data statis. Endpoint berikut akan dibutuhkan ketika data sudah dinamis.
+  </p>
+
+  <table>
+    <tr>
+      <th>Feature</th>
+      <th>Method</th>
+      <th>Endpoint</th>
+      <th>Status</th>
+      <th>Expected Data</th>
+    </tr>
+    <tr>
+      <td>Dashboard summary</td>
+      <td>GET</td>
+      <td><code>/member/dashboard</code> or <code>/users/me/dashboard</code></td>
+      <td><span class="status-needed">Dibutuhkan nanti</span></td>
+      <td>Total workouts, hours trained, monthly progress, check-in status, streak.</td>
+    </tr>
+    <tr>
+      <td>Check In/Out QR</td>
+      <td>GET</td>
+      <td><code>/visits/qr</code> or <code>/member/check-in/qr</code></td>
+      <td><span class="status-needed">Dibutuhkan nanti</span></td>
+      <td>Current QR token/string and expiry.</td>
+    </tr>
+    <tr>
+      <td>Check In/Out history</td>
+      <td>GET</td>
+      <td><code>/visits/me</code> or <code>/member/check-in/history</code></td>
+      <td><span class="status-needed">Dibutuhkan nanti</span></td>
+      <td>Date, tap_in_time, tap_out_time, duration.</td>
+    </tr>
+    <tr>
+      <td>Trainer booking</td>
+      <td>GET</td>
+      <td><code>/trainers</code></td>
+      <td><span class="status-needed">Dibutuhkan nanti</span></td>
+      <td>List available trainers.</td>
+    </tr>
+    <tr>
+      <td>Trainer booking</td>
+      <td>GET</td>
+      <td><code>/trainers/:id/schedules</code></td>
+      <td><span class="status-needed">Dibutuhkan nanti</span></td>
+      <td>Available schedules per trainer.</td>
+    </tr>
+    <tr>
+      <td>Trainer booking</td>
+      <td>POST</td>
+      <td><code>/bookings/trainer</code></td>
+      <td><span class="status-needed">Dibutuhkan nanti</span></td>
+      <td>Create PT/trainer booking.</td>
+    </tr>
+    <tr>
+      <td>Workout tracking</td>
+      <td>GET</td>
+      <td><code>/activities</code></td>
+      <td><span class="status-existing">Backend route terlihat ada</span></td>
+      <td>Member activity/workout list.</td>
+    </tr>
+    <tr>
+      <td>Workout tracking</td>
+      <td>POST</td>
+      <td><code>/activities</code></td>
+      <td><span class="status-existing">Backend route terlihat ada</span></td>
+      <td>Create workout/activity item.</td>
+    </tr>
+    <tr>
+      <td>Profile</td>
+      <td>PUT/PATCH</td>
+      <td><code>/users/me</code></td>
+      <td><span class="status-needed">Dibutuhkan nanti</span></td>
+      <td>Update current member profile.</td>
+    </tr>
+  </table>
+
+  <h2>Todo Legacy/Example Endpoints</h2>
+  <p>
+    Module todo masih ada di frontend dan memakai base URL berbeda:
+    <code>VITE_SERVER_URL || http://localhost:3000/api</code>.
+  </p>
+  <table>
+    <tr>
+      <th>Method</th>
+      <th>Endpoint</th>
+      <th>Status</th>
+      <th>Request/Response</th>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td><code>/todos</code></td>
+      <td><span class="status-existing">Legacy/example</span></td>
+      <td>Fetch todo list.</td>
+    </tr>
+    <tr>
+      <td>POST</td>
+      <td><code>/todos</code></td>
+      <td><span class="status-existing">Legacy/example</span></td>
+      <td>Create todo from schema.</td>
+    </tr>
+    <tr>
+      <td>PUT</td>
+      <td><code>/todos/:id</code></td>
+      <td><span class="status-existing">Legacy/example</span></td>
+      <td>Update todo.</td>
+    </tr>
+    <tr>
+      <td>DELETE</td>
+      <td><code>/todos/:id</code></td>
+      <td><span class="status-existing">Legacy/example</span></td>
+      <td>Delete todo.</td>
+    </tr>
+  </table>
+
+  <h2>Priority Untuk Backend Dev</h2>
+  <ol>
+    <li>Pastikan <code>POST /api/admin/news</code> menerima <code>title</code>, <code>content</code>, dan optional <code>image</code>.</li>
+    <li>Tambahkan atau konfirmasi <code>PUT /api/admin/news/:id</code> untuk Edit News.</li>
+    <li>Tambahkan atau konfirmasi <code>DELETE /api/admin/news/:id</code> untuk Delete News.</li>
+    <li>Samakan response list <code>GET /api/news</code> agar data array ada di <code>data</code>.</li>
+    <li>Untuk halaman admin lain, prioritaskan endpoint summary dashboard, users, payments, dan trainers.</li>
+  </ol>
+</body>
+</html>
