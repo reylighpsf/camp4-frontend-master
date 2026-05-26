@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router";
-import { useAuth } from "../../components/features/auth/useAuth";
+import { useAuth } from "../../components/auth/useAuth";
 import signupGym from "../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../assets/auth/vocafit-logo.png";
 

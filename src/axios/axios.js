@@ -8,11 +8,6 @@ const api = axios.create({
 
 // "http://localhost:3000/api" + "users" => "http://localhost:3000/api/users"
 
-// const myData = fetch("https://jsonplaceholder.typicode.com/todos/1")
-//   .then((res) => res.json())
-//   .then((data) => console.log(data))
-//   .catch((err) => console.error(err));
-
 export const request = async ({ method, url, data, signal }) => {
   try {
     const res = await api({ method, url, data, signal });

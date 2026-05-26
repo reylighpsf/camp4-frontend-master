@@ -1,14 +1,23 @@
 import { createBrowserRouter } from "react-router";
 
-import PrivateAuth from "../components/features/auth/PrivateAuth";
-import PublicAuth from "../components/features/auth/PublicAuth";
-import AllowRole from "../components/features/auth/AllowRole";
-import TodosPage from "../pages/todos";
+import PrivateAuth from "../components/auth/PrivateAuth";
+import PublicAuth from "../components/auth/PublicAuth";
+import AllowRole from "../components/auth/AllowRole";
+import LandingPage from "../pages/landing";
 import SigninPage from "../pages/auth/Signin";
 import SignupPage from "../pages/auth/Signup";
 import VerifyEmailPage from "../pages/auth/VerifyEmail";
 import VerifyEmailResultPage from "../pages/auth/VerifyEmailResult";
-import AdminPage from "../pages/admin/Admin";
+import AdminPage from "../pages/admin/Dashboard";
+import ActiveMemberPage from "../pages/admin/components/active-member/ActiveMember";
+import NewsUpdatePage from "../pages/admin/components/news-update/NewsUpdate";
+import PaymentsPage from "../pages/admin/components/payments/Payments";
+import TrainerPage from "../pages/admin/components/trainer/Trainer";
+import MemberDashboard from "../pages/member/Dashboard";
+import CheckInOutPage from "../pages/member/components/check-in-out/CheckInOut";
+import ProfilePage from "../pages/member/components/profile/Profile";
+import TrainerBookingPage from "../pages/member/components/trainer-booking/TrainerBooking";
+import WorkoutTrackingPage from "../pages/member/components/workout-tracking/WorkoutTracking";
 import UnauthorizedPage from "../pages/Unauthorized";
 import NotFound from "../pages/NotFound";
 
@@ -42,15 +51,13 @@ export const router = createBrowserRouter([
     path: "/verify-email/:token",
     element: <VerifyEmailResultPage />,
   },
-
-  // PRIVATE
   {
     path: "/",
-    element: (
-      <PrivateAuth>
-        <TodosPage />
-      </PrivateAuth>
-    ),
+    element: <LandingPage />,
+  },
+  {
+    path: "/explore",
+    element: <LandingPage scrollToExplore />,
   },
 
   // ROLE BASED
@@ -58,8 +65,98 @@ export const router = createBrowserRouter([
     path: "/admin",
     element: (
       <PrivateAuth>
-        <AllowRole allowedRoles={["admin"]}>
+        <AllowRole allowedRoles={["pengurus", "admin"]}>
           <AdminPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/admin/news-update",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["pengurus", "admin"]}>
+          <NewsUpdatePage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/admin/payments",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["pengurus", "admin"]}>
+          <PaymentsPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/admin/active-member",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["pengurus", "admin"]}>
+          <ActiveMemberPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/admin/trainer",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["pengurus", "admin"]}>
+          <TrainerPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/member",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["member"]}>
+          <MemberDashboard />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/member/check-in",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["member"]}>
+          <CheckInOutPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/member/trainer-booking",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["member"]}>
+          <TrainerBookingPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/member/workout-tracking",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["member"]}>
+          <WorkoutTrackingPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/member/profile",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["member"]}>
+          <ProfilePage />
         </AllowRole>
       </PrivateAuth>
     ),

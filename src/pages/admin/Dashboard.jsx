@@ -1,39 +1,13 @@
 import { useNavigate } from "react-router";
-import { useAuth } from "../../components/features/auth/useAuth";
+import { useAuth } from "../../components/auth/useAuth";
 import gymImage from "../../assets/auth/signup-gym.jpg";
 import AdminSidebar, { Icon } from "../../components/admin/AdminSidebar";
-
-const statCards = [
-  { label: "Total Pengguna", value: "1", caption: "TERDAFTAR", icon: "users" },
-  { label: "Total Berita", value: "1", caption: "DIPUBLIKASIKAN", icon: "news" },
-  { label: "Total Member", value: "1", caption: "AKTIF", icon: "members" },
-  { label: "Total Trainer", value: "3", caption: "AKTIF", icon: "trainer" },
-];
-
-const trainers = [
-  ["Coach Cam Cameron", "10 member"],
-  ["Coach Jeremiah Fisher", "8 member"],
-  ["Coach Conrad Fisher", "5 member"],
-];
-
-const payments = [
-  ["Andi", "Member", "Sukses", "150.000"],
-  ["Budi", "Member", "Sukses", "200.000"],
-  ["Siti", "Member", "Sukses", "150.000"],
-  ["Riri", "Member", "Sukses", "150.000"],
-  ["Eca", "Member", "Sukses", "150.000"],
-];
-
-const activities = [
-  ["Rian (Member) mendaftar", "10 menit lalu", "#ffd76a"],
-  ["Pembayaran Sukses dari Andi", "25 menit lalu", "#a7f36f"],
-  ["Trainer budi mengubah jadwal", "1 jam lalu", "#ffbd4a"],
-  ["Siti (Member) memperbarui profil", "2 jam lalu", "#ffd76a"],
-];
+import useAdminDashboard from "./hooks/useAdminDashboard";
 
 export default function AdminPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const { statCards, trainers, payments, activities } = useAdminDashboard();
 
   const handleLogout = async () => {
     await logout();
@@ -264,7 +238,7 @@ export default function AdminPage() {
         .bottom-grid {
           grid-column: 1 / -1;
           display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1.05fr);
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
           gap: 16px;
         }
 
@@ -288,8 +262,7 @@ export default function AdminPage() {
           text-align: right;
         }
 
-        .trainer-photo,
-        .news-thumb {
+        .trainer-photo {
           object-fit: cover;
           border-radius: 8px;
         }
@@ -317,23 +290,10 @@ export default function AdminPage() {
           padding: 10px 9px;
         }
 
-        .news-list {
-          display: grid;
-          gap: 24px;
-          padding-top: 8px;
-        }
-
-        .news-item {
-          display: grid;
-          grid-template-columns: 34px 1fr;
-          gap: 18px;
-          align-items: center;
+        .empty-state {
+          color: #747884;
           font-size: 12px;
-        }
-
-        .news-thumb {
-          width: 32px;
-          height: 40px;
+          padding: 18px 0 4px;
         }
 
         @media (max-width: 1040px) {
@@ -470,6 +430,7 @@ export default function AdminPage() {
                 <span className="view-all">Lihat Semua</span>
               </div>
               <div className="activity-list">
+                {activities.length === 0 && <p className="empty-state">Belum ada aktivitas.</p>}
                 {activities.map(([text, time, color], index) => (
                   <div className="activity-item" key={text}>
                     <span className="activity-icon" style={{ background: color }}>
@@ -493,6 +454,7 @@ export default function AdminPage() {
               <article className="panel">
                 <h2 className="panel-title">Trainer Terpopuler Hari ini</h2>
                 <div className="trainer-list">
+                  {trainers.length === 0 && <p className="empty-state">Belum ada trainer.</p>}
                   {trainers.map(([name, members], index) => (
                     <div className="trainer-row" key={name}>
                       <span className="rank">{index + 1}.</span>
@@ -507,6 +469,11 @@ export default function AdminPage() {
                 <h2 className="panel-title">Pembayaran Terbaru</h2>
                 <table className="payment-table" aria-label="Pembayaran terbaru">
                   <tbody>
+                    {payments.length === 0 && (
+                      <tr>
+                        <td colSpan="4">Belum ada pembayaran.</td>
+                      </tr>
+                    )}
                     {payments.map((row) => (
                       <tr key={`${row[0]}-${row[3]}`}>
                         {row.map((cell) => <td key={cell}>{cell}</td>)}
@@ -516,17 +483,6 @@ export default function AdminPage() {
                 </table>
               </article>
 
-              <article className="panel">
-                <h2 className="panel-title">News Update Preview</h2>
-                <div className="news-list">
-                  {["Promo Bulan Mei 2026", "Tips Diet Sehat 2026", "3 Must Do Before Lifting"].map((title) => (
-                    <div className="news-item" key={title}>
-                      <img className="news-thumb" src={gymImage} alt="" />
-                      <span>{title}</span>
-                    </div>
-                  ))}
-                </div>
-              </article>
             </section>
           </div>
         </section>

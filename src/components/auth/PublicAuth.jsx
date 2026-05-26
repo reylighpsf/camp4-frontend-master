@@ -1,11 +1,14 @@
 import { Navigate } from "react-router";
 import { useAuth } from "./useAuth";
 
+const isAdminRole = (role) => role === "pengurus" || role === "admin";
+
 const PublicAuth = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) return <LoadingScreen />;
-  if (user) return <Navigate to={user.role === "admin" ? "/admin" : "/"} replace />;
+  if (user)
+    return <Navigate to={isAdminRole(user.role) ? "/admin" : "/member"} replace />;
   return children;
 };
 

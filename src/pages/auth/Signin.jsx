@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router";
-import { useAuth } from "../../components/features/auth/useAuth";
+import { useAuth } from "../../components/auth/useAuth";
 import signinGym from "../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../assets/auth/vocafit-logo.png";
+
+const isAdminRole = (role) => role === "pengurus" || role === "admin";
 
 function Toast({ message, onClose }) {
   useEffect(() => {
@@ -135,7 +137,7 @@ export default function Signin() {
     setLoading(true);
     try {
       const user = await signin(form);
-      navigate(user?.role === "admin" ? "/admin" : "/");
+      navigate(isAdminRole(user?.role) ? "/admin" : "/member");
     } catch (err) {
       const res = err.response?.data;
       if (Array.isArray(res)) {

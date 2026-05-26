@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import signupGym from "../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../assets/auth/vocafit-logo.png";
-import { authApi } from "../../components/features/auth/authApi";
+import { authApi } from "../../components/auth/authApi";
 
 export default function VerifyEmailResult() {
   const { token } = useParams();
