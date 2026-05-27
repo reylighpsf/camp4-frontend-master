@@ -2,9 +2,24 @@ import { useEffect, useState } from "react";
 import { authApi } from "./authApi";
 import { AuthContext } from "./authContextValue";
 
+const SKIP_ME_PATHS = [
+  "/sign-in",
+  "/sign-up",
+  "/verify-email",
+  "/verify-email/result",
+];
+
+const shouldSkipFetchMe = (pathname) => {
+  return SKIP_ME_PATHS.includes(pathname) || pathname.startsWith("/verify-email/");
+};
+
+const shouldSkipInitialFetchMe = () => {
+  return shouldSkipFetchMe(window.location.pathname);
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!shouldSkipInitialFetchMe());
 
   const fetchMe = async () => {
     try {
@@ -21,6 +36,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    const pathname = window.location.pathname;
+
+    if (shouldSkipFetchMe(pathname)) {
+      return;
+    }
+
     const timeoutId = setTimeout(() => {
       fetchMe();
     }, 0);

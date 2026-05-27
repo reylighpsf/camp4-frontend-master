@@ -33,6 +33,12 @@ export default function MemberIcon({ name }) {
       </>
     ),
     dumbbell: <path d="M6 7v10M18 7v10M3 9v6M21 9v6M6 12h12" />,
+    card: (
+      <>
+        <rect x="3" y="6" width="18" height="12" rx="2" />
+        <path d="M3 10h18M7 15h4" />
+      </>
+    ),
     profile: (
       <>
         <circle cx="12" cy="8" r="4" />
