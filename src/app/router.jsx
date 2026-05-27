@@ -18,6 +18,7 @@ import CheckInOutPage from "../pages/member/components/check-in-out/CheckInOut";
 import ProfilePage from "../pages/member/components/profile/Profile";
 import TrainerBookingPage from "../pages/member/components/trainer-booking/TrainerBooking";
 import WorkoutTrackingPage from "../pages/member/components/workout-tracking/WorkoutTracking";
+import MembershipPackagesPage from "../pages/member/components/membership-packages/MembershipPackages";
 import UnauthorizedPage from "../pages/Unauthorized";
 import NotFound from "../pages/NotFound";
 
@@ -65,7 +66,7 @@ export const router = createBrowserRouter([
     path: "/admin",
     element: (
       <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus", "admin"]}>
+        <AllowRole allowedRoles={["pengurus"]}>
           <AdminPage />
         </AllowRole>
       </PrivateAuth>
@@ -75,7 +76,7 @@ export const router = createBrowserRouter([
     path: "/admin/news-update",
     element: (
       <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus", "admin"]}>
+        <AllowRole allowedRoles={["pengurus"]}>
           <NewsUpdatePage />
         </AllowRole>
       </PrivateAuth>
@@ -85,7 +86,7 @@ export const router = createBrowserRouter([
     path: "/admin/payments",
     element: (
       <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus", "admin"]}>
+        <AllowRole allowedRoles={["pengurus"]}>
           <PaymentsPage />
         </AllowRole>
       </PrivateAuth>
@@ -95,7 +96,7 @@ export const router = createBrowserRouter([
     path: "/admin/active-member",
     element: (
       <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus", "admin"]}>
+        <AllowRole allowedRoles={["pengurus"]}>
           <ActiveMemberPage />
         </AllowRole>
       </PrivateAuth>
@@ -105,7 +106,7 @@ export const router = createBrowserRouter([
     path: "/admin/trainer",
     element: (
       <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus", "admin"]}>
+        <AllowRole allowedRoles={["pengurus"]}>
           <TrainerPage />
         </AllowRole>
       </PrivateAuth>
