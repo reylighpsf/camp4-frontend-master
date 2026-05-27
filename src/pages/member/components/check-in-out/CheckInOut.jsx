@@ -1,19 +1,9 @@
+import { useCallback, useEffect, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import MemberIcon from "../../../../components/member/MemberIcon";
-import vocafitLogo from "../../../../assets/auth/vocafit-logo.png";
-
-const qrCells = [
-  1, 1, 1, 0, 0, 1, 0, 1, 1, 1,
-  1, 0, 1, 1, 0, 0, 1, 0, 0, 1,
-  1, 1, 1, 0, 1, 1, 0, 1, 1, 1,
-  0, 1, 0, 1, 1, 0, 1, 1, 0, 0,
-  1, 0, 1, 0, 0, 1, 1, 0, 1, 1,
-  0, 1, 1, 1, 0, 1, 0, 1, 0, 1,
-  1, 0, 0, 1, 1, 0, 1, 0, 1, 0,
-  1, 1, 0, 0, 1, 1, 0, 1, 1, 0,
-  0, 1, 1, 0, 1, 0, 1, 0, 0, 1,
-  1, 0, 1, 1, 0, 1, 0, 1, 1, 1,
-];
+import api from "../../../../components/auth/authApi";
+import { useAuth } from "../../../../components/auth/useAuth";
 
 const tapHistory = [
   ["15 May 2026", "07:10 AM", "09:00 AM", "1h 50m"],
@@ -21,7 +11,46 @@ const tapHistory = [
   ["13 May 2026", "08:30 AM", "09:45 AM", "1h 15m"],
 ];
 
+const getErrorMessage = (err, fallback) =>
+  err.response?.data?.error || err.response?.data?.message || err.message || fallback;
+
 export default function CheckInOutPage() {
+  const { user } = useAuth();
+  const [qrToken, setQrToken] = useState("");
+  const [crowd, setCrowd] = useState(null);
+  const [loadingQr, setLoadingQr] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchQr = useCallback(async () => {
+    setLoadingQr(true);
+    setError("");
+    try {
+      const response = await api.get("/visits/qr");
+      setQrToken(response.data?.data?.qrToken || "");
+    } catch (err) {
+      setError(getErrorMessage(err, "Gagal membuat QR code."));
+      setQrToken("");
+    } finally {
+      setLoadingQr(false);
+    }
+  }, []);
+
+  const fetchCrowd = useCallback(async () => {
+    try {
+      const response = await api.get("/visits/crowd");
+      setCrowd(response.data?.data || null);
+    } catch {
+      setCrowd(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchQr();
+    fetchCrowd();
+  }, [fetchCrowd, fetchQr]);
+
+  const displayName = user?.full_name || user?.name || user?.email || "Member";
+
   return (
     <MemberLayout active="Check In/Check Out">
       <style>{`
@@ -33,15 +62,10 @@ export default function CheckInOutPage() {
         .tap-avatar { width: 56px; height: 56px; display: grid; place-items: center; background: #766bd2; border: 2px solid #ff7a00; border-radius: 50%; color: #fff; }
         .tap-profile h2 { color: #080478; font-size: 19px; font-weight: 900; margin: 0 0 4px; }
         .tap-profile p { color: #44449b; font-size: 13px; font-weight: 700; margin: 0; }
-        .qr-frame { width: min(240px, 100%); aspect-ratio: 1; display: grid; place-items: center; margin: 42px auto 34px; padding: 26px; background: #fff; border-radius: 10px; box-shadow: 0 0 22px rgba(8, 4, 120, .14); }
-        .qr-code { position: relative; width: 100%; aspect-ratio: 1; display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; background: #fff; }
-        .qr-code i { background: #050505; min-width: 0; min-height: 0; }
-        .qr-corner { position: absolute; width: 42px; height: 42px; border: 7px solid #050505; border-radius: 8px; background: #fff; }
-        .qr-corner::after { content: ""; position: absolute; inset: 7px; background: #050505; border-radius: 4px; }
-        .qr-corner.tl { top: 0; left: 0; }
-        .qr-corner.tr { top: 0; right: 0; }
-        .qr-corner.bl { bottom: 0; left: 0; }
-        .qr-logo { position: absolute; inset: 50%; width: 42px; height: 42px; padding: 5px; transform: translate(-50%, -50%); background: #fff; border-radius: 8px; object-fit: contain; }
+        .qr-frame { width: min(260px, 100%); aspect-ratio: 1; display: grid; place-items: center; margin: 42px auto 34px; padding: 22px; background: #fff; border-radius: 10px; box-shadow: 0 0 22px rgba(8, 4, 120, .14); }
+        .qr-frame svg { display: block; height: 100%; width: 100%; }
+        .qr-token { color: #080478; font-size: 11px; font-weight: 800; margin: -18px auto 24px; max-width: 320px; overflow-wrap: anywhere; text-align: center; }
+        .tap-error { color: #c73822; font-size: 12px; font-weight: 800; margin: 0 0 14px; text-align: center; }
         .tap-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; border-bottom: 1px solid #cfd0df; padding-bottom: 18px; }
         .tap-button { min-height: 36px; border: 0; border-radius: 7px; color: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font: inherit; font-size: 11px; font-weight: 800; }
         .tap-button.hide { background: #080478; }
@@ -80,24 +104,26 @@ export default function CheckInOutPage() {
             <div className="tap-profile">
               <span className="tap-avatar"><MemberIcon name="flower" /></span>
               <div>
-                <h2>John Doe</h2>
-                <p>ID: VF1234567890</p>
+                <h2>{displayName}</h2>
+                <p>ID: {user?.id || "-"}</p>
               </div>
             </div>
 
             <div className="qr-frame">
-              <div className="qr-code" aria-label="QR code">
-                {qrCells.map((isFilled, index) => <i key={index} style={{ opacity: isFilled ? 1 : 0 }} />)}
-                <span className="qr-corner tl" />
-                <span className="qr-corner tr" />
-                <span className="qr-corner bl" />
-                <img className="qr-logo" src={vocafitLogo} alt="" />
-              </div>
+              {loadingQr ? (
+                <p>Memuat QR...</p>
+              ) : qrToken ? (
+                <QRCodeSVG value={qrToken} size={216} level="M" includeMargin />
+              ) : (
+                <p>QR tidak tersedia</p>
+              )}
             </div>
+            {error && <p className="tap-error">{error}</p>}
+            {qrToken && <p className="qr-token">{qrToken}</p>}
 
             <div className="tap-actions">
               <button className="tap-button hide" type="button">Hide QR Code</button>
-              <button className="tap-button refresh" type="button">Refresh QR</button>
+              <button className="tap-button refresh" onClick={fetchQr} type="button">Refresh QR</button>
             </div>
             <p className="tap-help">Show this QR code at the entrance gate.</p>
           </article>
@@ -109,14 +135,14 @@ export default function CheckInOutPage() {
                 <span>Tap-In Status</span>
                 <div className="session-box orange">
                   <span className="session-icon"><MemberIcon name="login" /></span>
-                  <div className="session-copy"><small>You are currently</small><strong>Checked In</strong></div>
+                  <div className="session-copy"><small>Gym condition</small><strong>{crowd?.status || "Unknown"}</strong></div>
                 </div>
               </div>
               <div className="session-item">
                 <span>Latest Activity</span>
                 <div className="session-box yellow">
                   <span className="session-icon">◷</span>
-                  <div className="session-copy"><strong>08:43 AM - Tap In</strong><small>Today, May 13, 2026</small></div>
+                  <div className="session-copy"><strong>{crowd?.count ?? "-"} visitors</strong><small>Current live crowd</small></div>
                 </div>
               </div>
               <div className="session-item">

@@ -153,6 +153,16 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/member/membership",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["member"]}>
+          <MembershipPackagesPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
     path: "/member/profile",
     element: (
       <PrivateAuth>
