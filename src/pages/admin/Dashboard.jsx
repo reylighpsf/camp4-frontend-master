@@ -1,18 +1,51 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../components/auth/useAuth";
 import gymImage from "../../assets/auth/signup-gym.jpg";
 import AdminSidebar, { Icon } from "../../components/admin/AdminSidebar";
 import useAdminDashboard from "./hooks/useAdminDashboard";
+import getSocket from "../../components/socket/socketClient";
+
+const getScanNotification = (payload) => {
+  const data = payload?.data || payload || {};
+  const name = data.user?.full_name || data.user?.name || data.full_name || data.name || data.userName || "Member";
+  const action = data.action || data.type || data.status || "SCAN";
+  const message = data.message || `${name} ${action === "TAP_OUT" ? "tap out" : "tap in"} berhasil.`;
+
+  return {
+    id: `${Date.now()}-${Math.random()}`,
+    message,
+    meta: data.timestamp || new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+  };
+};
 
 export default function AdminPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const { statCards, trainers, payments, activities } = useAdminDashboard();
+  const { statCards, trainers, payments, activities, activeVisitors } = useAdminDashboard();
+  const [scanNotifications, setScanNotifications] = useState([]);
 
   const handleLogout = async () => {
     await logout();
     navigate("/sign-in");
   };
+
+  useEffect(() => {
+    const socket = getSocket();
+    const scanEvents = ["visit:scan", "visit:scanned", "visit:updated", "scan:success"];
+
+    const handleScanEvent = (payload) => {
+      const notification = getScanNotification(payload);
+      setScanNotifications((current) => [notification, ...current].slice(0, 3));
+    };
+
+    scanEvents.forEach((eventName) => socket.on(eventName, handleScanEvent));
+    socket.connect();
+
+    return () => {
+      scanEvents.forEach((eventName) => socket.off(eventName, handleScanEvent));
+    };
+  }, []);
 
   return (
     <>
@@ -285,15 +318,50 @@ export default function AdminPage() {
           margin-top: 4px;
         }
 
-        .payment-table td {
+        .payment-table td,
+        .payment-table th {
           border: 1px solid #0e0e16;
           padding: 10px 9px;
+          text-align: left;
         }
 
         .empty-state {
           color: #747884;
           font-size: 12px;
           padding: 18px 0 4px;
+        }
+
+        .scan-toast-stack {
+          display: grid;
+          gap: 10px;
+          max-width: min(360px, calc(100vw - 32px));
+          position: fixed;
+          right: 18px;
+          top: 18px;
+          z-index: 50;
+        }
+
+        .scan-toast {
+          background: #fff;
+          border-left: 4px solid #18a058;
+          border-radius: 8px;
+          box-shadow: 0 14px 28px rgba(6, 7, 80, 0.2);
+          color: #05050c;
+          padding: 14px 16px;
+        }
+
+        .scan-toast strong {
+          display: block;
+          font-size: 13px;
+          line-height: 1.25;
+          margin-bottom: 4px;
+        }
+
+        .scan-toast span {
+          color: #747884;
+          display: block;
+          font-size: 11px;
+          font-weight: 700;
         }
 
         @media (max-width: 1040px) {
@@ -339,6 +407,17 @@ export default function AdminPage() {
           }
         }
       `}</style>
+
+      {scanNotifications.length > 0 && (
+        <div className="scan-toast-stack" aria-live="polite">
+          {scanNotifications.map((notification) => (
+            <div className="scan-toast" key={notification.id}>
+              <strong>{notification.message}</strong>
+              <span>{notification.meta}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <main className="admin-page">
         <AdminSidebar onLogout={handleLogout} />
@@ -444,10 +523,29 @@ export default function AdminPage() {
                         )}
                       </Icon>
                     </span>
-                    <span className="activity-text">{text}<span className="activity-time">({time})</span></span>
+                    <span className="activity-text">{text}{time && <span className="activity-time">({time})</span>}</span>
                   </div>
                 ))}
               </div>
+              <table className="payment-table" aria-label="Active visitor names">
+                <thead>
+                  <tr>
+                    <th>Nama Visitors</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(activeVisitors || []).length === 0 && (
+                    <tr>
+                      <td>Belum ada data nama visitor aktif.</td>
+                    </tr>
+                  )}
+                  {(activeVisitors || []).map((visitor) => (
+                    <tr key={visitor.name}>
+                      <td>{visitor.name}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </article>
 
             <section className="bottom-grid">

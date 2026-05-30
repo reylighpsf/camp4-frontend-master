@@ -11,6 +11,7 @@ const emptyDashboard = {
   trainers: [],
   payments: [],
   activities: [],
+  activeVisitors: [],
 };
 
 const getPayload = (response) => response?.data?.data || response?.data || {};
@@ -20,28 +21,28 @@ const formatCurrency = (value) => Number(value || 0).toLocaleString("id-ID");
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
 
-const normalizeSummary = (summary = {}) => [
+const normalizeSummary = ({ users = [], trainers = [], news = [] } = {}) => [
   {
     label: "Total Pengguna",
-    value: formatNumber(summary.total_users ?? summary.totalUsers ?? summary.users_count),
+    value: formatNumber(users.length),
     caption: "TERDAFTAR",
     icon: "users",
   },
   {
     label: "Total Berita",
-    value: formatNumber(summary.total_news ?? summary.totalNews ?? summary.news_count),
+    value: formatNumber(news.length),
     caption: "DIPUBLIKASIKAN",
     icon: "news",
   },
   {
     label: "Total Member",
-    value: formatNumber(summary.active_members ?? summary.activeMembers ?? summary.members_count),
-    caption: "AKTIF",
+    value: formatNumber(users.filter((user) => user.role === "member").length),
+    caption: "TERDAFTAR",
     icon: "members",
   },
   {
     label: "Total Trainer",
-    value: formatNumber(summary.active_trainers ?? summary.activeTrainers ?? summary.trainers_count),
+    value: formatNumber(trainers.length),
     caption: "AKTIF",
     icon: "trainer",
   },
@@ -79,34 +80,6 @@ const normalizeActivities = (payload) => {
   });
 };
 
-const getNewsCount = (payload) => {
-  if (typeof payload === "number") return payload;
-  if (typeof payload === "string") return Number(payload) || 0;
-  if (Array.isArray(payload)) return payload.length;
-  if (Array.isArray(payload.data)) return payload.data.length;
-  if (Array.isArray(payload.news)) return payload.news.length;
-  if (Array.isArray(payload.items)) return payload.items.length;
-  if (Array.isArray(payload.results)) return payload.results.length;
-
-  if (payload.data && typeof payload.data === "object") return getNewsCount(payload.data);
-  if (payload.meta && typeof payload.meta === "object") return getNewsCount(payload.meta);
-
-  return (
-    payload.total ??
-    payload.total_count ??
-    payload.totalCount ??
-    payload.total_news ??
-    payload.totalNews ??
-    payload.news_count ??
-    payload.newsCount ??
-    payload.count ??
-    0
-  );
-};
-
-const updateStatCardValue = (statCards, label, value) =>
-  statCards.map((card) => (card.label === label ? { ...card, value: formatNumber(value) } : card));
-
 export default function useAdminDashboard() {
   const [dashboard, setDashboard] = useState(emptyDashboard);
   const [loading, setLoading] = useState(true);
@@ -118,24 +91,29 @@ export default function useAdminDashboard() {
 
     try {
       const [
-        summaryResult,
+        usersResult,
         trainersResult,
         paymentsResult,
-        activitiesResult,
-        newsCountResult,
+        newsResult,
+        crowdResult,
       ] = await Promise.allSettled([
-        api.get("/admin/dashboard/summary"),
+        api.get("/admin/users", { params: { page: 1, limit: 100 } }),
         api.get("/trainers"),
-        api.get("/admin/payments"),
-        api.get("/admin/dashboard/recent-activities"),
-        api.get("/admin/news/count").catch(() => api.get("/news/count")),
+        api.get("/transactions/cash/pending"),
+        api.get("/news"),
+        api.get("/visits/crowd"),
       ]);
 
       const nextDashboard = { ...emptyDashboard };
+      const users = usersResult.status === "fulfilled" ? getPayload(usersResult.value) : [];
+      const trainersPayload = trainersResult.status === "fulfilled" ? getPayload(trainersResult.value) : [];
+      const news = newsResult.status === "fulfilled" ? getPayload(newsResult.value) : [];
 
-      if (summaryResult.status === "fulfilled") {
-        nextDashboard.statCards = normalizeSummary(getPayload(summaryResult.value));
-      }
+      nextDashboard.statCards = normalizeSummary({
+        users: Array.isArray(users) ? users : [],
+        trainers: Array.isArray(trainersPayload) ? trainersPayload : [],
+        news: Array.isArray(news) ? news : [],
+      });
 
       if (trainersResult.status === "fulfilled") {
         const trainers = normalizeTrainers(getPayload(trainersResult.value));
@@ -147,25 +125,29 @@ export default function useAdminDashboard() {
         nextDashboard.payments = payments;
       }
 
-      if (activitiesResult.status === "fulfilled") {
-        const activities = normalizeActivities(getPayload(activitiesResult.value));
-        nextDashboard.activities = activities;
-      }
-
-      if (newsCountResult.status === "fulfilled") {
-        nextDashboard.statCards = updateStatCardValue(
-          nextDashboard.statCards,
-          "Total Berita",
-          getNewsCount(getPayload(newsCountResult.value)),
-        );
+      if (crowdResult.status === "fulfilled") {
+        const crowd = getPayload(crowdResult.value);
+        nextDashboard.activities = normalizeActivities([
+          {
+            text: `${crowd.count ?? 0} visitors`,
+            time: "",
+            color: "#ffd76a",
+          },
+        ]);
+        const visitors = crowd.visitors || crowd.activeVisitors || crowd.active_visitors || [];
+        nextDashboard.activeVisitors = Array.isArray(visitors)
+          ? visitors.map((visitor) => ({
+              name: visitor.full_name || visitor.name || visitor.email || "Visitor",
+            }))
+          : [];
       }
 
       const rejected = [
-        summaryResult,
+        usersResult,
         trainersResult,
         paymentsResult,
-        activitiesResult,
-        newsCountResult,
+        newsResult,
+        crowdResult,
       ].find(
         (result) => result.status === "rejected",
       );

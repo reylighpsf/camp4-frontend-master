@@ -4,6 +4,7 @@ import MemberLayout from "../../../../components/member/MemberLayout";
 import MemberIcon from "../../../../components/member/MemberIcon";
 import api from "../../../../components/auth/authApi";
 import { useAuth } from "../../../../components/auth/useAuth";
+import getSocket from "../../../../components/socket/socketClient";
 
 const tapHistory = [
   ["15 May 2026", "07:10 AM", "09:00 AM", "1h 50m"],
@@ -16,8 +17,10 @@ const getErrorMessage = (err, fallback) =>
 
 export default function CheckInOutPage() {
   const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
   const [qrToken, setQrToken] = useState("");
   const [crowd, setCrowd] = useState(null);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [loadingQr, setLoadingQr] = useState(true);
   const [error, setError] = useState("");
 
@@ -44,57 +47,477 @@ export default function CheckInOutPage() {
     }
   }, []);
 
+  const fetchProfile = useCallback(async () => {
+    try {
+      const response = await api.get("/users/me");
+      setProfile(response.data?.data || null);
+    } catch {
+      setProfile(null);
+    }
+  }, []);
+
   useEffect(() => {
-    fetchQr();
-    fetchCrowd();
-  }, [fetchCrowd, fetchQr]);
+    const timeoutId = setTimeout(() => {
+      fetchProfile();
+      fetchQr();
+      fetchCrowd();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [fetchCrowd, fetchProfile, fetchQr]);
+
+  useEffect(() => {
+    const socket = getSocket();
+
+    const handleConnect = () => setSocketConnected(true);
+    const handleDisconnect = () => setSocketConnected(false);
+    const handleCrowdUpdate = (payload) => {
+      setCrowd(payload?.data || payload || null);
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("crowd:update", handleCrowdUpdate);
+    socket.on("visit:updated", handleCrowdUpdate);
+
+    socket.connect();
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("crowd:update", handleCrowdUpdate);
+      socket.off("visit:updated", handleCrowdUpdate);
+    };
+  }, []);
 
   const displayName = user?.full_name || user?.name || user?.email || "Member";
+  const membershipStatus = String(profile?.membership_status || profile?.membership?.status || "").toLowerCase();
+  const isMembershipActive =
+    Boolean(profile?.active_membership) || membershipStatus === "active" || membershipStatus === "aktif";
+  const membershipEndDate =
+    profile?.membership_end_date || profile?.membership?.end_date || user?.membership_end_date;
+  const membershipRemainingText = (() => {
+    if (!isMembershipActive || !membershipEndDate) return "Membership tidak aktif";
+
+    const diffMs = new Date(membershipEndDate).getTime() - Date.now();
+    if (diffMs <= 0) return "Membership tidak aktif";
+
+    const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    return `Sisa membership: ${days} hari`;
+  })();
 
   return (
     <MemberLayout active="Check In/Check Out">
-      <style>{`
-        .tap-page { display: grid; gap: 30px; }
-        .tap-title { color: #080478; font-family: 'Anton', sans-serif; font-size: 34px; font-weight: 400; letter-spacing: 0; line-height: 1; }
-        .tap-grid { display: grid; grid-template-columns: minmax(360px, 1fr) minmax(330px, .95fr); gap: 32px; }
-        .tap-card { background: #f8f8fb; border-radius: 10px; box-shadow: 0 14px 28px rgba(8, 4, 120, .16); padding: 28px; }
-        .tap-profile { display: flex; align-items: center; gap: 18px; border-bottom: 1px solid #cfd0df; padding-bottom: 18px; }
-        .tap-avatar { width: 56px; height: 56px; display: grid; place-items: center; background: #766bd2; border: 2px solid #ff7a00; border-radius: 50%; color: #fff; }
-        .tap-profile h2 { color: #080478; font-size: 19px; font-weight: 900; margin: 0 0 4px; }
-        .tap-profile p { color: #44449b; font-size: 13px; font-weight: 700; margin: 0; }
-        .qr-frame { width: min(260px, 100%); aspect-ratio: 1; display: grid; place-items: center; margin: 42px auto 34px; padding: 22px; background: #fff; border-radius: 10px; box-shadow: 0 0 22px rgba(8, 4, 120, .14); }
-        .qr-frame svg { display: block; height: 100%; width: 100%; }
-        .qr-token { color: #080478; font-size: 11px; font-weight: 800; margin: -18px auto 24px; max-width: 320px; overflow-wrap: anywhere; text-align: center; }
-        .tap-error { color: #c73822; font-size: 12px; font-weight: 800; margin: 0 0 14px; text-align: center; }
-        .tap-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; border-bottom: 1px solid #cfd0df; padding-bottom: 18px; }
-        .tap-button { min-height: 36px; border: 0; border-radius: 7px; color: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font: inherit; font-size: 11px; font-weight: 800; }
-        .tap-button.hide { background: #080478; }
-        .tap-button.refresh { background: #ff7415; }
-        .tap-help { color: #44449b; font-size: 12px; font-weight: 700; margin: 18px 0 0; text-align: center; }
-        .session-title { color: #080478; font-size: 24px; font-weight: 900; margin: 0 0 26px; }
-        .session-list { display: grid; gap: 22px; }
-        .session-item span { display: block; color: #6867a9; font-size: 12px; font-weight: 800; margin-bottom: 9px; }
-        .session-box { min-height: 76px; display: flex; align-items: center; gap: 16px; border-radius: 8px; padding: 14px 26px; }
-        .session-box.orange { background: #ffd8bd; border: 1.5px solid #ff7415; color: #ff7415; }
-        .session-box.yellow { background: #fff6dd; border: 1.5px solid #ffd76a; color: #ffb100; }
-        .session-box.blue { background: #c8c8e5; border: 1.5px solid #080478; color: #080478; }
-        .session-icon { width: 44px; height: 44px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 8px; color: #fff; }
-        .session-box.orange .session-icon { background: #ff7415; }
-        .session-box.yellow .session-icon { background: #ffd76a; }
-        .session-box.blue .session-icon { background: #080478; }
-        .session-copy strong { display: block; font-size: 18px; font-weight: 900; line-height: 1.1; }
-        .session-copy small { display: block; font-size: 11px; font-weight: 700; opacity: .75; }
-        .history-card { background: #f8f8fb; border-radius: 10px; box-shadow: 0 14px 28px rgba(8, 4, 120, .12); padding: 24px 28px 34px; }
-        .history-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 28px; }
-        .history-head h2 { color: #080478; font-size: 20px; font-weight: 900; margin: 0 0 4px; }
-        .history-head p { color: #44449b; font-size: 12px; font-weight: 700; margin: 0; }
-        .history-select { height: 42px; min-width: 72px; border: 0; border-radius: 5px; background: #080478; color: #fff; font: inherit; font-weight: 900; padding: 0 12px; }
-        .tap-table { width: 100%; border-collapse: collapse; color: #05050c; font-size: 13px; }
-        .tap-table th { background: #d8d8e8; color: #080478; font-weight: 900; padding: 16px 18px; text-align: left; }
-        .tap-table td { background: #fff; border-bottom: 1px solid #e4e4ef; padding: 18px; }
-        @media (max-width: 1040px) { .tap-grid { grid-template-columns: 1fr; } }
-        @media (max-width: 680px) { .tap-title { font-size: 30px; } .tap-card, .history-card { padding: 20px; } .tap-actions { grid-template-columns: 1fr; } .tap-table { min-width: 620px; } .history-table-wrap { overflow-x: auto; } }
-      `}</style>
+<style>{`
+  .tap-page {
+    display: grid;
+    gap: 30px;
+  }
+
+  .tap-title {
+    color: #080478;
+    font-family: "Anton", sans-serif;
+    font-size: 34px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0;
+  }
+
+  .tap-grid {
+    display: grid;
+    grid-template-columns: minmax(360px, 1fr) minmax(330px, 0.95fr);
+    gap: 32px;
+  }
+
+  .tap-card {
+    padding: 28px;
+    background: #f8f8fb;
+    border-radius: 10px;
+    box-shadow: 0 14px 28px rgba(8, 4, 120, 0.16);
+  }
+
+  /* =========================
+     Profile
+  ========================= */
+
+  .tap-profile {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+
+    padding-bottom: 18px;
+    border-bottom: 1px solid #cfd0df;
+  }
+
+  .tap-avatar {
+    width: 56px;
+    height: 56px;
+
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+
+    background: #766bd2;
+    border: 2px solid #ff7a00;
+    border-radius: 50%;
+
+    color: #ffffff;
+  }
+
+  .tap-profile h2 {
+    margin: 0 0 4px;
+
+    color: #080478;
+    font-size: 19px;
+    font-weight: 900;
+  }
+
+  .tap-profile p {
+    margin: 0;
+
+    color: #44449b;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  /* =========================
+     QR Section
+  ========================= */
+
+  .qr-frame {
+    width: min(260px, 100%);
+    aspect-ratio: 1;
+
+    display: grid;
+    place-items: center;
+
+    margin: 42px auto 34px;
+    padding: 22px;
+
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 0 22px rgba(8, 4, 120, 0.14);
+  }
+
+  .qr-frame svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .qr-token {
+    max-width: 320px;
+    margin: -18px auto 24px;
+
+    overflow-wrap: anywhere;
+    text-align: center;
+
+    color: #080478;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .tap-error {
+    margin: 0 0 14px;
+
+    text-align: center;
+
+    color: #c73822;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  /* =========================
+     Actions
+  ========================= */
+
+  .tap-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+
+    padding-bottom: 18px;
+    border-bottom: 1px solid #cfd0df;
+  }
+
+  .tap-button {
+    min-height: 36px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    border: 0;
+    border-radius: 7px;
+
+    cursor: pointer;
+
+    color: #ffffff;
+
+    font: inherit;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .tap-button.hide {
+    background: #080478;
+  }
+
+  .tap-button.refresh {
+    background: #ff7415;
+  }
+
+  .tap-help {
+    margin: 18px 0 0;
+
+    text-align: center;
+
+    color: #44449b;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  /* =========================
+     Session
+  ========================= */
+
+  .session-title {
+    margin: 0 0 26px;
+
+    color: #080478;
+    font-size: 24px;
+    font-weight: 900;
+  }
+
+  .session-list {
+    display: grid;
+    gap: 22px;
+  }
+
+  .session-item span {
+    display: block;
+    margin-bottom: 9px;
+
+    color: #6867a9;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .session-box {
+    min-height: 76px;
+
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    padding: 14px 26px;
+    border-radius: 8px;
+  }
+
+  .session-box.orange {
+    background: #ffd8bd;
+    border: 1.5px solid #ff7415;
+    color: #ff7415;
+  }
+
+  .session-box.yellow {
+    background: #fff6dd;
+    border: 1.5px solid #ffd76a;
+    color: #ffb100;
+  }
+
+  .session-box.blue {
+    background: #c8c8e5;
+    border: 1.5px solid #080478;
+    color: #080478;
+  }
+
+  .session-icon {
+    width: 44px;
+    height: 44px;
+
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+
+    border-radius: 8px;
+    color: #ffffff;
+  }
+
+  .session-box.orange .session-icon {
+    background: #ff7415;
+  }
+
+  .session-box.yellow .session-icon {
+    background: #ffd76a;
+  }
+
+  .session-box.blue .session-icon {
+    background: #080478;
+  }
+
+  .session-copy strong {
+    display: block;
+
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+
+  .session-copy small {
+    display: block;
+
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.75;
+  }
+
+  /* =========================
+     Live Status
+  ========================= */
+
+  .live-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-top: 14px;
+
+    color: #44449b;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .live-dot {
+    width: 9px;
+    height: 9px;
+
+    display: inline-block;
+
+    background: #c1c1cc;
+    border-radius: 50%;
+  }
+
+  .live-dot.connected {
+    background: #18a058;
+  }
+
+  /* =========================
+     History
+  ========================= */
+
+  .history-card {
+    padding: 24px 28px 34px;
+
+    background: #f8f8fb;
+    border-radius: 10px;
+    box-shadow: 0 14px 28px rgba(8, 4, 120, 0.12);
+  }
+
+  .history-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+
+    margin-bottom: 28px;
+  }
+
+  .history-head h2 {
+    margin: 0 0 4px;
+
+    color: #080478;
+    font-size: 20px;
+    font-weight: 900;
+  }
+
+  .history-head p {
+    margin: 0;
+
+    color: #44449b;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .history-select {
+    height: 42px;
+    min-width: 72px;
+
+    padding: 0 12px;
+
+    border: 0;
+    border-radius: 5px;
+
+    background: #080478;
+    color: #ffffff;
+
+    font: inherit;
+    font-weight: 900;
+  }
+
+  /* =========================
+     Table
+  ========================= */
+
+  .tap-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    color: #05050c;
+    font-size: 13px;
+  }
+
+  .tap-table th {
+    padding: 16px 18px;
+
+    background: #d8d8e8;
+
+    color: #080478;
+    font-weight: 900;
+    text-align: left;
+  }
+
+  .tap-table td {
+    padding: 18px;
+
+    background: #ffffff;
+    border-bottom: 1px solid #e4e4ef;
+  }
+
+  /* =========================
+     Responsive
+  ========================= */
+
+  @media (max-width: 1040px) {
+    .tap-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 680px) {
+    .tap-title {
+      font-size: 30px;
+    }
+
+    .tap-card,
+    .history-card {
+      padding: 20px;
+    }
+
+    .tap-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .history-table-wrap {
+      overflow-x: auto;
+    }
+
+    .tap-table {
+      min-width: 620px;
+    }
+  }
+`}</style>
 
       <section className="tap-page">
         <h1 className="tap-title">Tap In/Tap Out</h1>
@@ -105,7 +528,7 @@ export default function CheckInOutPage() {
               <span className="tap-avatar"><MemberIcon name="flower" /></span>
               <div>
                 <h2>{displayName}</h2>
-                <p>ID: {user?.id || "-"}</p>
+                <p>{membershipRemainingText}</p>
               </div>
             </div>
 
@@ -119,8 +542,6 @@ export default function CheckInOutPage() {
               )}
             </div>
             {error && <p className="tap-error">{error}</p>}
-            {qrToken && <p className="qr-token">{qrToken}</p>}
-
             <div className="tap-actions">
               <button className="tap-button hide" type="button">Hide QR Code</button>
               <button className="tap-button refresh" onClick={fetchQr} type="button">Refresh QR</button>
@@ -153,7 +574,11 @@ export default function CheckInOutPage() {
                 </div>
               </div>
             </div>
-          </aside>
+            <p className="live-status">
+              <span className={`live-dot ${socketConnected ? "connected" : ""}`} />
+              {socketConnected ? "Live connected" : "Live offline"}
+            </p>
+         </aside>
         </div>
 
         <section className="history-card">
