@@ -11,6 +11,7 @@ import VerifyEmailResultPage from "../pages/auth/VerifyEmailResult";
 import AdminPage from "../pages/admin/Dashboard";
 import ActiveMemberPage from "../pages/admin/components/active-member/ActiveMember";
 import NewsUpdatePage from "../pages/admin/components/news-update/NewsUpdate";
+import PaymentHistoryPage from "../pages/admin/components/payments/PaymentHistory";
 import PaymentsPage from "../pages/admin/components/payments/Payments";
 import TrainerPage from "../pages/admin/components/trainer/Trainer";
 import MemberDashboard from "../pages/member/Dashboard";
@@ -88,6 +89,16 @@ export const router = createBrowserRouter([
       <PrivateAuth>
         <AllowRole allowedRoles={["pengurus"]}>
           <PaymentsPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/admin/payments/history",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["pengurus"]}>
+          <PaymentHistoryPage />
         </AllowRole>
       </PrivateAuth>
     ),

@@ -22,7 +22,7 @@ const getScanNotification = (payload) => {
 export default function AdminPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const { statCards, trainers, payments, activities } = useAdminDashboard();
+  const { statCards, trainers, payments, activities, activeVisitors } = useAdminDashboard();
   const [scanNotifications, setScanNotifications] = useState([]);
 
   const handleLogout = async () => {
@@ -318,9 +318,11 @@ export default function AdminPage() {
           margin-top: 4px;
         }
 
-        .payment-table td {
+        .payment-table td,
+        .payment-table th {
           border: 1px solid #0e0e16;
           padding: 10px 9px;
+          text-align: left;
         }
 
         .empty-state {
@@ -521,10 +523,29 @@ export default function AdminPage() {
                         )}
                       </Icon>
                     </span>
-                    <span className="activity-text">{text}<span className="activity-time">({time})</span></span>
+                    <span className="activity-text">{text}{time && <span className="activity-time">({time})</span>}</span>
                   </div>
                 ))}
               </div>
+              <table className="payment-table" aria-label="Active visitor names">
+                <thead>
+                  <tr>
+                    <th>Nama Visitors</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(activeVisitors || []).length === 0 && (
+                    <tr>
+                      <td>Belum ada data nama visitor aktif.</td>
+                    </tr>
+                  )}
+                  {(activeVisitors || []).map((visitor) => (
+                    <tr key={visitor.name}>
+                      <td>{visitor.name}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </article>
 
             <section className="bottom-grid">

@@ -12,13 +12,16 @@ const hasActiveMembership = (user) => {
   const endDate = user.membership_end_date || user.end_date || user.membership?.end_date;
   if (endDate) return new Date(endDate) >= new Date();
 
-  return user.role === "member";
+  return false;
 };
 
 export default function useActiveMembers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState("");
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [actionSuccessMessage, setActionSuccessMessage] = useState("");
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -36,6 +39,47 @@ export default function useActiveMembers() {
       setLoading(false);
     }
   }, []);
+
+  const updateMembership = useCallback(async ({ userId, type, endDate }) => {
+    setActionLoadingId(userId);
+    setActionError("");
+    setActionSuccessMessage("");
+
+    try {
+      await api.put(`/admin/users/${userId}/membership`, {
+        type,
+        endDate,
+      });
+      setActionSuccessMessage("Membership berhasil diperbarui.");
+      await fetchMembers();
+      return { ok: true };
+    } catch (err) {
+      const message = getErrorMessage(err, "Gagal memperbarui membership.");
+      setActionError(message);
+      return { ok: false, error: message };
+    } finally {
+      setActionLoadingId("");
+    }
+  }, [fetchMembers]);
+
+  const deleteMembership = useCallback(async (userId) => {
+    setActionLoadingId(userId);
+    setActionError("");
+    setActionSuccessMessage("");
+
+    try {
+      await api.delete(`/admin/users/${userId}/membership`);
+      setActionSuccessMessage("Membership berhasil dihapus.");
+      await fetchMembers();
+      return { ok: true };
+    } catch (err) {
+      const message = getErrorMessage(err, "Gagal menghapus membership.");
+      setActionError(message);
+      return { ok: false, error: message };
+    } finally {
+      setActionLoadingId("");
+    }
+  }, [fetchMembers]);
 
   useEffect(() => {
     const timeoutId = setTimeout(fetchMembers, 0);
@@ -56,7 +100,12 @@ export default function useActiveMembers() {
     members,
     summary,
     loading,
+    actionLoadingId,
     error,
+    actionError,
+    actionSuccessMessage,
     refetch: fetchMembers,
+    updateMembership,
+    deleteMembership,
   };
 }
