@@ -17,6 +17,7 @@ const getErrorMessage = (err, fallback) =>
 
 export default function CheckInOutPage() {
   const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
   const [qrToken, setQrToken] = useState("");
   const [crowd, setCrowd] = useState(null);
   const [socketConnected, setSocketConnected] = useState(false);
@@ -46,14 +47,24 @@ export default function CheckInOutPage() {
     }
   }, []);
 
+  const fetchProfile = useCallback(async () => {
+    try {
+      const response = await api.get("/users/me");
+      setProfile(response.data?.data || null);
+    } catch {
+      setProfile(null);
+    }
+  }, []);
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      fetchProfile();
       fetchQr();
       fetchCrowd();
     }, 0);
 
     return () => clearTimeout(timeoutId);
-  }, [fetchCrowd, fetchQr]);
+  }, [fetchCrowd, fetchProfile, fetchQr]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -80,6 +91,20 @@ export default function CheckInOutPage() {
   }, []);
 
   const displayName = user?.full_name || user?.name || user?.email || "Member";
+  const membershipStatus = String(profile?.membership_status || profile?.membership?.status || "").toLowerCase();
+  const isMembershipActive =
+    Boolean(profile?.active_membership) || membershipStatus === "active" || membershipStatus === "aktif";
+  const membershipEndDate =
+    profile?.membership_end_date || profile?.membership?.end_date || user?.membership_end_date;
+  const membershipRemainingText = (() => {
+    if (!isMembershipActive || !membershipEndDate) return "Membership tidak aktif";
+
+    const diffMs = new Date(membershipEndDate).getTime() - Date.now();
+    if (diffMs <= 0) return "Membership tidak aktif";
+
+    const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    return `Sisa membership: ${days} hari`;
+  })();
 
   return (
     <MemberLayout active="Check In/Check Out">
@@ -503,7 +528,7 @@ export default function CheckInOutPage() {
               <span className="tap-avatar"><MemberIcon name="flower" /></span>
               <div>
                 <h2>{displayName}</h2>
-                <p>ID: {user?.id || "-"}</p>
+                <p>{membershipRemainingText}</p>
               </div>
             </div>
 
@@ -517,8 +542,6 @@ export default function CheckInOutPage() {
               )}
             </div>
             {error && <p className="tap-error">{error}</p>}
-            {qrToken && <p className="qr-token">{qrToken}</p>}
-
             <div className="tap-actions">
               <button className="tap-button hide" type="button">Hide QR Code</button>
               <button className="tap-button refresh" onClick={fetchQr} type="button">Refresh QR</button>
@@ -555,7 +578,7 @@ export default function CheckInOutPage() {
               <span className={`live-dot ${socketConnected ? "connected" : ""}`} />
               {socketConnected ? "Live connected" : "Live offline"}
             </p>
-          </aside>
+         </aside>
         </div>
 
         <section className="history-card">
