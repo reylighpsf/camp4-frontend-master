@@ -125,7 +125,11 @@ export default function MemberDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchDashboard();
+    const timeoutId = setTimeout(() => {
+      fetchDashboard();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [fetchDashboard]);
 
   const dashboardData = useMemo(() => {

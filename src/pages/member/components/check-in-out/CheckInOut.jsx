@@ -23,6 +23,7 @@ export default function CheckInOutPage() {
   const [socketConnected, setSocketConnected] = useState(false);
   const [loadingQr, setLoadingQr] = useState(true);
   const [error, setError] = useState("");
+  const [membershipRemainingText, setMembershipRemainingText] = useState("Memuat status membership...");
 
   const fetchQr = useCallback(async () => {
     setLoadingQr(true);
@@ -96,15 +97,26 @@ export default function CheckInOutPage() {
     Boolean(profile?.active_membership) || membershipStatus === "active" || membershipStatus === "aktif";
   const membershipEndDate =
     profile?.membership_end_date || profile?.membership?.end_date || user?.membership_end_date;
-  const membershipRemainingText = (() => {
-    if (!isMembershipActive || !membershipEndDate) return "Membership tidak aktif";
 
-    const diffMs = new Date(membershipEndDate).getTime() - Date.now();
-    if (diffMs <= 0) return "Membership tidak aktif";
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!isMembershipActive || !membershipEndDate) {
+        setMembershipRemainingText("Membership tidak aktif");
+        return;
+      }
 
-    const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    return `Sisa membership: ${days} hari`;
-  })();
+      const diffMs = new Date(membershipEndDate).getTime() - new Date().getTime();
+      if (diffMs <= 0) {
+        setMembershipRemainingText("Membership tidak aktif");
+        return;
+      }
+
+      const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      setMembershipRemainingText(`Sisa membership: ${days} hari`);
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [isMembershipActive, membershipEndDate]);
 
   return (
     <MemberLayout active="Check In/Check Out">

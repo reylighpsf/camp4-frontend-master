@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import AdminLayout from "../../../../components/admin/AdminLayout";
 import {
@@ -10,15 +10,13 @@ import {
 } from "./paymentHelpers";
 
 export default function PaymentHistoryPage() {
-  const [paymentHistory, setPaymentHistory] = useState([]);
-
-  useEffect(() => {
+  const [paymentHistory] = useState(() => {
     try {
-      setPaymentHistory(JSON.parse(localStorage.getItem(paymentHistoryStorageKey) || "[]"));
+      return JSON.parse(localStorage.getItem(paymentHistoryStorageKey) || "[]");
     } catch {
-      setPaymentHistory([]);
+      return [];
     }
-  }, []);
+  });
 
   return (
     <AdminLayout title="Payment History" subtitle="Riwayat pembayaran yang sudah diproses.">

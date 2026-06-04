@@ -96,7 +96,11 @@ export default function WorkoutTrackingPage() {
   }, []);
 
   useEffect(() => {
-    fetchActivities();
+    const timeoutId = setTimeout(() => {
+      fetchActivities();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [fetchActivities]);
 
   const stats = useMemo(() => {
