@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import Home from "../../components/landing/home/Home";
 import Explore from "../../components/landing/explore/Explore";
+import MembershipPlanCards from "../../components/landing/membership/MembershipPlanCards";
 import Facilities from "../../components/landing/facilities/Facilities";
 import Footer from "../../components/landing/footer/Footer";
 
@@ -524,6 +525,275 @@ export default function LandingPage({ scrollToExplore = false }) {
           line-height: 1.45;
         }
 
+        .landing-membership {
+          background: #0a1185;
+          color: #fff;
+          padding: clamp(56px, 7vw, 92px) clamp(22px, 6vw, 112px);
+          text-align: center;
+        }
+
+        .membership-header {
+          margin: 0 auto 28px;
+          width: min(100%, 860px);
+        }
+
+        .landing-plan-preview {
+          background: #0a1185;
+          color: #fff;
+          padding: clamp(56px, 7vw, 92px) clamp(22px, 6vw, 112px);
+          text-align: center;
+        }
+
+        .plan-preview-header {
+          margin: 0 auto 28px;
+          width: min(100%, 860px);
+        }
+
+        .plan-preview-header h2,
+        .membership-header h2,
+        .membership-steps h2,
+        .membership-benefits h2,
+        .membership-faq h2,
+        .membership-cta h2 {
+          color: #fff;
+          font-family: 'Anton', sans-serif;
+          font-size: clamp(30px, 4.4vw, 58px);
+          font-weight: 400;
+          letter-spacing: 0;
+          line-height: 1;
+          text-transform: uppercase;
+        }
+
+        .plan-preview-header p,
+        .membership-header p,
+        .membership-cta p {
+          color: #dfe4ff;
+          font-size: clamp(13px, 1vw, 16px);
+          font-weight: 700;
+          margin-top: 8px;
+        }
+
+        .membership-plans {
+          display: grid;
+          gap: 18px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          margin: 0 auto;
+          width: min(100%, 1060px);
+        }
+
+        .membership-plan {
+          background: #fff;
+          border: 3px solid transparent;
+          border-radius: 8px;
+          color: #0a1185;
+          display: flex;
+          flex-direction: column;
+          min-height: 300px;
+          padding: clamp(18px, 2vw, 28px);
+          text-align: left;
+        }
+
+        .membership-plan.is-featured {
+          background: #101010;
+          border-color: #ff7a00;
+          color: #fff;
+          transform: translateY(-16px);
+        }
+
+        .plan-kicker {
+          color: #ff7a00;
+          font-size: clamp(13px, 1vw, 16px);
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .membership-plan h3 {
+          font-size: clamp(26px, 3vw, 42px);
+          font-weight: 900;
+          margin-top: 6px;
+        }
+
+        .membership-plan h2 {
+          color: inherit;
+          font-family: 'DM Sans', sans-serif;
+          font-size: clamp(26px, 3vw, 42px);
+          font-weight: 900;
+          margin-top: 6px;
+          text-transform: none;
+        }
+
+        .membership-plan span {
+          color: inherit;
+          font-size: 13px;
+          font-weight: 800;
+          opacity: 0.78;
+        }
+
+        .membership-plan ul {
+          display: grid;
+          gap: 10px;
+          list-style: none;
+          margin: 22px 0;
+        }
+
+        .membership-plan li {
+          color: inherit;
+          font-size: clamp(12px, 0.95vw, 15px);
+          font-weight: 800;
+          line-height: 1.35;
+          padding-left: 22px;
+          position: relative;
+        }
+
+        .membership-plan li::before {
+          background: #28c76f;
+          border-radius: 50%;
+          content: '';
+          height: 10px;
+          left: 0;
+          position: absolute;
+          top: 5px;
+          width: 10px;
+        }
+
+        .membership-plan a,
+        .membership-cta a {
+          align-items: center;
+          background: #ff7a00;
+          border-radius: 999px;
+          color: #fff;
+          display: inline-flex;
+          font-size: clamp(12px, 0.9vw, 15px);
+          font-weight: 900;
+          justify-content: center;
+          margin-top: auto;
+          min-height: 42px;
+          padding: 0 18px;
+          text-decoration: none;
+        }
+
+        .membership-steps,
+        .membership-benefits,
+        .membership-faq,
+        .membership-cta {
+          margin: clamp(48px, 6vw, 76px) auto 0;
+          width: min(100%, 1120px);
+        }
+
+        .steps-grid,
+        .benefit-grid {
+          display: grid;
+          gap: 16px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          margin-top: 24px;
+        }
+
+        .step-card {
+          color: #fff;
+          min-height: 132px;
+          padding: 8px;
+        }
+
+        .step-card span {
+          align-items: center;
+          background: #ff7a00;
+          border-radius: 50%;
+          display: inline-flex;
+          font-weight: 900;
+          height: 34px;
+          justify-content: center;
+          margin-bottom: 12px;
+          width: 34px;
+        }
+
+        .step-card h3,
+        .benefit-card h3 {
+          font-size: clamp(13px, 1vw, 16px);
+          font-weight: 900;
+          margin-bottom: 6px;
+        }
+
+        .step-card p,
+        .benefit-card p,
+        .faq-list p {
+          color: #dfe4ff;
+          font-size: clamp(12px, 0.9vw, 14px);
+          line-height: 1.45;
+        }
+
+        .benefit-card {
+          background: #ffe6bd;
+          border-radius: 8px;
+          color: #0a1185;
+          min-height: 132px;
+          padding: 22px 16px;
+        }
+
+        .benefit-card span {
+          background: #0a1185;
+          border-radius: 50%;
+          display: block;
+          height: 30px;
+          margin: 0 auto 12px;
+          width: 30px;
+        }
+
+        .benefit-card p {
+          color: #454b7c;
+        }
+
+        .faq-list {
+          display: grid;
+          gap: 10px;
+          margin: 22px auto 0;
+          width: min(100%, 760px);
+        }
+
+        .faq-list details {
+          background: #fff;
+          border-radius: 8px;
+          color: #0a1185;
+          text-align: left;
+        }
+
+        .faq-list summary {
+          cursor: pointer;
+          font-size: clamp(12px, 0.95vw, 15px);
+          font-weight: 900;
+          list-style: none;
+          padding: 14px 18px;
+        }
+
+        .faq-list summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .faq-list p {
+          color: #555;
+          padding: 0 18px 14px;
+        }
+
+        .membership-cta {
+          background: #fff;
+          border-radius: 8px;
+          color: #0a1185;
+          padding: clamp(24px, 3vw, 36px);
+          width: min(100%, 820px);
+        }
+
+        .membership-cta h2 {
+          color: #0a1185;
+          font-size: clamp(24px, 3vw, 42px);
+        }
+
+        .membership-cta p {
+          color: #454b7c;
+        }
+
+        .membership-cta a {
+          margin-top: 18px;
+        }
+
         .landing-footer {
           background: #0a1185;
           color: #fff;
@@ -589,8 +859,15 @@ export default function LandingPage({ scrollToExplore = false }) {
           .explore-grid,
           .why-grid,
           .info-grid,
+          .membership-plans,
+          .steps-grid,
+          .benefit-grid,
           .landing-footer {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .membership-plan.is-featured {
+            transform: none;
           }
 
           .facilities-track {
@@ -615,6 +892,9 @@ export default function LandingPage({ scrollToExplore = false }) {
           .explore-grid,
           .why-grid,
           .info-grid,
+          .membership-plans,
+          .steps-grid,
+          .benefit-grid,
           .footer-columns,
           .landing-footer {
             grid-template-columns: 1fr;
@@ -649,6 +929,7 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
       `}</style>
       <Home />
+      <MembershipPlanCards compact />
       <Explore />
       <Facilities />
       <Footer />

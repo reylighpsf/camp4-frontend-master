@@ -3,10 +3,13 @@ import { authApi } from "./authApi";
 import { AuthContext } from "./authContextValue";
 
 const SKIP_ME_PATHS = [
+  "/choose-plan",
   "/sign-in",
   "/sign-up",
   "/verify-email",
   "/verify-email/result",
+  "/payment",
+  "/payment/success",
 ];
 
 const shouldSkipFetchMe = (pathname) => {
@@ -64,7 +67,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signin, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, signin, signup, logout, fetchMe }}>
       {children}
     </AuthContext.Provider>
   );

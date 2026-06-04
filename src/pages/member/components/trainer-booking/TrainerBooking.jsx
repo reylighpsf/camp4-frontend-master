@@ -59,7 +59,11 @@ export default function TrainerBookingPage() {
   }, []);
 
   useEffect(() => {
-    fetchTrainers();
+    const timeoutId = setTimeout(() => {
+      fetchTrainers();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [fetchTrainers]);
 
   const filteredTrainers = useMemo(() => {

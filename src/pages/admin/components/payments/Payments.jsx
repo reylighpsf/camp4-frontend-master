@@ -13,7 +13,7 @@ export default function PaymentsPage() {
   const payments = usePayments();
 
   const savePaymentHistory = (item, status) => {
-    let currentHistory = [];
+    let currentHistory;
 
     try {
       currentHistory = JSON.parse(localStorage.getItem(paymentHistoryStorageKey) || "[]");

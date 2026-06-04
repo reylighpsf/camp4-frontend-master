@@ -16,6 +16,7 @@ export default function Footer() {
           <h3>Navigation</h3>
           <a href="#home">Home</a>
           <a href="#explore">Explore</a>
+          <Link to="/membership">Membership</Link>
           <a href="#facilities">Facilities</a>
         </div>
         <div>
