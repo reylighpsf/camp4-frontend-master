@@ -526,7 +526,7 @@ export default function MembershipPage() {
           <p>Choose the membership plan that fits your routine and unlock member gym access, workout tracking, trainer schedule, and support.</p>
           <div className="membership-hero-actions">
             <a className="membership-primary-btn" href="#plans">View Plans</a>
-            <Link className="membership-secondary-btn" to="/sign-up">Join Us</Link>
+            <Link className="membership-secondary-btn" to="/choose-plan">Join Us</Link>
           </div>
         </div>
         <div
@@ -589,7 +589,7 @@ export default function MembershipPage() {
         <div className="membership-cta">
           <h2>Ready to Become a Vocafit Member?</h2>
           <p>Pick your plan and start building a healthier routine today.</p>
-          <Link to="/sign-up">Join Us</Link>
+          <Link to="/choose-plan">Join Us</Link>
         </div>
       </section>
     </main>
