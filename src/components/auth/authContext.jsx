@@ -3,6 +3,7 @@ import { authApi } from "./authApi";
 import { AuthContext } from "./authContextValue";
 
 const SKIP_ME_PATHS = [
+  "/choose-plan",
   "/sign-in",
   "/sign-up",
   "/verify-email",

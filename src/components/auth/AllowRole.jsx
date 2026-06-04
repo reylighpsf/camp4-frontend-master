@@ -3,10 +3,11 @@ import { useAuth } from "./useAuth";
 
 const AllowRole = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useAuth();
+  const normalizedRole = user?.role === "admin" ? "pengurus" : user?.role;
 
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/sign-in" replace />;
-  if (!allowedRoles.includes(user.role))
+  if (!allowedRoles.includes(normalizedRole))
     return <Navigate to="/unauthorized" replace />;
   return children;
 };
