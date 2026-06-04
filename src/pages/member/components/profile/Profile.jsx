@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import MemberIcon from "../../../../components/member/MemberIcon";
 import api from "../../../../components/auth/authApi";
 import { useAuth } from "../../../../components/auth/useAuth";
-import { MembershipPackagesContent } from "../membership-packages/MembershipPackages";
 import { getAuthMembershipPlan } from "../../../auth/membership/hooks/authPlans";
 
 const tabs = [
-  { label: "Account Settings", icon: "profile", active: true },
-  { label: "Membership Plan", icon: "check" },
+  { label: "Account Settings", icon: "profile", active: true, to: "/member/profile" },
+  { label: "Membership Plan", icon: "check", to: "/member/profile/membership" },
   { label: "Security", icon: "check" },
   { label: "Notifications", icon: "bell" },
 ];
@@ -39,6 +39,32 @@ const getStoredRegistrationPlanId = (profile) => {
   }
 
   return localStorage.getItem("vocafit-selected-plan") || "";
+};
+
+const normalizePlanId = (planId) => {
+  const id = String(planId || "").toLowerCase();
+  if (id === "monthly") return "premium";
+  if (id === "bulanan") return "premium";
+  if (id === "harian") return "daily";
+  return id;
+};
+
+const getMembershipPlanName = (profile, registrationPlanId) => {
+  const backendType =
+    profile?.membership_plan_id ||
+    profile?.membership_plan ||
+    profile?.membership_type ||
+    profile?.membership?.plan_id ||
+    profile?.membership?.plan ||
+    profile?.membership?.type ||
+    "";
+  const normalizedPlanId = normalizePlanId(backendType || registrationPlanId);
+
+  if (normalizedPlanId) {
+    return getAuthMembershipPlan(normalizedPlanId).name;
+  }
+
+  return "Belum ada membership";
 };
 
 export default function ProfilePage() {
@@ -86,17 +112,14 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setRegistrationPlanId(getStoredRegistrationPlanId(profile));
+      setRegistrationPlanId(normalizePlanId(getStoredRegistrationPlanId(profile)));
     }, 0);
 
     return () => clearTimeout(timeoutId);
   }, [profile]);
 
   const membershipText = useMemo(() => {
-    const type = profile?.membership_type || profile?.membership?.type;
-    if (!type && registrationPlanId) return getAuthMembershipPlan(registrationPlanId).name;
-    if (!type) return "Belum ada membership";
-    return `${String(type).charAt(0).toUpperCase()}${String(type).slice(1)} Member`;
+    return getMembershipPlanName(profile, registrationPlanId);
   }, [profile, registrationPlanId]);
 
   const memberId = profile?.id ? `VF${String(profile.id).slice(0, 10).toUpperCase()}` : "VF1234567890";
@@ -172,6 +195,7 @@ export default function ProfilePage() {
           font-weight: 900;
           min-height: 32px;
           padding: 0;
+          text-decoration: none;
         }
 
         .profile-tab svg {
@@ -429,22 +453,6 @@ export default function ProfilePage() {
           font-weight: 800;
         }
 
-        .profile-membership-section {
-          display: grid;
-          gap: 18px;
-          margin-top: 6px;
-        }
-
-        .profile-membership-section > h2 {
-          color: #0b0871;
-          font-family: 'Anton', sans-serif;
-          font-size: 28px;
-          font-weight: 400;
-          letter-spacing: 0;
-          line-height: 1;
-          margin: 0;
-        }
-
         @media (max-width: 1040px) {
           .profile-grid {
             grid-template-columns: 1fr;
@@ -453,6 +461,7 @@ export default function ProfilePage() {
           .profile-card {
             justify-items: start;
           }
+
         }
 
         @media (max-width: 700px) {
@@ -467,6 +476,7 @@ export default function ProfilePage() {
           .profile-save {
             width: 100%;
           }
+
         }
       `}</style>
 
@@ -475,14 +485,17 @@ export default function ProfilePage() {
 
         <nav className="profile-tabs" aria-label="Profile settings">
           {tabs.map((tab) => (
-            <button
-              className={`profile-tab ${tab.active ? "is-active" : ""}`}
-              key={tab.label}
-              type="button"
-            >
+            tab.to ? (
+            <Link className={`profile-tab ${tab.active ? "is-active" : ""}`} key={tab.label} to={tab.to}>
               <MemberIcon name={tab.icon} />
               <span>{tab.label}</span>
-            </button>
+            </Link>
+            ) : (
+              <button className="profile-tab" key={tab.label} type="button">
+                <MemberIcon name={tab.icon} />
+                <span>{tab.label}</span>
+              </button>
+            )
           ))}
         </nav>
 
@@ -581,11 +594,6 @@ export default function ProfilePage() {
             </form>
           </section>
         </div>
-
-        <section className="profile-membership-section">
-          <h2>Membership Plan</h2>
-          <MembershipPackagesContent />
-        </section>
       </section>
     </MemberLayout>
   );

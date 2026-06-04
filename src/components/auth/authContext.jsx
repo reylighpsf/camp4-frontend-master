@@ -8,6 +8,8 @@ const SKIP_ME_PATHS = [
   "/sign-up",
   "/verify-email",
   "/verify-email/result",
+  "/payment",
+  "/payment/success",
 ];
 
 const shouldSkipFetchMe = (pathname) => {
@@ -65,7 +67,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signin, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, signin, signup, logout, fetchMe }}>
       {children}
     </AuthContext.Provider>
   );

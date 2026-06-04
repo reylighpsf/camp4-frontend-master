@@ -117,6 +117,7 @@ export default function Signup() {
 
       await signup(formData);
       localStorage.setItem("vocafit-selected-plan", selectedPlanId);
+      localStorage.setItem("vocafit-registration-email", normalizedEmail);
       localStorage.setItem(
         `vocafit-registration-plan-${normalizedEmail}`,
         JSON.stringify({

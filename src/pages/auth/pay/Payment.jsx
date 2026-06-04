@@ -17,6 +17,40 @@ const formatCurrency = (value) =>
 const getTransactionType = (planId) =>
   planId === "daily" ? "MEMBERSHIP_DAILY" : "MEMBERSHIP_MONTHLY";
 
+const getMidtransSnapUrl = () =>
+  import.meta.env.VITE_MIDTRANS_IS_PRODUCTION === "true"
+    ? "https://app.midtrans.com/snap/snap.js"
+    : "https://app.sandbox.midtrans.com/snap/snap.js";
+
+const loadMidtransSnap = () =>
+  new Promise((resolve, reject) => {
+    if (window.snap) {
+      resolve(window.snap);
+      return;
+    }
+
+    const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY;
+    if (!clientKey) {
+      reject(new Error("Midtrans client key belum dikonfigurasi."));
+      return;
+    }
+
+    const existingScript = document.querySelector("script[data-midtrans-snap]");
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(window.snap), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("Gagal memuat Midtrans Snap.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = getMidtransSnapUrl();
+    script.setAttribute("data-client-key", clientKey);
+    script.setAttribute("data-midtrans-snap", "true");
+    script.onload = () => resolve(window.snap);
+    script.onerror = () => reject(new Error("Gagal memuat Midtrans Snap."));
+    document.body.appendChild(script);
+  });
+
 export default function Payment() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -35,6 +69,20 @@ export default function Payment() {
     paymentMethods[0];
   const total = parsePrice(selectedPlan.price);
 
+  const goToPaymentSuccess = ({ transaction, status }) => {
+    navigate("/payment/success", {
+      replace: true,
+      state: {
+        activeDate: new Date().toISOString(),
+        activeUntil: transaction?.end_date || transaction?.membership_end_date,
+        paymentMethod: selectedMethod.paymentMethod,
+        paymentStatus: status || transaction?.status || "PENDING",
+        planId: selectedPlan.id,
+        transactionId: transaction?.id,
+      },
+    });
+  };
+
   const handlePay = async () => {
     setLoading(true);
     setMessage("");
@@ -42,24 +90,33 @@ export default function Payment() {
     setCashPending(false);
 
     try {
-      await api.post("/transactions/create", {
+      const response = await api.post("/transactions/create", {
         transactionType: getTransactionType(selectedPlan.id),
         paymentMethod: selectedMethod.paymentMethod,
       });
+      const transaction = response.data?.data?.transaction;
+      const snapToken = response.data?.data?.snapToken;
+      const paymentUrl = response.data?.data?.paymentUrl;
 
       if (selectedMethod.paymentMethod === "QRIS") {
-        navigate("/member", {
-          state: {
-            notice: "Pembayaran QRIS berhasil dibuat. Selamat datang di dashboard member.",
-          },
-        });
-        return;
+        if (snapToken) {
+          const snap = await loadMidtransSnap();
+          snap.pay(snapToken, {
+            onSuccess: () => goToPaymentSuccess({ transaction, status: "SUCCESS" }),
+            onPending: () => goToPaymentSuccess({ transaction, status: "PENDING" }),
+            onError: () => setError("Pembayaran Midtrans gagal diproses."),
+            onClose: () => setMessage("Popup pembayaran ditutup. Kamu bisa klik Pay Now untuk membuka ulang pembayaran."),
+          });
+          return;
+        }
+
+        if (paymentUrl) {
+          window.location.href = paymentUrl;
+          return;
+        }
       }
 
-      setCashPending(true);
-      setMessage(
-        "Status pembayaran: menunggu konfirmasi pembayaran dari admin.",
-      );
+      goToPaymentSuccess({ transaction, status: transaction?.status || "PENDING" });
     } catch (err) {
       const status = err.response?.status;
       const nextError =
@@ -68,13 +125,9 @@ export default function Payment() {
         "Gagal membuat transaksi pembayaran.";
 
       if (status === 401 || status === 403 || nextError === "User not found") {
-        navigate("/sign-in", {
-          state: {
-            notice:
-              "Silakan sign in terlebih dahulu untuk melanjutkan pembayaran membership.",
-            returnTo: `/payment?plan=${selectedPlan.id}`,
-          },
-        });
+        setError(
+          "Transaksi belum dibuat karena session pembayaran belum aktif. Pastikan backend sudah direstart dan buka halaman ini dari link verifikasi email terbaru.",
+        );
         return;
       }
 

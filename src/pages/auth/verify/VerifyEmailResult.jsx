@@ -19,21 +19,50 @@ export default function VerifyEmailResult() {
   const queryString = searchParams.toString();
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
+  const [registrationEmail, setRegistrationEmail] = useState(
+    () => localStorage.getItem("vocafit-registration-email") || "",
+  );
+  const [selectedPlanId, setSelectedPlanId] = useState(
+    () => localStorage.getItem("vocafit-selected-plan") || "student",
+  );
 
   useEffect(() => {
     if (!token) {
       const params = new URLSearchParams(queryString);
       const statusFromQuery = params.get("status");
       const messageFromQuery = params.get("message");
+      const emailFromQuery = params.get("email");
+      const planFromQuery = params.get("plan");
 
       const timeoutId = setTimeout(() => {
-        if (statusFromQuery === "success") {
-          setStatus("success");
-        } else {
-          setStatus("error");
+        const savedEmail =
+          emailFromQuery ||
+          localStorage.getItem("vocafit-registration-email") ||
+          "";
+        const hasRegistrationContext = Boolean(savedEmail || localStorage.getItem("vocafit-selected-plan"));
+
+        if (emailFromQuery) {
+          localStorage.setItem("vocafit-registration-email", emailFromQuery);
+          setRegistrationEmail(emailFromQuery);
+        } else if (savedEmail) {
+          setRegistrationEmail(savedEmail);
         }
 
-        setMessage(messageFromQuery || "Verification status is not available.");
+        if (planFromQuery) {
+          localStorage.setItem("vocafit-selected-plan", planFromQuery);
+          setSelectedPlanId(planFromQuery);
+        }
+
+        if (statusFromQuery === "success" || (!statusFromQuery && hasRegistrationContext)) {
+          setStatus("success");
+          setMessage(
+            messageFromQuery ||
+              "Email verified successfully. You can continue to payment.",
+          );
+        } else {
+          setStatus("error");
+          setMessage(messageFromQuery || "Verification status is not available.");
+        }
       }, 0);
 
       return () => clearTimeout(timeoutId);
@@ -48,10 +77,20 @@ export default function VerifyEmailResult() {
       try {
         const res = await getVerificationRequest(token);
         if (!isMounted) return;
+        const verifiedEmail =
+          res.data?.data?.email ||
+          res.data?.email ||
+          localStorage.getItem("vocafit-registration-email") ||
+          "";
 
         setStatus("success");
+        if (verifiedEmail) {
+          localStorage.setItem("vocafit-registration-email", verifiedEmail);
+          setRegistrationEmail(verifiedEmail);
+        }
         setMessage(
-          res.data?.message || "Email verified successfully. You can now login.",
+          res.data?.message ||
+            "Email verified successfully. You can continue to payment.",
         );
       } catch (err) {
         if (!isMounted) return;
@@ -78,10 +117,10 @@ export default function VerifyEmailResult() {
     success: "Berhasil",
     error: "Gagal",
   }[status];
-  const selectedPlanId = localStorage.getItem("vocafit-selected-plan") || "student";
-  const signInState = {
-    notice: "Email berhasil diverifikasi. Silakan sign in untuk melanjutkan pembayaran.",
-    returnTo: `/payment?plan=${selectedPlanId}`,
+  const paymentPath = `/payment?plan=${selectedPlanId}`;
+  const paymentState = {
+    email: registrationEmail,
+    notice: "Email berhasil diverifikasi. Silakan lanjutkan pembayaran membership.",
   };
 
   return (
@@ -100,12 +139,18 @@ export default function VerifyEmailResult() {
       </p>
 
       <div className="auth-actions">
-        <Link to="/sign-in" state={signInState} className="auth-secondary-btn">
-          Continue To Sign In
+        <Link
+          to={status === "success" ? paymentPath : "/sign-up"}
+          state={status === "success" ? paymentState : undefined}
+          className="auth-secondary-btn"
+        >
+          {status === "success" ? "Continue To Payment" : "Back To Sign Up"}
         </Link>
-        <Link to="/sign-up" className="auth-outline-btn">
-          Back To Sign Up
-        </Link>
+        {status === "success" && (
+          <Link to="/sign-up" className="auth-outline-btn">
+            Back To Sign Up
+          </Link>
+        )}
       </div>
     </AuthFrame>
   );

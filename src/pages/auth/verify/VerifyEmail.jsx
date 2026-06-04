@@ -3,7 +3,10 @@ import { AuthFrame, MembershipSummary } from "../AuthFrame";
 
 export default function VerifyEmail() {
   const location = useLocation();
-  const email = location.state?.email || "";
+  const email =
+    location.state?.email ||
+    localStorage.getItem("vocafit-registration-email") ||
+    "";
 
   const openInbox = () => {
     window.open("https://mail.google.com", "_blank", "noopener,noreferrer");

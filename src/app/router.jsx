@@ -11,6 +11,7 @@ import SignupPage from "../pages/auth/sign/Signup";
 import VerifyEmailPage from "../pages/auth/verify/VerifyEmail";
 import VerifyEmailResultPage from "../pages/auth/verify/VerifyEmailResult";
 import PaymentPage from "../pages/auth/pay/Payment";
+import PaymentSuccessPage from "../pages/auth/pay/PaymentSuccess";
 import AdminPage from "../pages/admin/Dashboard";
 import ActiveMemberPage from "../pages/admin/components/active-member/ActiveMember";
 import NewsUpdatePage from "../pages/admin/components/news-update/NewsUpdate";
@@ -20,9 +21,9 @@ import TrainerPage from "../pages/admin/components/trainer/Trainer";
 import MemberDashboard from "../pages/member/Dashboard";
 import CheckInOutPage from "../pages/member/components/check-in-out/CheckInOut";
 import ProfilePage from "../pages/member/components/profile/Profile";
+import ProfileMembershipPlanPage from "../pages/member/components/profile/MembershipPlan";
 import TrainerBookingPage from "../pages/member/components/trainer-booking/TrainerBooking";
 import WorkoutTrackingPage from "../pages/member/components/workout-tracking/WorkoutTracking";
-import MembershipPackagesPage from "../pages/member/components/membership-packages/MembershipPackages";
 import UnauthorizedPage from "../pages/Unauthorized";
 import NotFound from "../pages/NotFound";
 
@@ -67,6 +68,10 @@ export const router = createBrowserRouter([
   {
     path: "/payment",
     element: <PaymentPage />,
+  },
+  {
+    path: "/payment/success",
+    element: <PaymentSuccessPage />,
   },
   {
     path: "/",
@@ -183,21 +188,21 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/member/membership",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["member"]}>
-          <MembershipPackagesPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
-  },
-  {
     path: "/member/profile",
     element: (
       <PrivateAuth>
         <AllowRole allowedRoles={["member"]}>
           <ProfilePage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/member/profile/membership",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["member"]}>
+          <ProfileMembershipPlanPage />
         </AllowRole>
       </PrivateAuth>
     ),
