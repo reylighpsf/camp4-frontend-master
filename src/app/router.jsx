@@ -4,10 +4,12 @@ import PrivateAuth from "../components/auth/PrivateAuth";
 import PublicAuth from "../components/auth/PublicAuth";
 import AllowRole from "../components/auth/AllowRole";
 import LandingPage from "../pages/landing";
-import SigninPage from "../pages/auth/Signin";
-import SignupPage from "../pages/auth/Signup";
-import VerifyEmailPage from "../pages/auth/VerifyEmail";
-import VerifyEmailResultPage from "../pages/auth/VerifyEmailResult";
+import ChoosePlanPage from "../pages/auth/membership/ChoosePlan";
+import SigninPage from "../pages/auth/sign/Signin";
+import SignupPage from "../pages/auth/sign/Signup";
+import VerifyEmailPage from "../pages/auth/verify/VerifyEmail";    
+import VerifyEmailResultPage from "../pages/auth/verify/VerifyEmailResult";
+import PaymentPage from "../pages/auth/pay/Payment";
 import AdminPage from "../pages/admin/Dashboard";
 import ActiveMemberPage from "../pages/admin/components/active-member/ActiveMember";
 import NewsUpdatePage from "../pages/admin/components/news-update/NewsUpdate";
@@ -19,12 +21,19 @@ import CheckInOutPage from "../pages/member/components/check-in-out/CheckInOut";
 import ProfilePage from "../pages/member/components/profile/Profile";
 import TrainerBookingPage from "../pages/member/components/trainer-booking/TrainerBooking";
 import WorkoutTrackingPage from "../pages/member/components/workout-tracking/WorkoutTracking";
-import MembershipPackagesPage from "../pages/member/components/membership-packages/MembershipPackages";
 import UnauthorizedPage from "../pages/Unauthorized";
 import NotFound from "../pages/NotFound";
 
 export const router = createBrowserRouter([
   // PUBLIC
+  {
+    path: "/choose-plan",
+    element: (
+      <PublicAuth>
+        <ChoosePlanPage />
+      </PublicAuth>
+    ),
+  },
   {
     path: "/sign-in",
     element: (
@@ -52,6 +61,10 @@ export const router = createBrowserRouter([
   {
     path: "/verify-email/:token",
     element: <VerifyEmailResultPage />,
+  },
+  {
+    path: "/payment",
+    element: <PaymentPage />,
   },
   {
     path: "/",
@@ -159,16 +172,6 @@ export const router = createBrowserRouter([
       <PrivateAuth>
         <AllowRole allowedRoles={["member"]}>
           <WorkoutTrackingPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
-  },
-  {
-    path: "/member/membership",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["member"]}>
-          <MembershipPackagesPage />
         </AllowRole>
       </PrivateAuth>
     ),
