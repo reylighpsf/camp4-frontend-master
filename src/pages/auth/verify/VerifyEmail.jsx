@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { AuthFrame, MembershipSummary } from "../AuthFrame";
+import { AuthFrame } from "../AuthFrame";
 
 export default function VerifyEmail() {
   const location = useLocation();
@@ -14,9 +14,9 @@ export default function VerifyEmail() {
 
   return (
     <AuthFrame
-      currentStep={3}
-      contentClassName="auth-centered"
-      aside={<MembershipSummary actionLabel="Review Plan" />}
+      currentStep={2}
+      contentClassName="auth-single-page"
+      aside={null}
     >
       <h1>Verify Your Email</h1>
       <p className="auth-subtitle">

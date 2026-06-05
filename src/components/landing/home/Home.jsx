@@ -17,10 +17,9 @@ export default function Home() {
         <div className="landing-links">
           <a href="#home">Home</a>
           <Link to="/explore">Explore</Link>
-          <Link to="/membership">Membership</Link>
           <a href="#facilities">Facilities</a>
           <Link to="/sign-in">Sign In</Link>
-          <Link className="nav-join" to="/choose-plan">
+          <Link className="nav-join" to="/membership">
             Join Us
           </Link>
         </div>
@@ -33,7 +32,7 @@ export default function Home() {
             Balance your mind, build your body.
           </p>
           <div className="landing-actions">
-            <Link className="landing-primary-btn" to="/choose-plan">
+            <Link className="landing-primary-btn" to="/sign-up">
               Join Us
             </Link>
           </div>

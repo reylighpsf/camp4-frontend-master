@@ -11,7 +11,15 @@ const emptyForm = {
   sessionCount: "",
   durationDays: "",
   isActive: true,
+  prices: [],
 };
+
+const accountTiers = [
+  { code: "UMUM", name: "Umum" },
+  { code: "PEGAWAI_KARYAWAN", name: "Pegawai / Karyawan" },
+  { code: "MAHASISWA_NON_VOKASI", name: "Mahasiswa Non-Vokasi" },
+  { code: "MAHASISWA_VOKASI", name: "Mahasiswa Vokasi" },
+];
 
 const familyLabels = {
   MEMBERSHIP: {
@@ -77,6 +85,14 @@ const normalizeCatalogToForm = (item) => ({
   sessionCount: item.session_count ?? "",
   durationDays: item.duration_days ?? "",
   isActive: item.is_active !== false,
+  prices: accountTiers.map((tier) => {
+    const existingPrice = (item.prices || []).find((price) => price.tier_code === tier.code);
+    return {
+      tierCode: tier.code,
+      tierName: existingPrice?.tier_name || tier.name,
+      price: existingPrice?.price ?? "",
+    };
+  }),
 });
 
 function CatalogManagementPage({ family = "MEMBERSHIP" }) {
@@ -125,7 +141,11 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
   };
 
   const resetForm = () => {
-    setForm({ ...emptyForm, family });
+    setForm({
+      ...emptyForm,
+      family,
+      prices: accountTiers.map((tier) => ({ tierCode: tier.code, tierName: tier.name, price: "" })),
+    });
     setEditingCode("");
     setError("");
     setIsFormOpen(false);
@@ -140,7 +160,11 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
   };
 
   const openCreateForm = () => {
-    setForm({ ...emptyForm, family });
+    setForm({
+      ...emptyForm,
+      family,
+      prices: accountTiers.map((tier) => ({ tierCode: tier.code, tierName: tier.name, price: "" })),
+    });
     setEditingCode("");
     setError("");
     setMessage("");
@@ -201,31 +225,6 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
     }
   };
 
-  const moveCatalog = async (family, code, direction) => {
-    const items = familyCatalogs;
-    const index = items.findIndex((item) => item.code === code);
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (index < 0 || targetIndex < 0 || targetIndex >= items.length) return;
-
-    const orderedCodes = items.map((item) => item.code);
-    const [moved] = orderedCodes.splice(index, 1);
-    orderedCodes.splice(targetIndex, 0, moved);
-
-    setActionLoading(`reorder-${code}`);
-    setError("");
-    setMessage("");
-
-    try {
-      await api.patch("/catalogs/reorder", { family, orderedCodes });
-      setMessage("Urutan catalog berhasil diperbarui.");
-      await fetchCatalogs();
-    } catch (err) {
-      setError(getErrorMessage(err, "Gagal mengubah urutan catalog."));
-    } finally {
-      setActionLoading("");
-    }
-  };
-
   return (
     <AdminLayout title={page.title} subtitle={page.subtitle}>
       <style>{catalogStyles}</style>
@@ -238,7 +237,7 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
           <div className="catalog-list-head">
             <div>
               <h2>{page.heading}</h2>
-              <p>Harga tier ditampilkan readonly karena endpoint catalog belum menyediakan update harga.</p>
+              <p>Harga tier mengikuti data backend dan ditampilkan readonly.</p>
             </div>
             <div className="catalog-head-actions">
               <button className="catalog-primary-btn" onClick={openCreateForm} type="button">
@@ -260,22 +259,21 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
                       <th>Detail</th>
                       <th>Prices</th>
                       <th>Status</th>
-                      <th>Order</th>
                       <th>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading && (
                       <tr>
-                        <td className="catalog-empty" colSpan="6">Memuat catalog...</td>
+                        <td className="catalog-empty" colSpan="5">Memuat catalog...</td>
                       </tr>
                     )}
                     {!loading && familyCatalogs.length === 0 && (
                       <tr>
-                        <td className="catalog-empty" colSpan="6">Belum ada catalog.</td>
+                        <td className="catalog-empty" colSpan="5">Belum ada catalog.</td>
                       </tr>
                     )}
-                    {!loading && familyCatalogs.map((item, index, list) => (
+                    {!loading && familyCatalogs.map((item) => (
                       <tr key={item.code}>
                         <td>
                           <strong>{item.name}</strong>
@@ -300,24 +298,6 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
                           <span className={`catalog-status ${item.is_active ? "active" : "inactive"}`}>
                             {item.is_active ? "Active" : "Inactive"}
                           </span>
-                        </td>
-                        <td>
-                          <div className="catalog-order-actions">
-                            <button
-                              disabled={index === 0 || actionLoading === `reorder-${item.code}`}
-                              onClick={() => moveCatalog(family, item.code, "up")}
-                              type="button"
-                            >
-                              Up
-                            </button>
-                            <button
-                              disabled={index === list.length - 1 || actionLoading === `reorder-${item.code}`}
-                              onClick={() => moveCatalog(family, item.code, "down")}
-                              type="button"
-                            >
-                              Down
-                            </button>
-                          </div>
                         </td>
                         <td>
                           <div className="catalog-actions">
@@ -377,14 +357,18 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
                   Description
                   <textarea value={form.description} onChange={(event) => updateField("description", event.target.value)} placeholder="Deskripsi catalog" />
                 </label>
-                <label className="catalog-field">
-                  Group Size
-                  <input type="number" min="1" value={form.groupSize} onChange={(event) => updateField("groupSize", event.target.value)} />
-                </label>
-                <label className="catalog-field">
-                  Session Count
-                  <input type="number" min="1" value={form.sessionCount} onChange={(event) => updateField("sessionCount", event.target.value)} />
-                </label>
+                {family !== "MEMBERSHIP" && (
+                  <>
+                    <label className="catalog-field">
+                      Group Size
+                      <input type="number" min="1" value={form.groupSize} onChange={(event) => updateField("groupSize", event.target.value)} />
+                    </label>
+                    <label className="catalog-field">
+                      Session Count
+                      <input type="number" min="1" value={form.sessionCount} onChange={(event) => updateField("sessionCount", event.target.value)} />
+                    </label>
+                  </>
+                )}
                 <label className="catalog-field">
                   Duration Days
                   <input type="number" min="1" value={form.durationDays} onChange={(event) => updateField("durationDays", event.target.value)} />
@@ -393,6 +377,19 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
                   <input checked={form.isActive} onChange={(event) => updateField("isActive", event.target.checked)} type="checkbox" />
                   Active
                 </label>
+                <fieldset className="catalog-price-fields">
+                  <legend>Harga Tier</legend>
+                  {form.prices.map((price) => (
+                    <label className="catalog-field" key={price.tierCode}>
+                      {price.tierName || price.tierCode}
+                      <input
+                        type="number"
+                        value={price.price}
+                        readOnly
+                      />
+                    </label>
+                  ))}
+                </fieldset>
               </div>
 
               <div className="catalog-form-actions">
@@ -551,10 +548,28 @@ const catalogStyles = `
     min-height: 40px;
   }
 
+  .catalog-price-fields {
+    border: 1px solid #d8dbe6;
+    border-radius: 8px;
+    display: grid;
+    gap: 13px;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    padding: 14px;
+  }
+
+  .catalog-price-fields legend {
+    color: #30333d;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 0 6px;
+    text-transform: uppercase;
+  }
+
   .catalog-submit-btn,
   .catalog-secondary-btn,
-  .catalog-actions button,
-  .catalog-order-actions button {
+  .catalog-actions button {
     border-radius: 8px;
     cursor: pointer;
     font: inherit;
@@ -695,15 +710,13 @@ const catalogStyles = `
     color: #c73822;
   }
 
-  .catalog-actions,
-  .catalog-order-actions {
+  .catalog-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
   }
 
-  .catalog-actions .edit,
-  .catalog-order-actions button {
+  .catalog-actions .edit {
     background: #080478;
     border: 1px solid #080478;
     color: #fff;
@@ -718,8 +731,7 @@ const catalogStyles = `
   .catalog-submit-btn:disabled,
   .catalog-primary-btn:disabled,
   .catalog-secondary-btn:disabled,
-  .catalog-actions button:disabled,
-  .catalog-order-actions button:disabled {
+  .catalog-actions button:disabled {
     cursor: not-allowed;
     opacity: .62;
   }

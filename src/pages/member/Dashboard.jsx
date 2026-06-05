@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import MemberIcon from "../../components/member/MemberIcon";
 import MemberLayout from "../../components/member/MemberLayout";
 import api from "../../components/auth/authApi";
+import { useAuth } from "../../components/auth/useAuth";
 
 const GYM_CAPACITY = 100;
 
@@ -47,6 +48,15 @@ const formatTime = (value) => {
   }).format(new Date(value));
 };
 
+const formatDate = (value) => {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+};
+
 const getDateKey = (value) => {
   if (!value) return "";
   const date = new Date(value);
@@ -54,30 +64,71 @@ const getDateKey = (value) => {
   return date.toISOString().slice(0, 10);
 };
 
-const getWorkoutStreak = (activities) => {
-  const dates = new Set(
-    activities
-      .map((activity) => {
-        const meta = getWorkoutMeta(activity.task_name);
-        return getDateKey(meta.date || activity.created_at);
-      })
-      .filter(Boolean),
-  );
+const getStoredTapHistory = (userId) => {
+  if (!userId) return [];
+  try {
+    return JSON.parse(localStorage.getItem(`vocafit-tap-history-${userId}`) || "[]");
+  } catch {
+    return [];
+  }
+};
 
-  let streak = 0;
-  const cursor = new Date();
+const isMembershipTransaction = (transaction) => {
+  const family = String(transaction?.transaction_family || "").toUpperCase();
+  const type = String(transaction?.transaction_type || "").toUpperCase();
+  return family === "MEMBERSHIP" || type.startsWith("MEMBERSHIP_");
+};
 
-  while (dates.has(cursor.toISOString().slice(0, 10))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
+const getActiveMembershipSnapshot = (transactions, catalogs) => {
+  const successfulMemberships = transactions
+    .filter((transaction) => transaction.status === "SUCCESS" && isMembershipTransaction(transaction))
+    .sort((a, b) => new Date(b.settled_at || b.created_at).getTime() - new Date(a.settled_at || a.created_at).getTime());
+
+  for (const transaction of successfulMemberships) {
+    const catalog = catalogs.find((item) => item.code === transaction.transaction_type);
+    const start = new Date(transaction.settled_at || transaction.created_at);
+    const durationDays =
+      Number(catalog?.duration_days) ||
+      (String(transaction.transaction_type || "").toUpperCase().includes("DAILY") ? 1 : 30);
+    const end = new Date(start.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+    if (end.getTime() > Date.now()) {
+      return {
+        activeUntil: end,
+        name: catalog?.name || transaction.catalog_name || transaction.transaction_type,
+        status: "Active",
+      };
+    }
   }
 
-  return streak;
+  const pendingMembership = transactions.find(
+    (transaction) => transaction.status === "PENDING" && isMembershipTransaction(transaction),
+  );
+
+  if (pendingMembership) {
+    const catalog = catalogs.find((item) => item.code === pendingMembership.transaction_type);
+    return {
+      activeUntil: null,
+      name: catalog?.name || pendingMembership.catalog_name || pendingMembership.transaction_type,
+      status: "Pending Payment",
+    };
+  }
+
+  return {
+    activeUntil: null,
+    name: "No active membership",
+    status: "Inactive",
+  };
 };
 
 export default function MemberDashboard() {
+  const { user } = useAuth();
   const [activities, setActivities] = useState([]);
+  const [catalogs, setCatalogs] = useState([]);
   const [crowd, setCrowd] = useState({ count: 0, status: "Quiet" });
+  const [profile, setProfile] = useState(null);
+  const [tapRows, setTapRows] = useState(() => getStoredTapHistory(user?.id));
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -86,10 +137,18 @@ export default function MemberDashboard() {
     setError("");
 
     try {
-      const [activitiesResult, crowdResult, visitResult] = await Promise.allSettled([
+      const [
+        activitiesResult,
+        crowdResult,
+        profileResult,
+        transactionsResult,
+        catalogsResult,
+      ] = await Promise.allSettled([
         api.get("/activities", { params: { page: 1, limit: 100 } }),
         api.get("/visits/crowd"),
         api.get("/users/me"),
+        api.get("/transactions/history", { params: { page: 1, limit: 50 } }),
+        api.get("/catalogs"),
       ]);
 
       if (activitiesResult.status === "fulfilled") {
@@ -104,12 +163,35 @@ export default function MemberDashboard() {
         setCrowd({ count: 0, status: "Quiet" });
       }
 
-      const rejected = [activitiesResult, crowdResult, visitResult].find((result) => result.status === "rejected");
+      if (profileResult.status === "fulfilled") {
+        setProfile(profileResult.value.data?.data || null);
+      } else {
+        setProfile(null);
+      }
+
+      if (transactionsResult.status === "fulfilled") {
+        setTransactions(transactionsResult.value.data?.data || []);
+      } else {
+        setTransactions([]);
+      }
+
+      if (catalogsResult.status === "fulfilled") {
+        setCatalogs(catalogsResult.value.data?.data || []);
+      } else {
+        setCatalogs([]);
+      }
+
+      const rejected = [crowdResult, profileResult, transactionsResult, catalogsResult].find(
+        (result) => result.status === "rejected",
+      );
       if (rejected) setError(getErrorMessage(rejected.reason, "Sebagian data dashboard gagal dimuat."));
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat dashboard."));
       setActivities([]);
+      setCatalogs([]);
       setCrowd({ count: 0, status: "Quiet" });
+      setProfile(null);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
@@ -123,6 +205,14 @@ export default function MemberDashboard() {
     return () => clearTimeout(timeoutId);
   }, [fetchDashboard]);
 
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setTapRows(getStoredTapHistory(user?.id || profile?.id));
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [profile?.id, user?.id]);
+
   const dashboardData = useMemo(() => {
     const completedActivities = activities.filter((activity) => activity.is_completed);
     const workoutMinutes = activities.reduce((sum, activity) => {
@@ -134,7 +224,6 @@ export default function MemberDashboard() {
       return key && key.startsWith(new Date().toISOString().slice(0, 7));
     }).length;
     const monthlyProgress = Math.min(Math.round((monthlyCount / 20) * 100), 100);
-    const streak = getWorkoutStreak(activities);
     const recentWorkouts = activities.slice(0, 3).map((activity) => {
       const meta = getWorkoutMeta(activity.task_name);
       return {
@@ -150,15 +239,20 @@ export default function MemberDashboard() {
       hoursTrained: formatHours(workoutMinutes),
       monthlyProgress,
       completedCount: completedActivities.length,
-      streak,
       recentWorkouts,
     };
   }, [activities]);
 
   const crowdCount = Number(crowd?.count || 0);
   const occupancy = Math.min(Math.round((crowdCount / GYM_CAPACITY) * 100), 100);
-  const isCheckedIn = false;
-  const tapInTime = null;
+  const membershipSnapshot = useMemo(
+    () => getActiveMembershipSnapshot(transactions, catalogs),
+    [catalogs, transactions],
+  );
+  const latestSession = tapRows.find((row) => !row.tapOut) || tapRows[0] || null;
+  const isCheckedIn = Boolean(latestSession && !latestSession.tapOut);
+  const tapInTime = latestSession?.tapIn || null;
+  const displayName = profile?.full_name || user?.full_name || user?.name || "Member";
 
   return (
     <MemberLayout active="Dashboard">
@@ -184,17 +278,15 @@ export default function MemberDashboard() {
         .capacity span { color: #fff; display: block; font-size: 14px; margin-top: 3px; }
         .progress-track { background: rgba(255,255,255,.28); border-radius: 999px; height: 10px; margin-top: 24px; overflow: hidden; position: relative; z-index: 1; }
         .progress-fill { background: #ff7a00; border-radius: inherit; height: 100%; transition: width .2s; }
-        .streak-card, .status-card, .workout-item { border-radius: 12px; box-shadow: 0 3px 8px rgba(11,8,113,.08); }
-        .streak-card { background: #ffdc7f; min-height: 290px; overflow: hidden; padding: 30px 24px; position: relative; }
-        .streak-card h3 { color: #0b0871; font-family: 'Anton', sans-serif; font-size: 24px; font-weight: 400; margin-bottom: 28px; }
-        .streak-number { align-items: center; color: #0b0871; display: flex; gap: 18px; }
-        .streak-number svg { color: #ff7a00; height: 58px; width: 58px; }
-        .streak-number strong { font-size: 32px; font-weight: 900; }
-        .streak-note { color: #0b0871; font-size: 12px; font-weight: 800; margin: 24px 0 22px; }
-        .week-row { display: grid; gap: 8px; grid-template-columns: repeat(7, 1fr); }
-        .day { align-items: center; color: #0b0871; display: grid; font-size: 12px; font-weight: 900; gap: 6px; justify-items: center; }
-        .day b { align-items: center; background: #ff7a00; border-radius: 50%; color: #fff; display: inline-flex; height: 28px; justify-content: center; width: 28px; }
-        .day.is-soft b { background: rgba(255,122,0,.28); color: #ff7a00; }
+        .status-card, .workout-item { border-radius: 12px; box-shadow: 0 3px 8px rgba(11,8,113,.08); }
+        .membership-card { background: #fff; border-radius: 12px; box-shadow: 0 3px 8px rgba(11,8,113,.08); padding: 20px; }
+        .membership-card span { color: #6f72a6; display: block; font-size: 12px; font-weight: 900; margin-bottom: 8px; text-transform: uppercase; }
+        .membership-card h3 { color: #0b0871; font-size: 18px; font-weight: 900; line-height: 1.2; margin: 0 0 12px; }
+        .membership-card p { color: #6470a8; font-size: 12px; font-weight: 800; margin: 0 0 14px; }
+        .membership-badge { border-radius: 999px; display: inline-flex; font-size: 10px; font-weight: 900; padding: 5px 10px; text-transform: uppercase; }
+        .membership-badge.active { background: #edfdf3; color: #16794c; }
+        .membership-badge.pending { background: #fff4d8; color: #9a5a00; }
+        .membership-badge.inactive { background: #eef0f5; color: #70758d; }
         .status-card { background: #f4f5f9; min-height: 116px; padding: 20px; }
         .status-top { align-items: center; display: flex; justify-content: space-between; margin-bottom: 18px; }
         .status-top span { color: #6f72a6; font-size: 13px; font-weight: 900; text-transform: uppercase; }
@@ -222,7 +314,7 @@ export default function MemberDashboard() {
         <div className="primary-stack">
           <article className="recap-card">
             <p className="eyebrow">Today's Recap</p>
-            <h2>{loading ? "Loading Journey" : "Your Workout Journey"}</h2>
+            <h2>{loading ? "Loading Journey" : `${displayName}'s Journey`}</h2>
             <div className="stats-row">
               <div className="stat-card"><span className="stat-icon"><MemberIcon name="grid" /></span><div><strong>{dashboardData.totalWorkouts}</strong><span>Total Workouts</span></div></div>
               <div className="stat-card"><span className="stat-icon"><MemberIcon name="calendar" /></span><div><strong>{dashboardData.hoursTrained}</strong><span>Hours Trained</span></div></div>
@@ -250,15 +342,13 @@ export default function MemberDashboard() {
           </section>
         </div>
         <aside className="side-stack">
-          <article className="streak-card">
-            <h3>Workout Streak</h3>
-            <div className="streak-number"><MemberIcon name="fire" /><strong>{dashboardData.streak} Days</strong></div>
-            <p className="streak-note">"Progress starts with consistency."</p>
-            <div className="week-row">
-              {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => (
-                <span className={`day ${index >= Math.min(dashboardData.streak, 7) ? "is-soft" : ""}`} key={`${day}-${index}`}><b>{index >= Math.min(dashboardData.streak, 7) ? day : <MemberIcon name="check" />}</b>{day}</span>
-              ))}
-            </div>
+          <article className="membership-card">
+            <span>Membership</span>
+            <h3>{membershipSnapshot.name}</h3>
+            <p>Active until: {formatDate(membershipSnapshot.activeUntil)}</p>
+            <strong className={`membership-badge ${membershipSnapshot.status.toLowerCase().split(" ")[0]}`}>
+              {membershipSnapshot.status}
+            </strong>
           </article>
           <article className="status-card">
             <div className="status-top"><span>Status</span><b className={isCheckedIn ? "" : "inactive"}>{isCheckedIn ? "Active" : "Inactive"}</b></div>

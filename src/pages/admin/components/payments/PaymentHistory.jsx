@@ -6,6 +6,7 @@ import {
   formatCurrency,
   formatDateTime,
   formatTransactionType,
+  enrichTransactionMembers,
   paymentStyles,
 } from "./paymentHelpers";
 
@@ -24,10 +25,13 @@ export default function PaymentHistoryPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/transactions/history", {
-        params: { page: 1, limit: 100 },
-      });
-      setPaymentHistory(response.data?.data || []);
+      const [historyResponse, usersResponse] = await Promise.all([
+        api.get("/transactions/history", {
+          params: { page: 1, limit: 100 },
+        }),
+        api.get("/admin/users"),
+      ]);
+      setPaymentHistory(enrichTransactionMembers(historyResponse.data?.data || [], usersResponse.data?.data || []));
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat riwayat transaksi."));
       setPaymentHistory([]);
@@ -47,7 +51,17 @@ export default function PaymentHistoryPage() {
     setError("");
     try {
       const response = await api.get(`/transactions/${transactionId}`);
-      setSelectedTransaction(response.data?.data || null);
+      const transaction = response.data?.data || null;
+      const matched = paymentHistory.find((item) => item.id === transaction?.id);
+      setSelectedTransaction(
+        transaction
+          ? {
+              ...transaction,
+              email: transaction.email || matched?.email || "",
+              full_name: transaction.full_name || matched?.full_name || "",
+            }
+          : null,
+      );
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat detail transaksi."));
     } finally {
@@ -96,21 +110,6 @@ export default function PaymentHistoryPage() {
 
       {error && <div className="payments-alert error">{error}</div>}
       {actionMessage && <div className="payments-alert success">{actionMessage}</div>}
-
-      {selectedTransaction && (
-        <section className="payments-detail">
-          <div>
-            <h3>Detail Transaksi</h3>
-            <p>{selectedTransaction.order_id || selectedTransaction.id}</p>
-          </div>
-          <dl>
-            <div><dt>Member</dt><dd>{selectedTransaction.full_name || selectedTransaction.email || "-"}</dd></div>
-            <div><dt>Tipe</dt><dd>{formatTransactionType(selectedTransaction.transaction_type)}</dd></div>
-            <div><dt>Status</dt><dd>{selectedTransaction.status || "-"}</dd></div>
-            <div><dt>Total</dt><dd>{formatCurrency(selectedTransaction.amount)}</dd></div>
-          </dl>
-        </section>
-      )}
 
       <div className="payments-table-wrap">
         <table className="payments-table">
@@ -188,6 +187,56 @@ export default function PaymentHistoryPage() {
           </tbody>
         </table>
       </div>
+
+      {selectedTransaction && (
+        <div className="payments-modal-backdrop">
+          <section className="payments-modal" role="dialog" aria-modal="true" aria-labelledby="payment-detail-title">
+            <div className="payments-modal-head">
+              <div>
+                <h3 id="payment-detail-title">Detail Transaksi</h3>
+                <p>{selectedTransaction.order_id || selectedTransaction.id}</p>
+              </div>
+              <button
+                className="payments-modal-close"
+                onClick={() => setSelectedTransaction(null)}
+                type="button"
+                aria-label="Tutup detail transaksi"
+              >
+                x
+              </button>
+            </div>
+
+            <dl className="payments-detail-list">
+              <div><dt>Member</dt><dd>{selectedTransaction.full_name || "-"}</dd></div>
+              <div><dt>Email</dt><dd>{selectedTransaction.email || "-"}</dd></div>
+              <div><dt>Tipe Pembayaran</dt><dd>{formatTransactionType(selectedTransaction.transaction_type)}</dd></div>
+              <div><dt>Metode</dt><dd>{selectedTransaction.payment_method || "-"}</dd></div>
+              <div><dt>Status</dt><dd>{selectedTransaction.status || "-"}</dd></div>
+              <div><dt>Total</dt><dd>{formatCurrency(selectedTransaction.amount)}</dd></div>
+              <div><dt>Penalty</dt><dd>{formatCurrency(selectedTransaction.penalty_amount)}</dd></div>
+              <div><dt>Dibuat</dt><dd>{formatDateTime(selectedTransaction.created_at)}</dd></div>
+              <div><dt>Expired</dt><dd>{formatDateTime(selectedTransaction.expire_at)}</dd></div>
+              <div><dt>Settled</dt><dd>{formatDateTime(selectedTransaction.settled_at)}</dd></div>
+            </dl>
+
+            <div className="payments-modal-actions">
+              {selectedTransaction.status === "PENDING" && (
+                <button
+                  className="payments-action reject"
+                  disabled={actionLoadingId === selectedTransaction.id}
+                  onClick={() => cancelTransaction(selectedTransaction)}
+                  type="button"
+                >
+                  Cancel Transaction
+                </button>
+              )}
+              <button className="payments-action accept" onClick={() => setSelectedTransaction(null)} type="button">
+                Tutup
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </AdminLayout>
   );
 }

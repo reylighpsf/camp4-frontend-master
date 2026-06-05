@@ -85,6 +85,13 @@ export const mapCatalogToMembershipPlan = (catalog) => ({
   name: catalog.name,
   period: catalog.duration_days === 1 ? "day" : "month",
   price: formatCatalogPrice(getCatalogPrice(catalog)),
+  prices: Array.isArray(catalog.prices)
+    ? catalog.prices.map((price) => ({
+        price: formatCatalogPrice(price.price),
+        tierCode: price.tier_code,
+        tierName: price.tier_name || String(price.tier_code || "").replaceAll("_", " "),
+      }))
+    : [],
 });
 
 export const mapCatalogsToMembershipPlans = (catalogs = []) => {

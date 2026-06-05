@@ -32,6 +32,7 @@ export default function MembershipPlanCards({ compact = false, plans = membershi
     name: plan.name,
     period: plan.period,
     price: plan.price,
+    prices: plan.prices || [{ tierCode: "DEFAULT", tierName: "Harga", price: plan.price }],
   }));
 
   const cards = normalizedPlans.map((plan) => (
@@ -42,12 +43,20 @@ export default function MembershipPlanCards({ compact = false, plans = membershi
       <p className="plan-kicker">{plan.name}</p>
       <h2>{plan.price}</h2>
       <span>{plan.period}</span>
+      <div className="membership-price-list" aria-label={`Harga ${plan.name}`}>
+        {plan.prices.map((price) => (
+          <div className="membership-price-row" key={`${plan.id || plan.name}-${price.tierCode}`}>
+            <span>{price.tierName}</span>
+            <b>{price.price}</b>
+          </div>
+        ))}
+      </div>
       <ul>
         {plan.features.map((feature) => (
           <li key={feature}>{feature}</li>
         ))}
       </ul>
-      <Link to={plan.id ? `/sign-up?plan=${plan.id}` : "/membership"}>
+      <Link to="/sign-up">
         {plan.highlight ? "View Plan" : "Choose This Plan"}
       </Link>
     </article>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
-import { AuthFrame, MembershipSummary } from "../AuthFrame";
+import { AuthFrame } from "../AuthFrame";
 import { authApi } from "../../../components/auth/authApi";
 
 const verificationRequests = new Map();
@@ -24,9 +24,6 @@ export default function VerifyEmailResult() {
   const [registrationEmail, setRegistrationEmail] = useState(
     () => localStorage.getItem("vocafit-registration-email") || "",
   );
-  const [selectedPlanId, setSelectedPlanId] = useState(
-    () => localStorage.getItem("vocafit-selected-plan") || "student",
-  );
 
   useEffect(() => {
     if (!verificationToken) {
@@ -34,7 +31,6 @@ export default function VerifyEmailResult() {
       const statusFromQuery = params.get("status");
       const messageFromQuery = params.get("message");
       const emailFromQuery = params.get("email");
-      const planFromQuery = params.get("plan");
 
       const timeoutId = setTimeout(() => {
         const savedEmail =
@@ -50,16 +46,11 @@ export default function VerifyEmailResult() {
           setRegistrationEmail(savedEmail);
         }
 
-        if (planFromQuery) {
-          localStorage.setItem("vocafit-selected-plan", planFromQuery);
-          setSelectedPlanId(planFromQuery);
-        }
-
         if (statusFromQuery === "success" || (!statusFromQuery && hasRegistrationContext)) {
           setStatus("success");
           setMessage(
             messageFromQuery ||
-              "Email verified successfully. You can continue to payment.",
+              "Email verified successfully. You can choose a membership plan.",
           );
         } else {
           setStatus("error");
@@ -92,7 +83,7 @@ export default function VerifyEmailResult() {
         }
         setMessage(
           res.data?.message ||
-            "Email verified successfully. You can continue to payment.",
+            "Email verified successfully. You can choose a membership plan.",
         );
       } catch (err) {
         if (!isMounted) return;
@@ -119,17 +110,17 @@ export default function VerifyEmailResult() {
     success: "Berhasil",
     error: "Gagal",
   }[status];
-  const paymentPath = `/payment?plan=${selectedPlanId}`;
-  const paymentState = {
+  const choosePlanPath = "/choose-plan";
+  const choosePlanState = {
     email: registrationEmail,
-    notice: "Email berhasil diverifikasi. Silakan lanjutkan pembayaran membership.",
+    notice: "Email berhasil diverifikasi. Silakan pilih membership plan.",
   };
 
   return (
     <AuthFrame
-      currentStep={3}
-      contentClassName="auth-centered"
-      aside={<MembershipSummary actionLabel="Review Plan" />}
+      currentStep={2}
+      contentClassName="auth-single-page"
+      aside={null}
     >
       <h1>Email Verification</h1>
       <span className={`auth-status ${status}`}>{statusLabel}</span>
@@ -142,11 +133,11 @@ export default function VerifyEmailResult() {
 
       <div className="auth-actions">
         <Link
-          to={status === "success" ? paymentPath : "/sign-up"}
-          state={status === "success" ? paymentState : undefined}
+          to={status === "success" ? choosePlanPath : "/sign-up"}
+          state={status === "success" ? choosePlanState : undefined}
           className="auth-secondary-btn"
         >
-          {status === "success" ? "Continue To Payment" : "Back To Sign Up"}
+          {status === "success" ? "Choose Member Plan" : "Back To Sign Up"}
         </Link>
         {status === "success" && (
           <Link to="/sign-up" className="auth-outline-btn">

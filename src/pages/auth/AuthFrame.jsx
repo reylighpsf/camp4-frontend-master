@@ -3,9 +3,9 @@ import { useEffect } from "react";
 import { authMembershipPlans, getAuthMembershipPlan } from "./membership/hooks/authPlans";
 
 const steps = [
-  "Choose Plan",
-  "Create Account",
+  "Register",
   "Verify Email",
+  "Choose Plan",
   "Payment",
 ];
 
@@ -80,7 +80,7 @@ export function MembershipPlanCards({ plans = authMembershipPlans }) {
               </li>
             ))}
           </ul>
-          <Link to={`/sign-up?plan=${plan.id}`} className="auth-primary-btn">
+          <Link to={`/payment?plan=${plan.id}`} className="auth-primary-btn">
             Choose Plan
           </Link>
         </article>
@@ -257,6 +257,11 @@ const authStyles = `
 
   .auth-checkout-shell.auth-centered {
     grid-template-columns: minmax(0, 610px) 330px;
+    justify-content: center;
+  }
+
+  .auth-checkout-shell.auth-single-page {
+    grid-template-columns: minmax(0, 610px);
     justify-content: center;
   }
 
@@ -741,7 +746,8 @@ const authStyles = `
     }
 
     .auth-checkout-shell,
-    .auth-checkout-shell.auth-centered {
+    .auth-checkout-shell.auth-centered,
+    .auth-checkout-shell.auth-single-page {
       grid-template-columns: 1fr;
       padding: 24px 18px;
     }

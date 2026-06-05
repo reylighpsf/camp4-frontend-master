@@ -103,7 +103,7 @@ const trainerStyles = `
   .trainer-table th:last-child,
   .trainer-table td:last-child {
     padding-right: 14px;
-    width: 94px;
+    width: 160px;
   }
 
   .trainer-thumb {
@@ -138,33 +138,36 @@ const trainerStyles = `
 
   .trainer-row-actions {
     display: flex;
-    gap: 6px;
+    flex-wrap: wrap;
+    gap: 7px;
   }
 
-  .trainer-icon-btn {
-    align-items: center;
-    border: 0;
+  .trainer-row-action {
     border-radius: 7px;
-    color: #fff;
     cursor: pointer;
-    display: inline-flex;
-    height: 32px;
-    justify-content: center;
-    padding: 0;
-    width: 32px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 900;
+    min-height: 36px;
+    padding: 0 12px;
+    text-transform: uppercase;
   }
 
-  .trainer-icon-btn.edit {
+  .trainer-row-action.edit {
     background: #080478;
+    border: 1px solid #080478;
+    color: #fff;
   }
 
-  .trainer-icon-btn.delete {
-    background: #c7191f;
+  .trainer-row-action.delete {
+    background: #fff;
+    border: 1px solid #c73822;
+    color: #c73822;
   }
 
-  .trainer-icon-btn svg {
-    height: 18px;
-    width: 18px;
+  .trainer-row-action:disabled {
+    cursor: not-allowed;
+    opacity: .62;
   }
 
   .trainer-modal-backdrop {
@@ -342,23 +345,6 @@ const formatTrainerPrice = (value) => {
   return `Rp. ${amount.toLocaleString("id-ID")}`;
 };
 
-function EditIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5 19h4L19.5 8.5a2.1 2.1 0 0 0-3-3L6 16v3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M14.5 7.5l2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function DeleteIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M8 8h8M10 11v5M14 11v5M9 6h6l.5 2H18v11H6V8h2.5L9 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 export default function TrainerPage() {
   const trainers = useTrainers();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -506,21 +492,19 @@ export default function TrainerPage() {
                       <td>
                         <div className="trainer-row-actions">
                           <button
-                            className="trainer-icon-btn edit"
+                            className="trainer-row-action edit"
                             onClick={() => handleOpenEditForm(item)}
                             type="button"
-                            aria-label="Edit trainer"
                           >
-                            <EditIcon />
+                            Edit
                           </button>
                           <button
-                            className="trainer-icon-btn delete"
+                            className="trainer-row-action delete"
                             disabled={trainers.deleteLoadingId === item.id}
                             onClick={() => handleDelete(item)}
                             type="button"
-                            aria-label="Hapus trainer"
                           >
-                            <DeleteIcon />
+                            Delete
                           </button>
                         </div>
                       </td>

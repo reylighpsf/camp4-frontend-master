@@ -160,7 +160,7 @@ export default function Signin() {
             </form>
 
             <p className="signin-footer">
-              New to Vocafit? <Link to="/choose-plan">Join Us</Link>
+              New to Vocafit? <Link to="/sign-up">Join Us</Link>
             </p>
           </div>
 
@@ -206,8 +206,7 @@ const signinStyles = `
 
   .signin-page {
     min-height: 100vh;
-    background: #080173;
-    color: #fff;
+    background: #fff;
     font-family: 'DM Sans', sans-serif;
     display: grid;
     place-items: center;
@@ -217,7 +216,7 @@ const signinStyles = `
   .signin-shell {
     width: min(100%, 1040px);
     min-height: 620px;
-    background: rgba(255, 255, 255, .04);
+    background: #080478;
     border: 1px solid rgba(255, 220, 123, .22);
     border-radius: 12px;
     box-shadow: 0 24px 60px rgba(0, 0, 0, .18);

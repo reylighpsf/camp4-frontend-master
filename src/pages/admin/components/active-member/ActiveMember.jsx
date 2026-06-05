@@ -189,6 +189,7 @@ const activeMemberStyles = `
 
   .active-member-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
   }
 
@@ -197,12 +198,13 @@ const activeMemberStyles = `
     cursor: pointer;
     font: inherit;
     font-size: 12px;
-    font-weight: 800;
-    height: 34px;
+    font-weight: 900;
+    min-height: 36px;
     padding: 0 12px;
     text-transform: uppercase;
   }
 
+  .active-member-action.detail,
   .active-member-action.edit {
     background: #080478;
     border: 1px solid #080478;
@@ -520,7 +522,7 @@ export default function ActiveMemberPage() {
                       <td>
                         <div className="active-member-actions">
                           <button
-                            className="active-member-action edit"
+                            className="active-member-action detail"
                             disabled={actionLoadingId === member.id}
                             onClick={() => openDetailModal(member)}
                             type="button"
@@ -533,15 +535,15 @@ export default function ActiveMemberPage() {
                             onClick={() => openEditModal(member)}
                             type="button"
                           >
-                            Perbarui
+                            Edit
                           </button>
                           <button
                             className="active-member-action delete"
-                            disabled={actionLoadingId === member.id || !isActive}
+                            disabled={actionLoadingId === member.id}
                             onClick={() => handleDeleteMembership(member)}
                             type="button"
                           >
-                            Hapus
+                            Delete
                           </button>
                         </div>
                       </td>

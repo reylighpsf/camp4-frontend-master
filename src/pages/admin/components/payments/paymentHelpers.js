@@ -79,48 +79,105 @@ export const paymentStyles = `
     color: #16794c;
   }
 
-  .payments-detail {
-    background: #f7f8fb;
-    border: 1px solid #eceef3;
-    border-radius: 8px;
-    display: grid;
-    gap: 14px;
-    margin-bottom: 18px;
-    padding: 16px;
+  .payments-modal-backdrop {
+    align-items: center;
+    background: rgba(17, 19, 29, .54);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 22px;
+    position: fixed;
+    z-index: 1000;
   }
 
-  .payments-detail h3 {
+  .payments-modal {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 24px 70px rgba(17, 19, 29, .28);
+    max-height: calc(100vh - 44px);
+    overflow-y: auto;
+    padding: 22px;
+    width: min(680px, 100%);
+  }
+
+  .payments-modal-head {
+    align-items: start;
+    border-bottom: 1px solid #eceef3;
+    display: flex;
+    gap: 14px;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+  }
+
+  .payments-modal h3 {
     color: #080478;
-    font-size: 15px;
+    font-size: 18px;
     margin: 0 0 4px;
   }
 
-  .payments-detail p {
+  .payments-modal p {
     color: #6b7280;
     font-size: 12px;
     font-weight: 800;
     margin: 0;
   }
 
-  .payments-detail dl {
+  .payments-modal-close {
+    align-items: center;
+    background: #f4f5f8;
+    border: 1px solid #d8dbe6;
+    border-radius: 8px;
+    color: #11131d;
+    cursor: pointer;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 900;
+    height: 34px;
+    justify-content: center;
+    line-height: 1;
+    width: 34px;
+  }
+
+  .payments-detail-list {
     display: grid;
     gap: 10px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     margin: 0;
   }
 
-  .payments-detail dt {
+  .payments-detail-list div {
+    background: #f7f8fb;
+    border: 1px solid #eceef3;
+    border-radius: 8px;
+    min-width: 0;
+    padding: 12px;
+  }
+
+  .payments-detail-list dt {
     color: #6b7280;
     font-size: 10px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
-  .payments-detail dd {
+  .payments-detail-list dd {
     color: #11131d;
     font-size: 12px;
     font-weight: 900;
     margin: 4px 0 0;
+    overflow-wrap: anywhere;
+  }
+
+  .payments-modal-actions {
+    border-top: 1px solid #eceef3;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 16px;
+    padding-top: 16px;
   }
 
   .payments-table-wrap {
@@ -244,8 +301,12 @@ export const paymentStyles = `
       flex-direction: column;
     }
 
-    .payments-detail dl {
+    .payments-detail-list {
       grid-template-columns: 1fr;
+    }
+
+    .payments-modal-actions {
+      flex-direction: column;
     }
   }
 `;
@@ -274,3 +335,16 @@ export const formatTransactionType = (value) =>
     .replaceAll("_", " ")
     .toLowerCase()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+export const enrichTransactionMembers = (transactions = [], users = []) => {
+  const usersById = new Map(users.map((user) => [user.id, user]));
+
+  return transactions.map((transaction) => {
+    const user = usersById.get(transaction.user_id);
+    return {
+      ...transaction,
+      email: transaction.email || user?.email || "",
+      full_name: transaction.full_name || user?.full_name || "",
+    };
+  });
+};

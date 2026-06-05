@@ -45,6 +45,12 @@ const formatTransactionType = (value) =>
     .toLowerCase()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
+const formatTierName = (value) =>
+  String(value || "-")
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
 
@@ -224,7 +230,12 @@ export default function ProfileMembershipPlanPage() {
   );
   const endDate = formatDate(membershipSnapshot?.end || profile?.membership_end_date || profile?.membership?.end_date);
   const availablePlans = useMemo(() => {
-    if (catalogPlans.length === 0) return authMembershipPlans;
+    if (catalogPlans.length === 0) {
+      return authMembershipPlans.map((plan) => ({
+        ...plan,
+        prices: [{ tierCode: "DEFAULT", tierName: "Harga", price: plan.price }],
+      }));
+    }
 
     return catalogPlans.map((item) => {
       const price = item.prices?.[0]?.price || 0;
@@ -239,6 +250,11 @@ export default function ProfileMembershipPlanPage() {
         name: item.name,
         period: item.duration_days ? `${item.duration_days} hari` : "plan",
         price: formatCurrency(price),
+        prices: (item.prices || []).map((priceItem) => ({
+          price: formatCurrency(priceItem.price),
+          tierCode: priceItem.tier_code,
+          tierName: priceItem.tier_name || formatTierName(priceItem.tier_code),
+        })),
       };
     });
   }, [catalogPlans]);
@@ -462,6 +478,43 @@ export default function ProfileMembershipPlanPage() {
         .profile-plan-card strong span {
           color: #565a91;
           font-size: 12px;
+        }
+
+        .profile-plan-price-list {
+          border: 1px solid #eceef3;
+          border-radius: 8px;
+          display: grid;
+          gap: 0;
+          margin: 0 0 14px;
+          overflow: hidden;
+        }
+
+        .profile-plan-price-row {
+          align-items: center;
+          background: #f8f8fb;
+          display: grid;
+          gap: 10px;
+          grid-template-columns: minmax(0, 1fr) auto;
+          min-height: 38px;
+          padding: 8px 10px;
+        }
+
+        .profile-plan-price-row + .profile-plan-price-row {
+          border-top: 1px solid #eceef3;
+        }
+
+        .profile-plan-price-row span {
+          color: #565a91;
+          font-size: 11px;
+          font-weight: 900;
+          line-height: 1.2;
+        }
+
+        .profile-plan-price-row b {
+          color: #ff7a00;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: nowrap;
         }
 
         .profile-plan-card ul {
@@ -702,6 +755,14 @@ export default function ProfileMembershipPlanPage() {
               <strong>
                 {plan.price} <span>/ {plan.period}</span>
               </strong>
+              <div className="profile-plan-price-list" aria-label={`Harga ${plan.name}`}>
+                {plan.prices.map((price) => (
+                  <div className="profile-plan-price-row" key={`${plan.id}-${price.tierCode}`}>
+                    <span>{price.tierName}</span>
+                    <b>{price.price}</b>
+                  </div>
+                ))}
+              </div>
               <ul>
                 {plan.benefits.map((benefit) => (
                   <li key={benefit}>{benefit}</li>

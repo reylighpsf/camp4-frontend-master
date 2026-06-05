@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
-import { AuthFrame, MembershipSummary, Toast } from "../AuthFrame";
+import { Link, useNavigate } from "react-router";
+import { AuthFrame, Toast } from "../AuthFrame";
 import { useAuth } from "../../../components/auth/useAuth";
 
 export default function Signup() {
   const { signup } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const selectedPlanId = searchParams.get("plan") || "student";
   const imageInputRef = useRef(null);
 
   const [form, setForm] = useState({
@@ -22,10 +20,6 @@ export default function Signup() {
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
-
-  useEffect(() => {
-    localStorage.setItem("vocafit-selected-plan", selectedPlanId);
-  }, [selectedPlanId]);
 
   useEffect(() => {
     if (!form.image) {
@@ -116,16 +110,7 @@ export default function Signup() {
       formData.append("image", form.image);
 
       await signup(formData);
-      localStorage.setItem("vocafit-selected-plan", selectedPlanId);
       localStorage.setItem("vocafit-registration-email", normalizedEmail);
-      localStorage.setItem(
-        `vocafit-registration-plan-${normalizedEmail}`,
-        JSON.stringify({
-          email: normalizedEmail,
-          planId: selectedPlanId,
-          selectedAt: new Date().toISOString(),
-        }),
-      );
       navigate("/verify-email", { state: { email: normalizedEmail } });
     } catch (err) {
       const res = err.response?.data;
@@ -148,8 +133,9 @@ export default function Signup() {
       {toast && <Toast message={toast} onClose={() => setToast("")} />}
 
       <AuthFrame
-        currentStep={2}
-        aside={<MembershipSummary planId={selectedPlanId} />}
+        currentStep={1}
+        aside={null}
+        contentClassName="auth-single-page"
       >
         <h1>Create Your Member Account</h1>
         <p className="auth-subtitle">
@@ -267,7 +253,7 @@ export default function Signup() {
                 <span className="spinner" /> Loading
               </>
             ) : (
-              "Continue To Payment"
+              "Continue To Verify Email"
             )}
           </button>
         </form>
