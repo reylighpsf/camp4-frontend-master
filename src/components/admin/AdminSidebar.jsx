@@ -1,4 +1,4 @@
-import { NavLink } from "react-router";
+import { NavLink, useLocation } from "react-router";
 import vocafitLogo from "../../assets/auth/vocafit-logo.png";
 
 const iconProps = {
@@ -37,6 +37,11 @@ const icons = {
       <path d="M3 10h18M7 15h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </Icon>
   ),
+  catalog: (
+    <Icon>
+      <path d="M5 5h14v5H5zM5 14h6v5H5zM15 14h4v5h-4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </Icon>
+  ),
   members: (
     <Icon>
       <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.8" />
@@ -66,12 +71,33 @@ const icons = {
 const navItems = [
   { label: "Dashboard", icon: icons.dashboard, to: "/admin" },
   { label: "News Update", icon: icons.news, to: "/admin/news-update" },
-  { label: "Payments", icon: icons.payments, to: "/admin/payments" },
+  {
+    label: "Catalog",
+    icon: icons.catalog,
+    to: "/admin/catalogs",
+    children: [
+      { label: "Membership", to: "/admin/catalogs/membership" },
+      { label: "Trainer", to: "/admin/catalogs/trainer" },
+    ],
+  },
+  {
+    label: "Payments",
+    icon: icons.payments,
+    to: "/admin/payments",
+    children: [
+      { label: "Pending", to: "/admin/payments" },
+      { label: "Riwayat", to: "/admin/payments/history" },
+    ],
+  },
   { label: "Active Member", icon: icons.members, to: "/admin/active-member" },
   { label: "Trainer", icon: icons.trainer, to: "/admin/trainer" },
 ];
 
 function SidebarButton({ item }) {
+  if (item.children) {
+    return <SidebarDropdown item={item} />;
+  }
+
   return (
     <NavLink
       className={({ isActive }) =>
@@ -83,6 +109,34 @@ function SidebarButton({ item }) {
       <span className="admin-sidebar__icon">{item.icon}</span>
       <span className="admin-sidebar__label">{item.label}</span>
     </NavLink>
+  );
+}
+
+function SidebarDropdown({ item }) {
+  const location = useLocation();
+  const isActive = item.children.some((child) => location.pathname === child.to);
+
+  return (
+    <details className="admin-sidebar__group" open={isActive}>
+      <summary className={`admin-sidebar__button admin-sidebar__summary${isActive ? " admin-sidebar__button--active" : ""}`}>
+        <span className="admin-sidebar__icon">{item.icon}</span>
+        <span className="admin-sidebar__label">{item.label}</span>
+        <span className="admin-sidebar__chevron" aria-hidden="true">v</span>
+      </summary>
+      <div className="admin-sidebar__submenu">
+        {item.children.map((child) => (
+          <NavLink
+            className={({ isActive: childActive }) =>
+              `admin-sidebar__subbutton${childActive ? " admin-sidebar__subbutton--active" : ""}`
+            }
+            key={child.label}
+            to={child.to}
+          >
+            {child.label}
+          </NavLink>
+        ))}
+      </div>
+    </details>
   );
 }
 
@@ -156,6 +210,58 @@ export default function AdminSidebar({ onLogout }) {
           text-decoration: none;
         }
 
+        .admin-sidebar__group {
+          display: grid;
+          gap: 8px;
+        }
+
+        .admin-sidebar__summary {
+          grid-template-columns: 24px minmax(0, 1fr) 12px;
+          list-style: none;
+        }
+
+        .admin-sidebar__summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .admin-sidebar__chevron {
+          color: currentColor;
+          font-size: 11px;
+          font-weight: 900;
+          justify-self: end;
+          transition: transform .18s ease;
+        }
+
+        .admin-sidebar__group[open] .admin-sidebar__chevron {
+          transform: rotate(180deg);
+        }
+
+        .admin-sidebar__submenu {
+          display: grid;
+          gap: 8px;
+          padding-left: 40px;
+        }
+
+        .admin-sidebar__subbutton {
+          border-radius: 999px;
+          color: #d9d8ff;
+          font-size: 13px;
+          font-weight: 600;
+          min-height: 36px;
+          padding: 9px 14px;
+          text-decoration: none;
+        }
+
+        .admin-sidebar__subbutton:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: #fff;
+        }
+
+        .admin-sidebar__subbutton--active {
+          background: rgba(255, 115, 20, .22);
+          color: #fff;
+        }
+
         .admin-sidebar__button--active {
           background: #ff7314;
           color: #fff;
@@ -206,6 +312,11 @@ export default function AdminSidebar({ onLogout }) {
             grid-template-columns: 1fr;
             justify-items: center;
             padding: 0;
+          }
+
+          .admin-sidebar__chevron,
+          .admin-sidebar__submenu {
+            display: none;
           }
         }
 

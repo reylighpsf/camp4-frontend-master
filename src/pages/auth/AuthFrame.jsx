@@ -57,10 +57,10 @@ export function MembershipSummary({ actionLabel = "Change Plan", planId = "stude
   );
 }
 
-export function MembershipPlanCards() {
+export function MembershipPlanCards({ plans = authMembershipPlans }) {
   return (
     <div className="auth-plan-grid">
-      {authMembershipPlans.map((plan, index) => (
+      {plans.map((plan, index) => (
         <article
           className={`auth-plan-card${index === 0 ? " is-featured" : ""}`}
           key={plan.id}

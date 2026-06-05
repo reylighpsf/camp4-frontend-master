@@ -1,7 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { AuthFrame } from "../AuthFrame";
-import { getAuthMembershipPlan } from "../membership/hooks/authPlans";
+import {
+  authMembershipPlans,
+  getAuthMembershipPlan,
+  getTransactionTypeFromPlanId,
+  mapCatalogsToMembershipPlans,
+} from "../membership/hooks/authPlans";
 import api from "../../../components/auth/authApi";
 
 const paymentMethods = [
@@ -13,9 +18,6 @@ const parsePrice = (price) => Number(String(price).replace(/[^\d]/g, "")) || 0;
 
 const formatCurrency = (value) =>
   `Rp ${Number(value || 0).toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;
-
-const getTransactionType = (planId) =>
-  planId === "daily" ? "MEMBERSHIP_DAILY" : "MEMBERSHIP_MONTHLY";
 
 const getMidtransSnapUrl = () =>
   import.meta.env.VITE_MIDTRANS_IS_PRODUCTION === "true"
@@ -59,15 +61,36 @@ export default function Payment() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [cashPending, setCashPending] = useState(false);
+  const [plans, setPlans] = useState(authMembershipPlans);
   const planId =
     searchParams.get("plan") ||
     localStorage.getItem("vocafit-selected-plan") ||
     "student";
-  const selectedPlan = getAuthMembershipPlan(planId);
+  const selectedPlan =
+    plans.find((plan) => plan.id === planId) ||
+    getAuthMembershipPlan(planId);
   const selectedMethod =
     paymentMethods.find((method) => method.id === selectedMethodId) ||
     paymentMethods[0];
   const total = parsePrice(selectedPlan.price);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchCatalogPlans = async () => {
+      try {
+        const response = await api.get("/catalogs");
+        if (isMounted) setPlans(mapCatalogsToMembershipPlans(response.data?.data || []));
+      } catch {
+        if (isMounted) setPlans(authMembershipPlans);
+      }
+    };
+
+    fetchCatalogPlans();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const goToPaymentSuccess = ({ transaction, status }) => {
     navigate("/payment/success", {
@@ -91,7 +114,7 @@ export default function Payment() {
 
     try {
       const response = await api.post("/transactions/create", {
-        transactionType: getTransactionType(selectedPlan.id),
+        transactionType: selectedPlan.catalogCode || getTransactionTypeFromPlanId(selectedPlan.id),
         paymentMethod: selectedMethod.paymentMethod,
       });
       const transaction = response.data?.data?.transaction;

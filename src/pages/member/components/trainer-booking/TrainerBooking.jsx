@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import api from "../../../../components/auth/authApi";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
@@ -18,6 +19,19 @@ const formatPrice = (value) => {
   return `Rp ${amount.toLocaleString("id-ID")} / sesi`;
 };
 
+const formatDateTime = (value) => {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+};
+
+const toDatetimeLocalValue = (date) => {
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 const SearchIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8" />
@@ -31,18 +45,25 @@ const FilterIcon = () => (
   </svg>
 );
 
-const PinIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 21s6-5.1 6-11a6 6 0 1 0-12 0c0 5.9 6 11 6 11Z" stroke="currentColor" strokeWidth="1.8" />
-    <circle cx="12" cy="10" r="2" stroke="currentColor" strokeWidth="1.8" />
-  </svg>
-);
-
 export default function TrainerBookingPage() {
   const [trainers, setTrainers] = useState([]);
+  const [packages, setPackages] = useState([]);
+  const [selectedTrainer, setSelectedTrainer] = useState(null);
+  const [selectedPackage, setSelectedPackage] = useState(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [packageLoading, setPackageLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState("");
   const [error, setError] = useState("");
+  const [packageError, setPackageError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [sessionStart, setSessionStart] = useState(() => {
+    const next = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    next.setMinutes(next.getMinutes() < 30 ? 30 : 0, 0, 0);
+    if (next.getMinutes() === 0) next.setHours(next.getHours() + 1);
+    return toDatetimeLocalValue(next);
+  });
 
   const fetchTrainers = useCallback(async () => {
     setLoading(true);
@@ -58,13 +79,91 @@ export default function TrainerBookingPage() {
     }
   }, []);
 
+  const fetchPackages = useCallback(async () => {
+    setPackageLoading(true);
+    setPackageError("");
+    try {
+      const response = await api.get("/trainers/packages");
+      setPackages(response.data?.data || []);
+    } catch (err) {
+      setPackageError(getErrorMessage(err, "Gagal memuat paket trainer."));
+      setPackages([]);
+    } finally {
+      setPackageLoading(false);
+    }
+  }, []);
+
+  const fetchPackageDetail = useCallback(async (packageId) => {
+    setDetailLoading(true);
+    setPackageError("");
+    setActionMessage("");
+    try {
+      const response = await api.get(`/trainers/packages/${packageId}`);
+      setSelectedPackage(response.data?.data || null);
+    } catch (err) {
+      setPackageError(getErrorMessage(err, "Gagal memuat detail paket trainer."));
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  const fetchTrainerDetail = async (trainerId) => {
+    setActionLoading(`trainer-${trainerId}`);
+    setError("");
+    try {
+      const response = await api.get(`/trainers/${trainerId}`);
+      setSelectedTrainer(response.data?.data || null);
+    } catch (err) {
+      setError(getErrorMessage(err, "Gagal memuat detail trainer."));
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const bookSession = async () => {
+    if (!selectedPackage?.id) return;
+    setActionLoading("book-session");
+    setPackageError("");
+    setActionMessage("");
+    try {
+      await api.post(`/trainers/packages/${selectedPackage.id}/sessions`, {
+        startTime: new Date(sessionStart).toISOString(),
+      });
+      setActionMessage("Sesi trainer berhasil dibooking.");
+      await fetchPackageDetail(selectedPackage.id);
+      await fetchPackages();
+    } catch (err) {
+      setPackageError(getErrorMessage(err, "Gagal booking sesi trainer."));
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const cancelSession = async (sessionId) => {
+    const reason = window.prompt("Alasan cancel sesi?", "Perubahan jadwal") || "";
+    setActionLoading(`cancel-${sessionId}`);
+    setPackageError("");
+    setActionMessage("");
+    try {
+      await api.post(`/trainers/sessions/${sessionId}/cancel`, { reason });
+      setActionMessage("Sesi trainer berhasil dicancel.");
+      await fetchPackageDetail(selectedPackage.id);
+      await fetchPackages();
+    } catch (err) {
+      setPackageError(getErrorMessage(err, "Gagal cancel sesi trainer."));
+    } finally {
+      setActionLoading("");
+    }
+  };
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchTrainers();
+      fetchPackages();
     }, 0);
 
     return () => clearTimeout(timeoutId);
-  }, [fetchTrainers]);
+  }, [fetchPackages, fetchTrainers]);
 
   const filteredTrainers = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -373,6 +472,112 @@ export default function TrainerBookingPage() {
           width: 16px;
         }
 
+        .package-list,
+        .package-detail,
+        .session-list {
+          display: grid;
+          gap: 12px;
+        }
+
+        .package-card,
+        .package-detail-card,
+        .session-item {
+          background: #fff;
+          border: 1px solid #eceef3;
+          border-radius: 8px;
+          padding: 14px;
+        }
+
+        .package-card {
+          cursor: pointer;
+          text-align: left;
+        }
+
+        .package-card strong,
+        .package-detail-card strong,
+        .session-item strong {
+          color: #0b0871;
+          display: block;
+          font-size: 13px;
+          margin-bottom: 5px;
+        }
+
+        .package-card span,
+        .package-detail-card span,
+        .session-item span {
+          color: #292782;
+          display: block;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1.45;
+        }
+
+        .package-card.active {
+          border-color: #ff7a00;
+          box-shadow: 0 0 0 2px rgba(255, 122, 0, .16);
+        }
+
+        .session-book-form {
+          display: grid;
+          gap: 10px;
+          margin-top: 14px;
+        }
+
+        .session-book-form input {
+          border: 1px solid #d8dbe6;
+          border-radius: 8px;
+          color: #0b0871;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 800;
+          min-height: 40px;
+          padding: 0 10px;
+        }
+
+        .trainer-message {
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 800;
+          margin: 0 0 12px;
+          padding: 10px;
+        }
+
+        .trainer-message.error {
+          background: #fff1f0;
+          color: #c73822;
+        }
+
+        .trainer-message.success {
+          background: #edfdf3;
+          color: #16794c;
+        }
+
+        .trainer-detail-modal {
+          align-items: center;
+          background: rgba(8, 4, 120, .48);
+          display: flex;
+          inset: 0;
+          justify-content: center;
+          padding: 22px;
+          position: fixed;
+          z-index: 1000;
+        }
+
+        .trainer-detail-card {
+          background: #fff;
+          border-radius: 12px;
+          max-width: 520px;
+          padding: 22px;
+          width: 100%;
+        }
+
+        .trainer-detail-card img {
+          border-radius: 10px;
+          height: 220px;
+          object-fit: cover;
+          width: 100%;
+        }
+
         @media (max-width: 1120px) {
           .trainer-booking-page {
             grid-template-columns: 1fr;
@@ -461,8 +666,16 @@ export default function TrainerBookingPage() {
                       “Let’s burn those calories! Specializing in high-intensity intervals that guarantee sweat and smiles.”
                     </p>
                     <div className="trainer-actions">
-                      <button className="trainer-action primary" type="button">View Profile</button>
-                      <button className="trainer-action secondary" type="button">Book Sessions</button>
+                      <button
+                        className="trainer-action primary"
+                        disabled={actionLoading === `trainer-${trainer.id}`}
+                        onClick={() => fetchTrainerDetail(trainer.id)}
+                        type="button"
+                      >
+                        View Profile
+                      </button>
+                      <Link className="trainer-action secondary" to={`/member/trainer-checkout?trainerId=${trainer.id}`}>Book Package</Link>
+                      <Link className="trainer-action secondary" to="/member/trainer-packages">My Packages</Link>
                     </div>
                   </div>
                 </article>
@@ -471,30 +684,101 @@ export default function TrainerBookingPage() {
           </div>
         </div>
 
-        <aside className="session-panel">
+        <aside className="session-panel" id="sessions">
           <div className="session-head">
-            <h2>Upcoming Sessions</h2>
-            <a href="#sessions">View details →</a>
+            <h2>My Trainer Packages</h2>
+            <a href="#sessions" onClick={(event) => { event.preventDefault(); fetchPackages(); }}>Refresh</a>
           </div>
-          <article className="session-card">
-            <div className="session-date">
-              <div>
-                <span>MAY</span>
-                <strong>31</strong>
+          {packageError && <p className="trainer-message error">{packageError}</p>}
+          {actionMessage && <p className="trainer-message success">{actionMessage}</p>}
+
+          <div className="package-list">
+            {packageLoading && <div className="trainer-status">Memuat paket trainer...</div>}
+            {!packageLoading && packages.length === 0 && <div className="trainer-status">Belum ada paket trainer aktif.</div>}
+            {!packageLoading && packages.map((pkg) => (
+              <button
+                className={`package-card ${selectedPackage?.id === pkg.id ? "active" : ""}`}
+                key={pkg.id}
+                onClick={() => fetchPackageDetail(pkg.id)}
+                type="button"
+              >
+                <strong>{pkg.catalog_name || pkg.catalog_code}</strong>
+                <span>Trainer: {pkg.trainer_name}</span>
+                <span>Sisa sesi: {pkg.session_remaining}/{pkg.session_total}</span>
+                <span>Status: {pkg.status}</span>
+              </button>
+            ))}
+          </div>
+
+          {detailLoading && <div className="trainer-status">Memuat detail package...</div>}
+          {selectedPackage && !detailLoading && (
+            <div className="package-detail">
+              <article className="package-detail-card">
+                <strong>{selectedPackage.catalog_name || selectedPackage.catalog_code}</strong>
+                <span>Trainer: {selectedPackage.trainer_name}</span>
+                <span>Berakhir: {formatDateTime(selectedPackage.expires_at)}</span>
+                <span>Sisa sesi: {selectedPackage.session_remaining}/{selectedPackage.session_total}</span>
+
+                <div className="session-book-form">
+                  <input
+                    min={toDatetimeLocalValue(new Date())}
+                    onChange={(event) => setSessionStart(event.target.value)}
+                    type="datetime-local"
+                    value={sessionStart}
+                  />
+                  <button
+                    className="trainer-action primary"
+                    disabled={actionLoading === "book-session" || selectedPackage.status !== "ACTIVE"}
+                    onClick={bookSession}
+                    type="button"
+                  >
+                    {actionLoading === "book-session" ? "Booking..." : "Book Session"}
+                  </button>
+                </div>
+              </article>
+
+              <div className="session-list">
+                {(selectedPackage.sessions || []).length === 0 && (
+                  <div className="trainer-status">Belum ada jadwal sesi.</div>
+                )}
+                {(selectedPackage.sessions || []).map((session) => (
+                  <article className="session-item" key={session.id}>
+                    <strong>{formatDateTime(session.start_time)}</strong>
+                    <span>Status: {session.status}</span>
+                    <span>Booked by: {session.booked_by_name || "-"}</span>
+                    {session.status === "BOOKED" && (
+                      <button
+                        className="trainer-action secondary"
+                        disabled={actionLoading === `cancel-${session.id}`}
+                        onClick={() => cancelSession(session.id)}
+                        type="button"
+                      >
+                        {actionLoading === `cancel-${session.id}` ? "Cancel..." : "Cancel Session"}
+                      </button>
+                    )}
+                  </article>
+                ))}
               </div>
             </div>
-            <div className="session-copy">
-              <strong>Today, 09.00 PM</strong>
-              <h3>HIIT Cardio Training</h3>
-              <p>with Jeremiah Fisher</p>
-              <span className="session-location">
-                <PinIcon />
-                Cardio Deck Area
-              </span>
-            </div>
-          </article>
+          )}
         </aside>
       </section>
+
+      {selectedTrainer && (
+        <div className="trainer-detail-modal">
+          <article className="trainer-detail-card" role="dialog" aria-modal="true">
+            <img src={selectedTrainer.image_url || gymImage} alt="" />
+            <h2>{selectedTrainer.name}</h2>
+            <p>{selectedTrainer.specialties || parseTrainerBio(selectedTrainer.bio).specialization}</p>
+            <p>{selectedTrainer.bio || "Belum ada bio trainer."}</p>
+            <div className="trainer-actions">
+              <button className="trainer-action secondary" onClick={() => setSelectedTrainer(null)} type="button">
+                Tutup
+              </button>
+            </div>
+          </article>
+        </div>
+      )}
     </MemberLayout>
   );
 }

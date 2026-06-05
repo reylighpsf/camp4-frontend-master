@@ -7,10 +7,12 @@ const getErrorMessage = (err, fallback) =>
 const buildTrainerPayload = ({ values, image }) => {
   const payload = new FormData();
   payload.append("name", values.name.trim());
+  payload.append("email", values.email.trim());
   payload.append(
     "bio",
     `Spesialis: ${values.specialization.trim()}\nHarga per sesi: ${values.price.trim()}`
   );
+  payload.append("specialties", values.specialization.trim());
   if (image) payload.append("image", image);
   return payload;
 };
@@ -22,6 +24,8 @@ export default function useTrainers() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccessMessage, setSubmitSuccessMessage] = useState("");
+  const [deleteLoadingId, setDeleteLoadingId] = useState("");
+  const [deleteError, setDeleteError] = useState("");
 
   const fetchTrainers = useCallback(async () => {
     setListLoading(true);
@@ -63,6 +67,42 @@ export default function useTrainers() {
     }
   };
 
+  const updateTrainer = async (trainerId, { values, image }) => {
+    setSubmitLoading(true);
+    setSubmitError("");
+    setSubmitSuccessMessage("");
+
+    try {
+      const response = await api.put(`/trainers/${trainerId}`, buildTrainerPayload({ values, image }), {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setSubmitSuccessMessage("Trainer berhasil diperbarui.");
+      return { ok: true, data: response.data?.data };
+    } catch (err) {
+      const message = getErrorMessage(err, "Gagal memperbarui trainer.");
+      setSubmitError(message);
+      return { ok: false, error: message };
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const deleteTrainer = async (trainerId) => {
+    setDeleteLoadingId(trainerId);
+    setDeleteError("");
+
+    try {
+      await api.delete(`/trainers/${trainerId}`);
+      return { ok: true };
+    } catch (err) {
+      const message = getErrorMessage(err, "Gagal menghapus trainer.");
+      setDeleteError(message);
+      return { ok: false, error: message };
+    } finally {
+      setDeleteLoadingId("");
+    }
+  };
+
   return {
     trainers,
     listLoading,
@@ -70,7 +110,11 @@ export default function useTrainers() {
     submitLoading,
     submitError,
     submitSuccessMessage,
+    deleteLoadingId,
+    deleteError,
     fetchTrainers,
     createTrainer,
+    updateTrainer,
+    deleteTrainer,
   };
 }

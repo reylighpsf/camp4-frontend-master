@@ -6,31 +6,73 @@ import api from "../../../../components/auth/authApi";
 import { useAuth } from "../../../../components/auth/useAuth";
 import getSocket from "../../../../components/socket/socketClient";
 
-const tapHistory = [
-  ["15 May 2026", "07:10 AM", "09:00 AM", "1h 50m"],
-  ["14 May 2026", "08:43 AM", "10:07 AM", "1h 24m"],
-  ["13 May 2026", "08:30 AM", "09:45 AM", "1h 15m"],
-];
-
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
 
+const formatDate = (value) =>
+  new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(value));
+
+const formatTime = (value) =>
+  new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+
+const formatDuration = (start, end) => {
+  if (!start || !end) return "-";
+  const diffMs = new Date(end).getTime() - new Date(start).getTime();
+  if (diffMs <= 0) return "-";
+  const minutes = Math.floor(diffMs / 60000);
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours <= 0) return `${remainingMinutes}m`;
+  return `${hours}h ${remainingMinutes}m`;
+};
+
+const getMembershipEndFromTransaction = (transaction) => {
+  if (!transaction || transaction.status !== "SUCCESS") return null;
+  const family = String(transaction.transaction_family || "").toUpperCase();
+  const type = String(transaction.transaction_type || "").toUpperCase();
+  if (family !== "MEMBERSHIP" && !type.startsWith("MEMBERSHIP_")) return null;
+
+  const start = new Date(transaction.settled_at || transaction.created_at);
+  if (Number.isNaN(start.getTime())) return null;
+  const days = type.includes("DAILY") ? 1 : 30;
+  return new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
+};
+
+const getStoredTapHistory = (userId) => {
+  if (!userId) return [];
+  try {
+    return JSON.parse(localStorage.getItem(`vocafit-tap-history-${userId}`) || "[]");
+  } catch {
+    return [];
+  }
+};
+
 export default function CheckInOutPage() {
   const { user } = useAuth();
+  const historyStorageKey = `vocafit-tap-history-${user?.id || "guest"}`;
   const [profile, setProfile] = useState(null);
   const [qrToken, setQrToken] = useState("");
+  const [showQr, setShowQr] = useState(true);
   const [crowd, setCrowd] = useState(null);
   const [socketConnected, setSocketConnected] = useState(false);
   const [loadingQr, setLoadingQr] = useState(true);
+  const [scanLoading, setScanLoading] = useState(false);
   const [error, setError] = useState("");
+  const [scanMessage, setScanMessage] = useState("");
+  const [lastAction, setLastAction] = useState("");
+  const [currentSession, setCurrentSession] = useState(null);
+  const [tapRows, setTapRows] = useState(() => getStoredTapHistory(user?.id));
+  const [membershipEndDate, setMembershipEndDate] = useState(null);
+  const [isMembershipActive, setIsMembershipActive] = useState(false);
   const [membershipRemainingText, setMembershipRemainingText] = useState("Memuat status membership...");
 
   const fetchQr = useCallback(async () => {
     setLoadingQr(true);
     setError("");
+    setScanMessage("");
     try {
       const response = await api.get("/visits/qr");
-      setQrToken(response.data?.data?.qrToken || "");
+      setQrToken(response.data?.data?.qr || response.data?.data?.qrToken || "");
     } catch (err) {
       setError(getErrorMessage(err, "Gagal membuat QR code."));
       setQrToken("");
@@ -38,6 +80,65 @@ export default function CheckInOutPage() {
       setLoadingQr(false);
     }
   }, []);
+
+  const scanCurrentQr = async () => {
+    if (!qrToken) {
+      setError("QR belum tersedia. Refresh QR terlebih dahulu.");
+      return;
+    }
+
+    const configuredSecret = import.meta.env.VITE_IOT_SECRET_KEY || localStorage.getItem("vocafit-iot-secret") || "";
+    const iotSecret = configuredSecret || window.prompt("Masukkan IOT secret untuk simulasi tap in/out") || "";
+
+    if (!iotSecret) {
+      setError("IOT secret wajib diisi untuk scan QR.");
+      return;
+    }
+
+    localStorage.setItem("vocafit-iot-secret", iotSecret);
+    setScanLoading(true);
+    setError("");
+    setScanMessage("");
+
+    try {
+      const response = await api.post(
+        "/visits/scan",
+        { qr: qrToken },
+        { headers: { "x-iot-secret": iotSecret } },
+      );
+      const result = response.data?.data || {};
+      const now = new Date().toISOString();
+      setLastAction(result.action || "");
+      setScanMessage(result.message || response.data?.message || "Scan QR berhasil.");
+
+      if (result.action === "TAP_IN") {
+        const nextSession = { tapIn: now, tapOut: null };
+        setCurrentSession(nextSession);
+        setTapRows((currentRows) => {
+          const nextRows = [nextSession, ...currentRows].slice(0, 20);
+          localStorage.setItem(historyStorageKey, JSON.stringify(nextRows));
+          return nextRows;
+        });
+      }
+
+      if (result.action === "TAP_OUT") {
+        setCurrentSession(null);
+        setTapRows((currentRows) => {
+          const nextSession = { ...(currentSession || currentRows[0] || { tapIn: now }), tapOut: now };
+          const nextRows = currentRows.length > 0 ? [nextSession, ...currentRows.slice(1)].slice(0, 20) : [nextSession];
+          localStorage.setItem(historyStorageKey, JSON.stringify(nextRows));
+          return nextRows;
+        });
+      }
+
+      await fetchCrowd();
+      await fetchQr();
+    } catch (err) {
+      setError(getErrorMessage(err, "Gagal scan QR."));
+    } finally {
+      setScanLoading(false);
+    }
+  };
 
   const fetchCrowd = useCallback(async () => {
     try {
@@ -57,15 +158,33 @@ export default function CheckInOutPage() {
     }
   }, []);
 
+  const fetchMembershipStatus = useCallback(async () => {
+    try {
+      const response = await api.get("/transactions/history?limit=50");
+      const transactions = response.data?.data || [];
+      const membershipEnds = transactions
+        .map(getMembershipEndFromTransaction)
+        .filter(Boolean)
+        .sort((a, b) => b.getTime() - a.getTime());
+      const latestEnd = membershipEnds[0] || null;
+      setMembershipEndDate(latestEnd);
+      setIsMembershipActive(Boolean(latestEnd && latestEnd.getTime() > Date.now()));
+    } catch {
+      setMembershipEndDate(null);
+      setIsMembershipActive(false);
+    }
+  }, []);
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchProfile();
+      fetchMembershipStatus();
       fetchQr();
       fetchCrowd();
     }, 0);
 
     return () => clearTimeout(timeoutId);
-  }, [fetchCrowd, fetchProfile, fetchQr]);
+  }, [fetchCrowd, fetchMembershipStatus, fetchProfile, fetchQr]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -78,34 +197,35 @@ export default function CheckInOutPage() {
 
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
-    socket.on("crowd:update", handleCrowdUpdate);
-    socket.on("visit:updated", handleCrowdUpdate);
+    socket.on("crowd_update", handleCrowdUpdate);
 
     socket.connect();
 
     return () => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
-      socket.off("crowd:update", handleCrowdUpdate);
-      socket.off("visit:updated", handleCrowdUpdate);
+      socket.off("crowd_update", handleCrowdUpdate);
     };
   }, []);
 
   const displayName = user?.full_name || user?.name || user?.email || "Member";
-  const membershipStatus = String(profile?.membership_status || profile?.membership?.status || "").toLowerCase();
-  const isMembershipActive =
-    Boolean(profile?.active_membership) || membershipStatus === "active" || membershipStatus === "aktif";
-  const membershipEndDate =
-    profile?.membership_end_date || profile?.membership?.end_date || user?.membership_end_date;
+  const latestSession = currentSession || tapRows.find((row) => !row.tapOut) || tapRows[0] || null;
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (!isMembershipActive || !membershipEndDate) {
+      const profileEndDate = profile?.membership_end_date || profile?.membership?.end_date || user?.membership_end_date;
+      const effectiveEndDate = membershipEndDate || (profileEndDate ? new Date(profileEndDate) : null);
+      const membershipStatus = String(profile?.membership_status || profile?.membership?.status || "").toLowerCase();
+      const activeByProfile =
+        Boolean(profile?.active_membership) || membershipStatus === "active" || membershipStatus === "aktif";
+      const active = isMembershipActive || activeByProfile;
+
+      if (!active || !effectiveEndDate) {
         setMembershipRemainingText("Membership tidak aktif");
         return;
       }
 
-      const diffMs = new Date(membershipEndDate).getTime() - new Date().getTime();
+      const diffMs = new Date(effectiveEndDate).getTime() - new Date().getTime();
       if (diffMs <= 0) {
         setMembershipRemainingText("Membership tidak aktif");
         return;
@@ -116,7 +236,7 @@ export default function CheckInOutPage() {
     }, 0);
 
     return () => clearTimeout(timeoutId);
-  }, [isMembershipActive, membershipEndDate]);
+  }, [isMembershipActive, membershipEndDate, profile, user]);
 
   return (
     <MemberLayout active="Check In/Check Out">
@@ -235,6 +355,16 @@ export default function CheckInOutPage() {
     text-align: center;
 
     color: #c73822;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .tap-success {
+    margin: 0 0 14px;
+
+    text-align: center;
+
+    color: #16794c;
     font-size: 12px;
     font-weight: 800;
   }
@@ -545,7 +675,9 @@ export default function CheckInOutPage() {
             </div>
 
             <div className="qr-frame">
-              {loadingQr ? (
+              {!showQr ? (
+                <p>QR disembunyikan</p>
+              ) : loadingQr ? (
                 <p>Memuat QR...</p>
               ) : qrToken ? (
                 <QRCodeSVG value={qrToken} size={216} level="M" includeMargin />
@@ -554,9 +686,20 @@ export default function CheckInOutPage() {
               )}
             </div>
             {error && <p className="tap-error">{error}</p>}
+            {scanMessage && <p className="tap-success">{scanMessage}</p>}
             <div className="tap-actions">
-              <button className="tap-button hide" type="button">Hide QR Code</button>
+              <button className="tap-button hide" onClick={() => setShowQr((current) => !current)} type="button">
+                {showQr ? "Hide QR Code" : "Show QR Code"}
+              </button>
               <button className="tap-button refresh" onClick={fetchQr} type="button">Refresh QR</button>
+              <button
+                className="tap-button refresh"
+                disabled={scanLoading || loadingQr || !qrToken}
+                onClick={scanCurrentQr}
+                type="button"
+              >
+                {scanLoading ? "Scanning..." : "Simulate Tap"}
+              </button>
             </div>
             <p className="tap-help">Show this QR code at the entrance gate.</p>
           </article>
@@ -568,21 +711,30 @@ export default function CheckInOutPage() {
                 <span>Tap-In Status</span>
                 <div className="session-box orange">
                   <span className="session-icon"><MemberIcon name="login" /></span>
-                  <div className="session-copy"><small>Gym condition</small><strong>{crowd?.status || "Unknown"}</strong></div>
+                  <div className="session-copy">
+                    <small>{latestSession && !latestSession.tapOut ? "Currently inside" : "Gym condition"}</small>
+                    <strong>{latestSession && !latestSession.tapOut ? "Checked In" : crowd?.status || "Unknown"}</strong>
+                  </div>
                 </div>
               </div>
               <div className="session-item">
                 <span>Latest Activity</span>
                 <div className="session-box yellow">
                   <span className="session-icon">◷</span>
-                  <div className="session-copy"><strong>{crowd?.count ?? "-"} visitors</strong><small>Current live crowd</small></div>
+                  <div className="session-copy">
+                    <strong>{latestSession ? formatTime(latestSession.tapOut || latestSession.tapIn) : `${crowd?.count ?? "-"} visitors`}</strong>
+                    <small>{latestSession ? (latestSession.tapOut ? "Last tap out" : "Last tap in") : "Current live crowd"}</small>
+                  </div>
                 </div>
               </div>
               <div className="session-item">
                 <span>Workout Duration</span>
                 <div className="session-box blue">
                   <span className="session-icon">↻</span>
-                  <div className="session-copy"><strong>1h 24m</strong><small>Time in Gym</small></div>
+                  <div className="session-copy">
+                    <strong>{latestSession ? formatDuration(latestSession.tapIn, latestSession.tapOut || new Date()) : "-"}</strong>
+                    <small>{lastAction || "Time in gym"}</small>
+                  </div>
                 </div>
               </div>
             </div>
@@ -616,12 +768,17 @@ export default function CheckInOutPage() {
                 </tr>
               </thead>
               <tbody>
-                {tapHistory.map(([date, tapIn, tapOut, duration]) => (
-                  <tr key={date}>
-                    <td>{date}</td>
-                    <td>{tapIn}</td>
-                    <td>{tapOut}</td>
-                    <td>{duration}</td>
+                {tapRows.length === 0 && (
+                  <tr>
+                    <td colSpan="4">Belum ada riwayat tap dari halaman ini.</td>
+                  </tr>
+                )}
+                {tapRows.map((row) => (
+                  <tr key={`${row.tapIn}-${row.tapOut || "active"}`}>
+                    <td>{formatDate(row.tapIn)}</td>
+                    <td>{formatTime(row.tapIn)}</td>
+                    <td>{row.tapOut ? formatTime(row.tapOut) : "Aktif"}</td>
+                    <td>{formatDuration(row.tapIn, row.tapOut)}</td>
                   </tr>
                 ))}
               </tbody>

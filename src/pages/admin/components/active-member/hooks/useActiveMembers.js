@@ -40,21 +40,18 @@ export default function useActiveMembers() {
     }
   }, []);
 
-  const updateMembership = useCallback(async ({ userId, type, endDate }) => {
+  const updateMembership = useCallback(async ({ userId, membershipPriceCode }) => {
     setActionLoadingId(userId);
     setActionError("");
     setActionSuccessMessage("");
 
     try {
-      await api.put(`/admin/users/${userId}/membership`, {
-        type,
-        endDate,
-      });
-      setActionSuccessMessage("Membership berhasil diperbarui.");
+      await api.put(`/admin/users/${userId}`, { membershipPriceCode });
+      setActionSuccessMessage("Tier membership berhasil diperbarui.");
       await fetchMembers();
       return { ok: true };
     } catch (err) {
-      const message = getErrorMessage(err, "Gagal memperbarui membership.");
+      const message = getErrorMessage(err, "Gagal memperbarui tier membership.");
       setActionError(message);
       return { ok: false, error: message };
     } finally {
@@ -68,12 +65,58 @@ export default function useActiveMembers() {
     setActionSuccessMessage("");
 
     try {
-      await api.delete(`/admin/users/${userId}/membership`);
-      setActionSuccessMessage("Membership berhasil dihapus.");
+      await api.delete(`/admin/users/${userId}`);
+      setActionSuccessMessage("Member berhasil dihapus.");
       await fetchMembers();
       return { ok: true };
     } catch (err) {
-      const message = getErrorMessage(err, "Gagal menghapus membership.");
+      const message = getErrorMessage(err, "Gagal menghapus member.");
+      setActionError(message);
+      return { ok: false, error: message };
+    } finally {
+      setActionLoadingId("");
+    }
+  }, [fetchMembers]);
+
+  const getUserDetail = useCallback(async (userId) => {
+    setActionLoadingId(userId);
+    setActionError("");
+
+    try {
+      const response = await api.get(`/admin/users/${userId}`);
+      return { ok: true, data: response.data?.data || null };
+    } catch (err) {
+      const message = getErrorMessage(err, "Gagal memuat detail user.");
+      setActionError(message);
+      return { ok: false, error: message };
+    } finally {
+      setActionLoadingId("");
+    }
+  }, []);
+
+  const createUser = useCallback(async (values) => {
+    setActionLoadingId("create-user");
+    setActionError("");
+    setActionSuccessMessage("");
+
+    const formData = new FormData();
+    formData.append("email", values.email.trim());
+    formData.append("fullName", values.fullName.trim());
+    formData.append("password", values.password);
+    formData.append("role", values.role);
+    formData.append("membershipPriceCode", values.membershipPriceCode);
+    formData.append("penaltyAmount", values.penaltyAmount || "0");
+    if (values.image) formData.append("image", values.image);
+
+    try {
+      const response = await api.post("/admin/users", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setActionSuccessMessage("User berhasil ditambahkan.");
+      await fetchMembers();
+      return { ok: true, data: response.data?.data || null };
+    } catch (err) {
+      const message = getErrorMessage(err, "Gagal menambahkan user.");
       setActionError(message);
       return { ok: false, error: message };
     } finally {
@@ -105,6 +148,8 @@ export default function useActiveMembers() {
     actionError,
     actionSuccessMessage,
     refetch: fetchMembers,
+    getUserDetail,
+    createUser,
     updateMembership,
     deleteMembership,
   };

@@ -20,7 +20,7 @@ export default function Home() {
           <Link to="/membership">Membership</Link>
           <a href="#facilities">Facilities</a>
           <Link to="/sign-in">Sign In</Link>
-          <Link className="nav-join" to="/sign-up">
+          <Link className="nav-join" to="/choose-plan">
             Join Us
           </Link>
         </div>
@@ -33,7 +33,7 @@ export default function Home() {
             Balance your mind, build your body.
           </p>
           <div className="landing-actions">
-            <Link className="landing-primary-btn" to="/sign-up">
+            <Link className="landing-primary-btn" to="/choose-plan">
               Join Us
             </Link>
           </div>

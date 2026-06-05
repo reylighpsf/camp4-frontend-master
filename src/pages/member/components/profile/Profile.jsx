@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import MemberIcon from "../../../../components/member/MemberIcon";
 import api from "../../../../components/auth/authApi";
@@ -68,7 +68,8 @@ const getMembershipPlanName = (profile, registrationPlanId) => {
 };
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(user || null);
   const [formValues, setFormValues] = useState({
     fullName: user?.full_name || "",
@@ -77,6 +78,7 @@ export default function ProfilePage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [registrationPlanId, setRegistrationPlanId] = useState("");
@@ -151,6 +153,30 @@ export default function ProfilePage() {
       setError(getErrorMessage(err, "Gagal menyimpan profile."));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      "Hapus akun kamu? Setelah akun dihapus, kamu akan logout dan tidak bisa menggunakan akun ini lagi.",
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setMessage("");
+    setError("");
+
+    try {
+      await api.delete("/users/me");
+      await logout().catch(() => null);
+      navigate("/sign-in", {
+        replace: true,
+        state: { notice: "Akun berhasil dihapus." },
+      });
+    } catch (err) {
+      setError(getErrorMessage(err, "Gagal menghapus akun."));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -351,6 +377,31 @@ export default function ProfilePage() {
           padding: 26px 24px 24px;
         }
 
+        .profile-danger-card {
+          background: #ffffff;
+          border: 1px solid #ffd0c7;
+          border-radius: 12px;
+          box-shadow: 0 14px 28px rgba(8, 4, 120, .08);
+          grid-column: 2;
+          margin-top: 18px;
+          padding: 22px 24px;
+        }
+
+        .profile-danger-card h2 {
+          color: #c73822;
+          font-size: 15px;
+          font-weight: 900;
+          margin: 0 0 8px;
+        }
+
+        .profile-danger-card p {
+          color: #6f7285;
+          font-size: 12px;
+          font-weight: 800;
+          line-height: 1.4;
+          margin: 0 0 14px;
+        }
+
         .profile-form-card h2 {
           color: #0b0871;
           font-size: 16px;
@@ -462,6 +513,28 @@ export default function ProfilePage() {
             justify-items: start;
           }
 
+          .profile-danger-card {
+            grid-column: auto;
+          }
+
+        }
+
+        .profile-delete {
+          background: #c73822;
+          border: 0;
+          border-radius: 8px;
+          color: #ffffff;
+          cursor: pointer;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 900;
+          min-height: 38px;
+          padding: 0 18px;
+        }
+
+        .profile-delete:disabled {
+          cursor: not-allowed;
+          opacity: .62;
         }
 
         @media (max-width: 700px) {
@@ -592,6 +665,21 @@ export default function ProfilePage() {
                 </button>
               </div>
             </form>
+          </section>
+
+          <section className="profile-danger-card">
+            <h2>Delete Account</h2>
+            <p>
+              Aksi ini akan menonaktifkan akun kamu dan menghapus sesi login saat ini.
+            </p>
+            <button
+              className="profile-delete"
+              disabled={deleting || loading}
+              onClick={handleDeleteAccount}
+              type="button"
+            >
+              {deleting ? "Deleting..." : "Delete Account"}
+            </button>
           </section>
         </div>
       </section>

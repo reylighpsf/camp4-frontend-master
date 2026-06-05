@@ -5,33 +5,11 @@ import {
   formatCurrency,
   formatDateTime,
   formatTransactionType,
-  paymentHistoryStorageKey,
   paymentStyles,
 } from "./paymentHelpers";
 
 export default function PaymentsPage() {
   const payments = usePayments();
-
-  const savePaymentHistory = (item, status) => {
-    let currentHistory;
-
-    try {
-      currentHistory = JSON.parse(localStorage.getItem(paymentHistoryStorageKey) || "[]");
-    } catch {
-      currentHistory = [];
-    }
-
-    const nextHistory = [
-      {
-        ...item,
-        status,
-        confirmed_at: new Date().toISOString(),
-      },
-      ...currentHistory.filter((historyItem) => historyItem.id !== item.id),
-    ].slice(0, 20);
-
-    localStorage.setItem(paymentHistoryStorageKey, JSON.stringify(nextHistory));
-  };
 
   const handleConfirm = async (item, status) => {
     const actionText = status === "SUCCESS" ? "menerima" : "menolak";
@@ -39,7 +17,6 @@ export default function PaymentsPage() {
 
     const result = await payments.confirmPayment({ transactionId: item.id, status });
     if (result.ok) {
-      savePaymentHistory(item, status);
       payments.fetchPayments();
     }
   };
