@@ -24,11 +24,20 @@ const membershipPlans = [
   },
 ];
 
-export default function MembershipPlanCards({ compact = false }) {
-  const cards = membershipPlans.map((plan) => (
+export default function MembershipPlanCards({ compact = false, plans = membershipPlans }) {
+  const normalizedPlans = plans.map((plan) => ({
+    features: plan.features || plan.benefits || [],
+    highlight: plan.highlight || plan.id === "premium",
+    id: plan.id,
+    name: plan.name,
+    period: plan.period,
+    price: plan.price,
+  }));
+
+  const cards = normalizedPlans.map((plan) => (
     <article
       className={`membership-plan ${plan.highlight ? "is-featured" : ""}`}
-      key={plan.name}
+      key={plan.id || plan.name}
     >
       <p className="plan-kicker">{plan.name}</p>
       <h2>{plan.price}</h2>
@@ -38,7 +47,9 @@ export default function MembershipPlanCards({ compact = false }) {
           <li key={feature}>{feature}</li>
         ))}
       </ul>
-      <Link to="/membership">{plan.highlight ? "View Plan" : "Choose This Plan"}</Link>
+      <Link to={plan.id ? `/sign-up?plan=${plan.id}` : "/membership"}>
+        {plan.highlight ? "View Plan" : "Choose This Plan"}
+      </Link>
     </article>
   ));
 

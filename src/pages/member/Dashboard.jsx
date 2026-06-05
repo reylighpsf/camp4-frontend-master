@@ -78,7 +78,6 @@ const getWorkoutStreak = (activities) => {
 export default function MemberDashboard() {
   const [activities, setActivities] = useState([]);
   const [crowd, setCrowd] = useState({ count: 0, status: "Quiet" });
-  const [currentVisit, setCurrentVisit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -90,7 +89,6 @@ export default function MemberDashboard() {
       const [activitiesResult, crowdResult, visitResult] = await Promise.allSettled([
         api.get("/activities", { params: { page: 1, limit: 100 } }),
         api.get("/visits/crowd"),
-        api.get("/visits/me/current"),
         api.get("/users/me"),
       ]);
 
@@ -106,19 +104,12 @@ export default function MemberDashboard() {
         setCrowd({ count: 0, status: "Quiet" });
       }
 
-      if (visitResult.status === "fulfilled") {
-        setCurrentVisit(visitResult.value.data?.data || null);
-      } else {
-        setCurrentVisit(null);
-      }
-
       const rejected = [activitiesResult, crowdResult, visitResult].find((result) => result.status === "rejected");
       if (rejected) setError(getErrorMessage(rejected.reason, "Sebagian data dashboard gagal dimuat."));
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat dashboard."));
       setActivities([]);
       setCrowd({ count: 0, status: "Quiet" });
-      setCurrentVisit(null);
     } finally {
       setLoading(false);
     }
@@ -166,8 +157,8 @@ export default function MemberDashboard() {
 
   const crowdCount = Number(crowd?.count || 0);
   const occupancy = Math.min(Math.round((crowdCount / GYM_CAPACITY) * 100), 100);
-  const isCheckedIn = Boolean(currentVisit?.checked_in);
-  const tapInTime = currentVisit?.visit?.tap_in_time;
+  const isCheckedIn = false;
+  const tapInTime = null;
 
   return (
     <MemberLayout active="Dashboard">

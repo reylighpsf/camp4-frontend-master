@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import gymImage from "../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
+import api from "../../auth/authApi";
+import { authMembershipPlans, mapCatalogsToMembershipPlans } from "../../../pages/auth/membership/hooks/authPlans";
 import MembershipPlanCards from "./MembershipPlanCards";
 
 const steps = [
@@ -25,6 +28,26 @@ const faqs = [
 ];
 
 export default function MembershipPage() {
+  const [plans, setPlans] = useState(authMembershipPlans);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchCatalogPlans = async () => {
+      try {
+        const response = await api.get("/catalogs");
+        if (isMounted) setPlans(mapCatalogsToMembershipPlans(response.data?.data || []));
+      } catch {
+        if (isMounted) setPlans(authMembershipPlans);
+      }
+    };
+
+    fetchCatalogPlans();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <main className="membership-page">
       <style>{`
@@ -544,7 +567,7 @@ export default function MembershipPage() {
       <section className="membership-section is-light" id="plans">
         <h2>Choose Your Membership Plan</h2>
         <p>Find the best option based on your needs.</p>
-        <MembershipPlanCards />
+        <MembershipPlanCards plans={plans} />
       </section>
 
       <section className="membership-section">

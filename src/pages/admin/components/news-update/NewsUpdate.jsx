@@ -567,13 +567,6 @@ export default function NewsUpdatePage() {
     }
   };
 
-  const handleEdit = (item) => {
-    setEditingNews(item);
-    newsImage.resetImage();
-    newsForm.resetForm({ title: item.title || "", description: item.content || "" });
-    setIsFormOpen(true);
-  };
-
   const handleDelete = async (item) => {
     if (!window.confirm(`Hapus berita "${item.title}"?`)) return;
 
@@ -652,9 +645,6 @@ export default function NewsUpdatePage() {
                       <td>{item.author_id ? "Admin" : "-"}</td>
                       <td>
                         <div className="news-row-actions">
-                          <button className="news-row-btn edit" onClick={() => handleEdit(item)} type="button">
-                            Edit
-                          </button>
                           <button
                             className="news-row-btn delete"
                             disabled={newsActions.deleteLoadingId === item.id}

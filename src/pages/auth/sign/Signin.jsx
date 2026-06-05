@@ -144,9 +144,9 @@ export default function Signin() {
                 {fieldErrors.password && <small>{fieldErrors.password}</small>}
               </label>
 
-              <a className="signin-forgot" href="#forgot-password">
+              <Link className="signin-forgot" to="/forgot-password">
                 Forgot password?
-              </a>
+              </Link>
 
               <button className="signin-submit" type="submit" disabled={loading}>
                 {loading ? (

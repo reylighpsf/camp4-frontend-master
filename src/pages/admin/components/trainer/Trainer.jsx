@@ -316,6 +316,7 @@ const trainerStyles = `
 
 const emptyForm = {
   name: "",
+  email: "",
   specialization: "",
   price: "",
 };
@@ -323,6 +324,7 @@ const emptyForm = {
 const validateForm = (values) => {
   const errors = {};
   if (values.name.trim().length < 2) errors.name = "Nama trainer minimal 2 karakter.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) errors.email = "Email trainer tidak valid.";
   if (values.specialization.trim().length < 3) errors.specialization = "Spesialis latihan wajib diisi.";
   if (!values.price.trim()) errors.price = "Harga per sesi wajib diisi.";
   return errors;
@@ -360,6 +362,7 @@ function DeleteIcon() {
 export default function TrainerPage() {
   const trainers = useTrainers();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTrainer, setEditingTrainer] = useState(null);
   const [values, setValues] = useState(emptyForm);
   const [errors, setErrors] = useState({});
   const [image, setImage] = useState(null);
@@ -370,6 +373,8 @@ export default function TrainerPage() {
     return URL.createObjectURL(image);
   }, [image]);
 
+  const displayedPreviewUrl = image ? previewUrl : editingTrainer?.image_url || gymImage;
+
   const updateField = (field, value) => {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: "" }));
@@ -377,6 +382,7 @@ export default function TrainerPage() {
 
   const resetForm = () => {
     setValues(emptyForm);
+    setEditingTrainer(null);
     setErrors({});
     setImage(null);
     setImageError("");
@@ -402,6 +408,21 @@ export default function TrainerPage() {
     setIsFormOpen(true);
   };
 
+  const handleOpenEditForm = (trainer) => {
+    const detail = parseTrainerBio(trainer.bio);
+    setEditingTrainer(trainer);
+    setValues({
+      name: trainer.name || "",
+      email: trainer.email || "",
+      specialization: trainer.specialties || detail.specialization || "",
+      price: detail.price === "-" ? "" : detail.price,
+    });
+    setErrors({});
+    setImage(null);
+    setImageError("");
+    setIsFormOpen(true);
+  };
+
   const handleCloseForm = () => {
     setIsFormOpen(false);
     resetForm();
@@ -412,11 +433,19 @@ export default function TrainerPage() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0 || imageError) return;
 
-    const result = await trainers.createTrainer({ values, image });
+    const result = editingTrainer
+      ? await trainers.updateTrainer(editingTrainer.id, { values, image })
+      : await trainers.createTrainer({ values, image });
     if (result.ok) {
       handleCloseForm();
       trainers.fetchTrainers();
     }
+  };
+
+  const handleDelete = async (trainer) => {
+    if (!window.confirm(`Hapus trainer "${trainer.name}"?`)) return;
+    const result = await trainers.deleteTrainer(trainer.id);
+    if (result.ok) trainers.fetchTrainers();
   };
 
   return (
@@ -476,10 +505,21 @@ export default function TrainerPage() {
                       <td>{formatTrainerPrice(detail.price)}</td>
                       <td>
                         <div className="trainer-row-actions">
-                          <button className="trainer-icon-btn edit" type="button" aria-label="Edit trainer">
+                          <button
+                            className="trainer-icon-btn edit"
+                            onClick={() => handleOpenEditForm(item)}
+                            type="button"
+                            aria-label="Edit trainer"
+                          >
                             <EditIcon />
                           </button>
-                          <button className="trainer-icon-btn delete" type="button" aria-label="Hapus trainer">
+                          <button
+                            className="trainer-icon-btn delete"
+                            disabled={trainers.deleteLoadingId === item.id}
+                            onClick={() => handleDelete(item)}
+                            type="button"
+                            aria-label="Hapus trainer"
+                          >
                             <DeleteIcon />
                           </button>
                         </div>
@@ -498,8 +538,10 @@ export default function TrainerPage() {
           <section className="trainer-modal" role="dialog" aria-modal="true">
             <div className="trainer-modal-head">
               <div>
-                <h2>Tambah Trainer</h2>
-                <p className="trainer-muted">Lengkapi data trainer baru.</p>
+                <h2>{editingTrainer ? "Edit Trainer" : "Tambah Trainer"}</h2>
+                <p className="trainer-muted">
+                  {editingTrainer ? "Perbarui data trainer." : "Lengkapi data trainer baru."}
+                </p>
               </div>
               <button className="trainer-close-btn" onClick={handleCloseForm} type="button">x</button>
             </div>
@@ -515,6 +557,17 @@ export default function TrainerPage() {
                   />
                 </label>
                 {errors.name && <p className="trainer-field-error">{errors.name}</p>}
+
+                <label className="trainer-field">
+                  <span>Email Trainer</span>
+                  <input
+                    className="trainer-input"
+                    placeholder="trainer@example.com"
+                    value={values.email}
+                    onChange={(event) => updateField("email", event.target.value)}
+                  />
+                </label>
+                {errors.email && <p className="trainer-field-error">{errors.email}</p>}
 
                 <label className="trainer-field">
                   <span>Spesialis Latihan</span>
@@ -544,20 +597,20 @@ export default function TrainerPage() {
                 <label className="trainer-upload-box">
                   <input accept="image/png,image/jpeg" onChange={handleImageChange} type="file" />
                   <strong>Klik untuk upload foto</strong>
-                  <span>PNG / JPG max 2MB</span>
+                  <span>{editingTrainer ? "Kosongkan jika tidak diganti" : "PNG / JPG max 2MB"}</span>
                 </label>
                 {imageError && <p className="trainer-field-error">{imageError}</p>}
 
                 <p className="trainer-media-title">Preview</p>
                 <div className="trainer-preview">
-                  <img src={previewUrl} alt="" />
+                  <img src={displayedPreviewUrl} alt="" />
                 </div>
               </div>
             </div>
 
-            {(trainers.submitError || trainers.submitSuccessMessage) && (
-              <p className={trainers.submitError ? "trainer-field-error" : "trainer-success"}>
-                {trainers.submitError || trainers.submitSuccessMessage}
+            {(trainers.submitError || trainers.submitSuccessMessage || trainers.deleteError) && (
+              <p className={trainers.submitError || trainers.deleteError ? "trainer-field-error" : "trainer-success"}>
+                {trainers.submitError || trainers.deleteError || trainers.submitSuccessMessage}
               </p>
             )}
 
@@ -571,7 +624,7 @@ export default function TrainerPage() {
                 onClick={handleSubmit}
                 type="button"
               >
-                {trainers.submitLoading ? "Menyimpan..." : "Simpan Trainer"}
+                  {trainers.submitLoading ? "Menyimpan..." : editingTrainer ? "Simpan Perubahan" : "Simpan Trainer"}
               </button>
             </div>
           </section>

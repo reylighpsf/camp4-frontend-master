@@ -17,6 +17,8 @@ export default function VerifyEmailResult() {
   const { token } = useParams();
   const [searchParams] = useSearchParams();
   const queryString = searchParams.toString();
+  const tokenFromQuery = searchParams.get("token");
+  const verificationToken = token || tokenFromQuery;
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
   const [registrationEmail, setRegistrationEmail] = useState(
@@ -27,7 +29,7 @@ export default function VerifyEmailResult() {
   );
 
   useEffect(() => {
-    if (!token) {
+    if (!verificationToken) {
       const params = new URLSearchParams(queryString);
       const statusFromQuery = params.get("status");
       const messageFromQuery = params.get("message");
@@ -75,7 +77,7 @@ export default function VerifyEmailResult() {
       setMessage("");
 
       try {
-        const res = await getVerificationRequest(token);
+        const res = await getVerificationRequest(verificationToken);
         if (!isMounted) return;
         const verifiedEmail =
           res.data?.data?.email ||
@@ -95,7 +97,7 @@ export default function VerifyEmailResult() {
       } catch (err) {
         if (!isMounted) return;
 
-        verificationRequests.delete(token);
+        verificationRequests.delete(verificationToken);
         setStatus("error");
         setMessage(
           err.response?.data?.error ||
@@ -110,7 +112,7 @@ export default function VerifyEmailResult() {
     return () => {
       isMounted = false;
     };
-  }, [token, queryString]);
+  }, [verificationToken, queryString]);
 
   const statusLabel = {
     loading: "Memverifikasi...",

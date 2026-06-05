@@ -46,7 +46,7 @@ export default function useNewsActions() {
     setSubmitError("");
     setSubmitSuccessMessage("");
     try {
-      const response = await api.post("/admin/news", buildNewsPayload({ values, image }), {
+      const response = await api.post("/news", buildNewsPayload({ values, image }), {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setSubmitSuccessMessage("Berita berhasil diposting.");
@@ -60,16 +60,13 @@ export default function useNewsActions() {
     }
   };
 
-  const updateNews = async ({ id, values, image }) => {
+  const updateNews = async () => {
     setSubmitLoading(true);
     setSubmitError("");
     setSubmitSuccessMessage("");
     try {
-      const response = await api.put(`/admin/news/${id}`, buildNewsPayload({ values, image }), {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setSubmitSuccessMessage("Berita berhasil diperbarui.");
-      return { ok: true, data: response.data?.data };
+      setSubmitError("Backend belum menyediakan endpoint untuk memperbarui berita.");
+      return { ok: false, error: "Backend belum menyediakan endpoint untuk memperbarui berita." };
     } catch (err) {
       const message = getErrorMessage(err, "Gagal memperbarui berita.");
       setSubmitError(message);
@@ -83,7 +80,7 @@ export default function useNewsActions() {
     setDeleteLoadingId(id);
     setDeleteError("");
     try {
-      await api.delete(`/admin/news/${id}`);
+      await api.delete(`/news/${id}`);
       return { ok: true };
     } catch (err) {
       const message = getErrorMessage(err, "Gagal menghapus berita.");

@@ -16,6 +16,9 @@ export const authApi = {
   verifyEmail: (token) => api.get(`/auth/verify-email/${token}`),
   me: () => api.get("/users/me"),
   logout: () => api.post("/auth/logout"),
+  forgotPassword: (data) => api.post("/auth/forgot-password", data),
+  resendForgotPassword: (data) => api.post("/auth/forgot-password/resend", data),
+  resetPassword: (data) => api.post("/auth/forgot-password/reset", data),
 };
 
 export default api;

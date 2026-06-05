@@ -1,5 +1,3 @@
-export const paymentHistoryStorageKey = "vocafit-admin-payment-history";
-
 export const paymentStyles = `
   .payments-head {
     align-items: center;
@@ -79,6 +77,50 @@ export const paymentStyles = `
   .payments-alert.success {
     background: #edfdf3;
     color: #16794c;
+  }
+
+  .payments-detail {
+    background: #f7f8fb;
+    border: 1px solid #eceef3;
+    border-radius: 8px;
+    display: grid;
+    gap: 14px;
+    margin-bottom: 18px;
+    padding: 16px;
+  }
+
+  .payments-detail h3 {
+    color: #080478;
+    font-size: 15px;
+    margin: 0 0 4px;
+  }
+
+  .payments-detail p {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .payments-detail dl {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+  }
+
+  .payments-detail dt {
+    color: #6b7280;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .payments-detail dd {
+    color: #11131d;
+    font-size: 12px;
+    font-weight: 900;
+    margin: 4px 0 0;
   }
 
   .payments-table-wrap {
@@ -200,6 +242,10 @@ export const paymentStyles = `
 
     .payments-nav {
       flex-direction: column;
+    }
+
+    .payments-detail dl {
+      grid-template-columns: 1fr;
     }
   }
 `;

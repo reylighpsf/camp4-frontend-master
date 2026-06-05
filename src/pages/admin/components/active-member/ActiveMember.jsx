@@ -43,6 +43,18 @@ const activeMemberStyles = `
     text-transform: uppercase;
   }
 
+  .active-member-head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .active-member-refresh.primary {
+    background: #ff7314;
+    border-color: #ff7314;
+  }
+
   .active-member-refresh:disabled {
     cursor: not-allowed;
     opacity: 0.62;
@@ -227,6 +239,10 @@ const activeMemberStyles = `
     width: min(100%, 460px);
   }
 
+  .membership-modal.wide {
+    width: min(100%, 720px);
+  }
+
   .membership-modal h2 {
     color: #080478;
     font-size: 20px;
@@ -242,6 +258,14 @@ const activeMemberStyles = `
   .membership-form {
     display: grid;
     gap: 14px;
+  }
+
+  .membership-form.two-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .membership-form .wide-field {
+    grid-column: 1 / -1;
   }
 
   .membership-form label {
@@ -280,6 +304,10 @@ const activeMemberStyles = `
       width: 100%;
     }
 
+    .membership-form.two-cols {
+      grid-template-columns: 1fr;
+    }
+
     .active-member-cards {
       grid-template-columns: 1fr;
     }
@@ -306,21 +334,9 @@ const isMemberActive = (member) => {
   return false;
 };
 
-const getMembershipType = (member) => member.membership_type || member.membership?.type || "-";
+const getMembershipType = (member) => member.tier || member.membership_price_code || "-";
 
 const getMembershipEndDate = (member) => member.membership_end_date || member.membership?.end_date;
-
-const formatDateInput = (value) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString().slice(0, 10);
-};
-
-const toEndDateIso = (value) => {
-  const date = new Date(`${value}T23:59:59.999`);
-  return date.toISOString();
-};
 
 export default function ActiveMemberPage() {
   const {
@@ -334,36 +350,71 @@ export default function ActiveMemberPage() {
     refetch,
     updateMembership,
     deleteMembership,
+    getUserDetail,
+    createUser,
   } = useActiveMembers();
   const [editingMember, setEditingMember] = useState(null);
-  const [membershipForm, setMembershipForm] = useState({ type: "daily", endDate: "" });
+  const [detailMember, setDetailMember] = useState(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [membershipForm, setMembershipForm] = useState({ membershipPriceCode: "UMUM" });
+  const [createForm, setCreateForm] = useState({
+    email: "",
+    fullName: "",
+    image: null,
+    membershipPriceCode: "UMUM",
+    password: "",
+    penaltyAmount: "0",
+    role: "member",
+  });
 
   const openEditModal = (member) => {
     setEditingMember(member);
     setMembershipForm({
-      type: getMembershipType(member) === "monthly" ? "monthly" : "daily",
-      endDate: formatDateInput(getMembershipEndDate(member)),
+      membershipPriceCode: member.membership_price_code || "UMUM",
     });
   };
 
   const handleDeleteMembership = async (member) => {
-    if (!window.confirm(`Hapus membership ${member.full_name || "member ini"}?`)) return;
+    if (!window.confirm(`Hapus member ${member.full_name || "member ini"}?`)) return;
     await deleteMembership(member.id);
   };
 
   const handleSubmitMembership = async (event) => {
     event.preventDefault();
-    if (!editingMember || !membershipForm.endDate) return;
+    if (!editingMember || !membershipForm.membershipPriceCode) return;
 
     const result = await updateMembership({
       userId: editingMember.id,
-      type: membershipForm.type,
-      endDate: toEndDateIso(membershipForm.endDate),
+      membershipPriceCode: membershipForm.membershipPriceCode,
     });
 
     if (result.ok) {
       setEditingMember(null);
     }
+  };
+
+  const openDetailModal = async (member) => {
+    const result = await getUserDetail(member.id);
+    if (result.ok) setDetailMember(result.data);
+  };
+
+  const openCreateModal = () => {
+    setCreateForm({
+      email: "",
+      fullName: "",
+      image: null,
+      membershipPriceCode: "UMUM",
+      password: "",
+      penaltyAmount: "0",
+      role: "member",
+    });
+    setIsCreateOpen(true);
+  };
+
+  const handleCreateUser = async (event) => {
+    event.preventDefault();
+    const result = await createUser(createForm);
+    if (result.ok) setIsCreateOpen(false);
   };
 
   return (
@@ -376,9 +427,14 @@ export default function ActiveMemberPage() {
             <h2>Ringkasan Member</h2>
             <p>Pantau jumlah member aktif dan total member yang terdaftar.</p>
           </div>
-          <button className="active-member-refresh" disabled={loading} onClick={refetch} type="button">
-            {loading ? "Memuat..." : "Refresh"}
-          </button>
+          <div className="active-member-head-actions">
+            <button className="active-member-refresh primary" onClick={openCreateModal} type="button">
+              Tambah User
+            </button>
+            <button className="active-member-refresh" disabled={loading} onClick={refetch} type="button">
+              {loading ? "Memuat..." : "Refresh"}
+            </button>
+          </div>
         </div>
 
         {error && <div className="active-member-alert">{error}</div>}
@@ -466,6 +522,14 @@ export default function ActiveMemberPage() {
                           <button
                             className="active-member-action edit"
                             disabled={actionLoadingId === member.id}
+                            onClick={() => openDetailModal(member)}
+                            type="button"
+                          >
+                            Detail
+                          </button>
+                          <button
+                            className="active-member-action edit"
+                            disabled={actionLoadingId === member.id}
                             onClick={() => openEditModal(member)}
                             type="button"
                           >
@@ -492,27 +556,20 @@ export default function ActiveMemberPage() {
       {editingMember && (
         <div className="membership-modal-backdrop">
           <section className="membership-modal" role="dialog" aria-modal="true">
-            <h2>Perbarui Membership</h2>
+            <h2>Perbarui Tier Membership</h2>
             <p>{editingMember.full_name || editingMember.email || "Member"}</p>
             <form className="membership-form" onSubmit={handleSubmitMembership}>
               <label>
-                Membership
+                Tier Harga
                 <select
-                  value={membershipForm.type}
-                  onChange={(event) => setMembershipForm((value) => ({ ...value, type: event.target.value }))}
+                  value={membershipForm.membershipPriceCode}
+                  onChange={(event) => setMembershipForm((value) => ({ ...value, membershipPriceCode: event.target.value }))}
                 >
-                  <option value="daily">Daily</option>
-                  <option value="monthly">Monthly</option>
+                  <option value="UMUM">Umum</option>
+                  <option value="PEGAWAI_KARYAWAN">Pegawai/Karyawan</option>
+                  <option value="MAHASISWA_NON_VOKASI">Mahasiswa Non Vokasi</option>
+                  <option value="MAHASISWA_VOKASI">Mahasiswa Vokasi</option>
                 </select>
-              </label>
-              <label>
-                Berakhir
-                <input
-                  type="date"
-                  value={membershipForm.endDate}
-                  onChange={(event) => setMembershipForm((value) => ({ ...value, endDate: event.target.value }))}
-                  required
-                />
               </label>
               <div className="membership-modal-actions">
                 <button className="active-member-action delete" onClick={() => setEditingMember(null)} type="button">
@@ -520,6 +577,131 @@ export default function ActiveMemberPage() {
                 </button>
                 <button className="active-member-action edit" disabled={actionLoadingId === editingMember.id} type="submit">
                   {actionLoadingId === editingMember.id ? "..." : "Simpan"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {detailMember && (
+        <div className="membership-modal-backdrop">
+          <section className="membership-modal" role="dialog" aria-modal="true">
+            <h2>Detail User</h2>
+            <p>{detailMember.full_name || detailMember.email || "User"}</p>
+            <div className="membership-form">
+              <label>
+                Email
+                <input readOnly value={detailMember.email || "-"} />
+              </label>
+              <label>
+                Role
+                <input readOnly value={detailMember.role || "-"} />
+              </label>
+              <label>
+                Tier Harga
+                <input readOnly value={detailMember.tier || detailMember.membership_price_code || "-"} />
+              </label>
+              <label>
+                Penalty
+                <input readOnly value={`Rp ${Number(detailMember.penalty_amount || 0).toLocaleString("id-ID")}`} />
+              </label>
+              <label>
+                Verified
+                <input readOnly value={detailMember.is_verified ? "Ya" : "Tidak"} />
+              </label>
+              <label>
+                Terdaftar
+                <input readOnly value={formatDate(detailMember.created_at)} />
+              </label>
+            </div>
+            <div className="membership-modal-actions">
+              <button className="active-member-action edit" onClick={() => setDetailMember(null)} type="button">
+                Tutup
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isCreateOpen && (
+        <div className="membership-modal-backdrop">
+          <section className="membership-modal wide" role="dialog" aria-modal="true">
+            <h2>Tambah User</h2>
+            <p>Buat akun member atau pengurus baru.</p>
+            <form className="membership-form two-cols" onSubmit={handleCreateUser}>
+              <label>
+                Nama Lengkap
+                <input
+                  required
+                  value={createForm.fullName}
+                  onChange={(event) => setCreateForm((value) => ({ ...value, fullName: event.target.value }))}
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  required
+                  type="email"
+                  value={createForm.email}
+                  onChange={(event) => setCreateForm((value) => ({ ...value, email: event.target.value }))}
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  minLength={8}
+                  required
+                  type="password"
+                  value={createForm.password}
+                  onChange={(event) => setCreateForm((value) => ({ ...value, password: event.target.value }))}
+                />
+              </label>
+              <label>
+                Role
+                <select
+                  value={createForm.role}
+                  onChange={(event) => setCreateForm((value) => ({ ...value, role: event.target.value }))}
+                >
+                  <option value="member">Member</option>
+                  <option value="pengurus">Pengurus</option>
+                </select>
+              </label>
+              <label>
+                Tier Harga
+                <select
+                  value={createForm.membershipPriceCode}
+                  onChange={(event) => setCreateForm((value) => ({ ...value, membershipPriceCode: event.target.value }))}
+                >
+                  <option value="UMUM">Umum</option>
+                  <option value="PEGAWAI_KARYAWAN">Pegawai/Karyawan</option>
+                  <option value="MAHASISWA_NON_VOKASI">Mahasiswa Non Vokasi</option>
+                  <option value="MAHASISWA_VOKASI">Mahasiswa Vokasi</option>
+                </select>
+              </label>
+              <label>
+                Penalty
+                <input
+                  min="0"
+                  type="number"
+                  value={createForm.penaltyAmount}
+                  onChange={(event) => setCreateForm((value) => ({ ...value, penaltyAmount: event.target.value }))}
+                />
+              </label>
+              <label className="wide-field">
+                Foto Profil
+                <input
+                  accept="image/jpeg,image/png,image/webp"
+                  type="file"
+                  onChange={(event) => setCreateForm((value) => ({ ...value, image: event.target.files?.[0] || null }))}
+                />
+              </label>
+              <div className="membership-modal-actions wide-field">
+                <button className="active-member-action delete" onClick={() => setIsCreateOpen(false)} type="button">
+                  Batal
+                </button>
+                <button className="active-member-action edit" disabled={actionLoadingId === "create-user"} type="submit">
+                  {actionLoadingId === "create-user" ? "Menyimpan..." : "Simpan User"}
                 </button>
               </div>
             </form>

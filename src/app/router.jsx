@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { Navigate, createBrowserRouter } from "react-router";
 
 import PrivateAuth from "../components/auth/PrivateAuth";
 import PublicAuth from "../components/auth/PublicAuth";
@@ -8,12 +8,17 @@ import MembershipPage from "../components/landing/membership/Membership";
 import ChoosePlanPage from "../pages/auth/membership/ChoosePlan";
 import SigninPage from "../pages/auth/sign/Signin";
 import SignupPage from "../pages/auth/sign/Signup";
+import ForgotPasswordPage from "../pages/auth/forgot/ForgotPassword";
 import VerifyEmailPage from "../pages/auth/verify/VerifyEmail";
 import VerifyEmailResultPage from "../pages/auth/verify/VerifyEmailResult";
 import PaymentPage from "../pages/auth/pay/Payment";
 import PaymentSuccessPage from "../pages/auth/pay/PaymentSuccess";
 import AdminPage from "../pages/admin/Dashboard";
 import ActiveMemberPage from "../pages/admin/components/active-member/ActiveMember";
+import {
+  MembershipCatalogPage,
+  TrainerCatalogPage,
+} from "../pages/admin/components/catalog/CatalogManagement";
 import NewsUpdatePage from "../pages/admin/components/news-update/NewsUpdate";
 import PaymentHistoryPage from "../pages/admin/components/payments/PaymentHistory";
 import PaymentsPage from "../pages/admin/components/payments/Payments";
@@ -23,6 +28,8 @@ import CheckInOutPage from "../pages/member/components/check-in-out/CheckInOut";
 import ProfilePage from "../pages/member/components/profile/Profile";
 import ProfileMembershipPlanPage from "../pages/member/components/profile/MembershipPlan";
 import TrainerBookingPage from "../pages/member/components/trainer-booking/TrainerBooking";
+import TrainerCheckoutPage from "../pages/member/components/trainer-packages/TrainerCheckout";
+import TrainerPackagesPage from "../pages/member/components/trainer-packages/TrainerPackages";
 import WorkoutTrackingPage from "../pages/member/components/workout-tracking/WorkoutTracking";
 import UnauthorizedPage from "../pages/Unauthorized";
 import NotFound from "../pages/NotFound";
@@ -50,6 +57,14 @@ export const router = createBrowserRouter([
     element: (
       <PublicAuth>
         <SignupPage />
+      </PublicAuth>
+    ),
+  },
+  {
+    path: "/forgot-password",
+    element: (
+      <PublicAuth>
+        <ForgotPasswordPage />
       </PublicAuth>
     ),
   },
@@ -148,6 +163,30 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/admin/catalogs",
+    element: <Navigate replace to="/admin/catalogs/membership" />,
+  },
+  {
+    path: "/admin/catalogs/membership",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["pengurus"]}>
+          <MembershipCatalogPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/admin/catalogs/trainer",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["pengurus"]}>
+          <TrainerCatalogPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
     path: "/member",
     element: (
       <PrivateAuth>
@@ -183,6 +222,36 @@ export const router = createBrowserRouter([
       <PrivateAuth>
         <AllowRole allowedRoles={["member"]}>
           <WorkoutTrackingPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/member/trainer-checkout",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["member"]}>
+          <TrainerCheckoutPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/member/trainer-packages",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["member"]}>
+          <TrainerPackagesPage />
+        </AllowRole>
+      </PrivateAuth>
+    ),
+  },
+  {
+    path: "/member/trainer-packages/:packageId",
+    element: (
+      <PrivateAuth>
+        <AllowRole allowedRoles={["member"]}>
+          <TrainerPackagesPage />
         </AllowRole>
       </PrivateAuth>
     ),
