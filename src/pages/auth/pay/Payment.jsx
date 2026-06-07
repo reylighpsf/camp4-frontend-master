@@ -19,39 +19,21 @@ const parsePrice = (price) => Number(String(price).replace(/[^\d]/g, "")) || 0;
 const formatCurrency = (value) =>
   `Rp ${Number(value || 0).toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;
 
-const getMidtransSnapUrl = () =>
-  import.meta.env.VITE_MIDTRANS_IS_PRODUCTION === "true"
-    ? "https://app.midtrans.com/snap/snap.js"
-    : "https://app.sandbox.midtrans.com/snap/snap.js";
+const formatCountdown = (milliseconds) => {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+};
 
-const loadMidtransSnap = () =>
-  new Promise((resolve, reject) => {
-    if (window.snap) {
-      resolve(window.snap);
-      return;
-    }
-
-    const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY;
-    if (!clientKey) {
-      reject(new Error("Midtrans client key belum dikonfigurasi."));
-      return;
-    }
-
-    const existingScript = document.querySelector("script[data-midtrans-snap]");
-    if (existingScript) {
-      existingScript.addEventListener("load", () => resolve(window.snap), { once: true });
-      existingScript.addEventListener("error", () => reject(new Error("Gagal memuat Midtrans Snap.")), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = getMidtransSnapUrl();
-    script.setAttribute("data-client-key", clientKey);
-    script.setAttribute("data-midtrans-snap", "true");
-    script.onload = () => resolve(window.snap);
-    script.onerror = () => reject(new Error("Gagal memuat Midtrans Snap."));
-    document.body.appendChild(script);
-  });
+const getTransactionPayload = (responseData) => {
+  const data = responseData?.data || responseData || {};
+  const transaction = data.transaction || data;
+  return {
+    transaction,
+    paymentUrl: data.paymentUrl || data.payment_url || transaction?.payment_url,
+  };
+};
 
 export default function Payment() {
   const navigate = useNavigate();
@@ -62,6 +44,8 @@ export default function Payment() {
   const [error, setError] = useState("");
   const [cashPending, setCashPending] = useState(false);
   const [plans, setPlans] = useState(authMembershipPlans);
+  const [waitingPayment, setWaitingPayment] = useState(null);
+  const [remainingMs, setRemainingMs] = useState(30 * 60 * 1000);
   const planId =
     searchParams.get("plan") ||
     localStorage.getItem("vocafit-selected-plan") ||
@@ -92,6 +76,18 @@ export default function Payment() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!waitingPayment?.expireAt) return undefined;
+
+    const updateRemaining = () => {
+      setRemainingMs(new Date(waitingPayment.expireAt).getTime() - Date.now());
+    };
+
+    updateRemaining();
+    const intervalId = window.setInterval(updateRemaining, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [waitingPayment?.expireAt]);
+
   const goToPaymentSuccess = ({ transaction, status }) => {
     navigate("/payment/success", {
       replace: true,
@@ -117,26 +113,24 @@ export default function Payment() {
         transactionType: selectedPlan.catalogCode || getTransactionTypeFromPlanId(selectedPlan.id),
         paymentMethod: selectedMethod.paymentMethod,
       });
-      const transaction = response.data?.data?.transaction;
-      const snapToken = response.data?.data?.snapToken;
-      const paymentUrl = response.data?.data?.paymentUrl;
+      const { transaction, paymentUrl } = getTransactionPayload(response.data);
 
       if (selectedMethod.paymentMethod === "QRIS") {
-        if (snapToken) {
-          const snap = await loadMidtransSnap();
-          snap.pay(snapToken, {
-            onSuccess: () => goToPaymentSuccess({ transaction, status: "SUCCESS" }),
-            onPending: () => goToPaymentSuccess({ transaction, status: "PENDING" }),
-            onError: () => setError("Pembayaran Midtrans gagal diproses."),
-            onClose: () => setMessage("Popup pembayaran ditutup. Kamu bisa klik Pay Now untuk membuka ulang pembayaran."),
+        if (paymentUrl) {
+          setWaitingPayment({
+            email: transaction?.email || localStorage.getItem("vocafit-registration-email") || "",
+            expireAt: transaction?.expire_at || transaction?.expireAt || "",
+            paymentMethod: "QRIS",
+            paymentUrl,
+            status: transaction?.status || "PENDING",
+            transaction,
           });
+          setMessage("");
           return;
         }
 
-        if (paymentUrl) {
-          window.location.href = paymentUrl;
-          return;
-        }
+        setError("Link pembayaran Midtrans tidak tersedia.");
+        return;
       }
 
       goToPaymentSuccess({ transaction, status: transaction?.status || "PENDING" });
@@ -159,6 +153,61 @@ export default function Payment() {
       setLoading(false);
     }
   };
+
+  const openPaymentLink = () => {
+    if (!waitingPayment?.paymentUrl) return;
+    window.location.href = waitingPayment.paymentUrl;
+  };
+
+  if (waitingPayment) {
+    const transaction = waitingPayment.transaction || {};
+    const transactionId = transaction.order_id || transaction.id || "-";
+    const userEmail = waitingPayment.email || transaction.email || localStorage.getItem("vocafit-registration-email") || "-";
+    const transactionTotal = Number(transaction.amount || total || 0);
+    const penalty = Number(transaction.penalty_amount || 0);
+    const basePrice = Math.max(0, transactionTotal - penalty);
+
+    return (
+      <AuthFrame currentStep={4} aside={null} contentClassName="payment-waiting-shell">
+        <style>{paymentStyles}</style>
+        <section className="payment-waiting-card" aria-labelledby="payment-waiting-title">
+          <span className="payment-waiting-icon" aria-hidden="true">
+            <ClockIcon />
+          </span>
+          <h1 id="payment-waiting-title">Waiting for Payment</h1>
+          <p className="payment-waiting-subtitle">
+            Your membership will be activated after the payment is confirmed.
+          </p>
+
+          <div className="payment-timer-box">
+            <strong>Payment Method: {waitingPayment.paymentMethod}</strong>
+            <span>Expires in 30 minutes</span>
+            <b>{formatCountdown(remainingMs)}</b>
+            <small>remaining</small>
+          </div>
+
+          <div className="payment-waiting-summary">
+            <h2>Order Summary</h2>
+            <dl>
+              <div><dt>Transaction ID:</dt><dd>{transactionId}</dd></div>
+              <div><dt>User Email:</dt><dd>{userEmail}</dd></div>
+              <div><dt>Membership:</dt><dd>{selectedPlan.name}</dd></div>
+              <div><dt>Account Type:</dt><dd>{transaction.tier_name || transaction.account_tier_code || "-"}</dd></div>
+              <div><dt>Price:</dt><dd className="orange">{formatCurrency(basePrice || total)}</dd></div>
+            </dl>
+            <div className="payment-waiting-total">
+              <span>Total Payment:</span>
+              <strong>{formatCurrency(transactionTotal || total)}</strong>
+            </div>
+          </div>
+
+          <button className="payment-open-link" onClick={openPaymentLink} type="button">
+            Open Payment Link
+          </button>
+        </section>
+      </AuthFrame>
+    );
+  }
 
   return (
     <AuthFrame currentStep={4} aside={<PaymentSummary plan={selectedPlan} total={total} />}>
@@ -265,9 +314,23 @@ function QrIcon() {
   );
 }
 
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="4" />
+      <path d="M24 13v12l8 7" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 const paymentStyles = `
   .auth-checkout-shell {
     grid-template-columns: minmax(0, 690px) 330px;
+  }
+
+  .auth-checkout-shell.payment-waiting-shell {
+    grid-template-columns: minmax(0, 620px);
+    justify-content: center;
   }
 
   .auth-card {
@@ -523,6 +586,145 @@ const paymentStyles = `
   .payment-summary-total strong {
     color: #ff6b20;
     font-size: 15px;
+  }
+
+  .payment-waiting-card {
+    align-items: center;
+    background: #ffffff;
+    border-radius: 10px;
+    color: #171267;
+    display: flex;
+    flex-direction: column;
+    padding: 36px 34px 34px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .payment-waiting-icon {
+    align-items: center;
+    background: #fff1c9;
+    border-radius: 50%;
+    box-shadow: 0 0 22px rgba(240, 194, 70, .58);
+    color: #e4bf4e;
+    display: inline-flex;
+    height: 58px;
+    justify-content: center;
+    margin-bottom: 22px;
+    width: 58px;
+  }
+
+  .payment-waiting-icon svg {
+    height: 42px;
+    width: 42px;
+  }
+
+  .payment-waiting-card h1 {
+    color: #171267;
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin: 0;
+  }
+
+  .payment-waiting-subtitle {
+    color: #384076;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 10px 0 20px;
+    max-width: 430px;
+  }
+
+  .payment-timer-box {
+    background: #ffd9c0;
+    border: 1px solid #ff8b3d;
+    border-radius: 10px;
+    color: #171267;
+    display: grid;
+    gap: 6px;
+    margin-bottom: 14px;
+    padding: 18px;
+    width: 100%;
+  }
+
+  .payment-timer-box strong,
+  .payment-timer-box span,
+  .payment-timer-box small {
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .payment-timer-box b {
+    color: #171267;
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .payment-waiting-summary {
+    background: #f4f5fb;
+    border-radius: 10px;
+    margin-top: 0;
+    padding: 18px 20px;
+    text-align: left;
+    width: 100%;
+  }
+
+  .payment-waiting-summary h2 {
+    color: #171267;
+    font-size: 17px;
+    font-weight: 900;
+    margin: 0 0 16px;
+  }
+
+  .payment-waiting-summary dl {
+    border-bottom: 1px solid #d6d8e6;
+    display: grid;
+    gap: 10px;
+    margin: 0 0 14px;
+    padding-bottom: 12px;
+  }
+
+  .payment-waiting-summary dl div,
+  .payment-waiting-total {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: 1fr auto;
+  }
+
+  .payment-waiting-summary dt,
+  .payment-waiting-summary dd,
+  .payment-waiting-total span,
+  .payment-waiting-total strong {
+    color: #384076;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .payment-waiting-summary dd {
+    color: #171267;
+    margin: 0;
+    max-width: 260px;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+
+  .payment-waiting-summary dd.orange,
+  .payment-waiting-total strong {
+    color: #ff6b20;
+  }
+
+  .payment-open-link {
+    background: #ff6b20;
+    border: 0;
+    border-radius: 10px;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 900;
+    height: 48px;
+    margin-top: 14px;
+    width: 100%;
   }
 
   @media (max-width: 940px) {

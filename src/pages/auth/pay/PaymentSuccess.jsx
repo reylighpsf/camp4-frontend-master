@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
 import api from "../../../components/auth/authApi";
 import { useAuth } from "../../../components/auth/useAuth";
+import { AuthFrame } from "../AuthFrame";
 import { getAuthMembershipPlan } from "../membership/hooks/authPlans";
 
 const formatDate = (value) => {
@@ -14,6 +15,22 @@ const formatDate = (value) => {
     year: "numeric",
   }).format(date);
 };
+
+const formatDateTime = (value) => {
+  const date = value ? new Date(value) : new Date();
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+    timeZoneName: "short",
+    year: "numeric",
+  }).format(date);
+};
+
+const formatCurrency = (value) =>
+  `Rp${Number(value || 0).toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;
 
 const getMemberId = (user) => {
   const rawId = user?.id || user?.member_id || user?.email || "VOC";
@@ -27,11 +44,25 @@ const formatPaymentStatus = (status) => {
   return "Pending";
 };
 
+const isFailedStatus = (status) => {
+  const normalizedStatus = String(status || "").toLowerCase();
+  return ["deny", "expire", "cancel", "failed", "failure", "error", "401", "402", "407"].includes(normalizedStatus);
+};
+
+const getFailureReason = (status) => {
+  const normalizedStatus = String(status || "").toLowerCase();
+  if (normalizedStatus === "expire") return "Payment expired";
+  if (normalizedStatus === "cancel") return "Payment canceled";
+  if (normalizedStatus === "deny") return "Payment denied";
+  return "Payment could not be completed";
+};
+
 export default function PaymentSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
   const { fetchMe } = useAuth();
   const paymentState = location.state || {};
+  const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
@@ -70,18 +101,87 @@ export default function PaymentSuccess() {
     profile?.image_url ||
     profile?.image ||
     "";
-  const paymentStatus = formatPaymentStatus(paymentState.paymentStatus);
+  const queryStatus =
+    queryParams.get("transaction_status") ||
+    queryParams.get("status") ||
+    queryParams.get("status_code");
+  const failedPayment = isFailedStatus(queryStatus || paymentState.paymentStatus);
+  const paymentStatus = formatPaymentStatus(
+    queryStatus === "settlement" || queryStatus === "capture" || queryStatus === "200"
+      ? "SUCCESS"
+      : paymentState.paymentStatus,
+  );
 
   const handleGoToDashboard = async () => {
     await fetchMe();
     navigate("/member", { replace: true });
   };
 
+  const handleCreateNewPayment = () => {
+    navigate(`/payment?plan=${selectedPlan.id}`, { replace: true });
+  };
+
+  if (failedPayment) {
+    const orderId = queryParams.get("order_id") || paymentState.transactionId || "-";
+    const userEmail = profile?.email || localStorage.getItem("vocafit-registration-email") || "-";
+    const totalPayment = paymentState.total || paymentState.amount || 0;
+
+    return (
+      <AuthFrame currentStep={4} aside={null} contentClassName="payment-success-shell">
+        <style>{successStyles}</style>
+
+        <section className="payment-failed-page">
+          <div className="failed-card" aria-labelledby="failed-title">
+            <span className="failed-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M8 8l8 8M16 8l-8 8" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+              </svg>
+            </span>
+            <h1 id="failed-title">Payment Failed</h1>
+            <p>
+              Your transaction could not be completed. Please create a new
+              payment to continue your membership activation.
+            </p>
+
+            <div className="failure-reason">
+              <strong>Failure Reason: {getFailureReason(queryStatus || paymentState.paymentStatus)}</strong>
+              <span>
+                The payment time limit has expired. Please create a new payment
+                to complete your membership registration.
+              </span>
+            </div>
+
+            <div className="failed-summary">
+              <h2>Order Summary</h2>
+              <dl>
+                <div><dt>Transaction ID:</dt><dd>{orderId}</dd></div>
+                <div><dt>Expired At:</dt><dd>{formatDateTime(paymentState.expiredAt || paymentState.expireAt)}</dd></div>
+                <div><dt>User Email:</dt><dd>{userEmail}</dd></div>
+                <div><dt>Membership:</dt><dd>{selectedPlan.name}</dd></div>
+                <div><dt>Account Type:</dt><dd>{paymentState.accountType || "-"}</dd></div>
+                <div><dt>Price:</dt><dd className="orange">{formatCurrency(totalPayment)}</dd></div>
+              </dl>
+              <div className="failed-total">
+                <span>Total Payment:</span>
+                <strong>{formatCurrency(totalPayment)}</strong>
+              </div>
+            </div>
+
+            <button className="failed-new-payment" onClick={handleCreateNewPayment} type="button">
+              Create New Payment
+            </button>
+          </div>
+        </section>
+      </AuthFrame>
+    );
+  }
+
   return (
-    <main className="payment-success-page">
+    <AuthFrame currentStep={4} aside={null} contentClassName="payment-success-shell">
       <style>{successStyles}</style>
 
-      <section className="success-hero" aria-labelledby="success-title">
+      <section className="payment-success-page">
+      <div className="success-hero" aria-labelledby="success-title">
         <span className="success-check" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="m6 12 4 4 8-9" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -139,28 +239,28 @@ export default function PaymentSuccess() {
         <button className="success-dashboard-btn" onClick={handleGoToDashboard} type="button">
           Go to Member Dashboard
         </button>
+      </div>
       </section>
-    </main>
+    </AuthFrame>
   );
 }
 
 const successStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800;900&display=swap');
-
-  *, *::before, *::after {
-    box-sizing: border-box;
+  .auth-checkout-shell.payment-success-shell {
+    grid-template-columns: minmax(0, 760px);
+    justify-content: center;
+    padding-top: 30px;
   }
 
-  body {
-    margin: 0;
+  .auth-card {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
   }
 
   .payment-success-page {
-    min-height: 100vh;
-    background: #cfd1e4;
     color: #171267;
-    font-family: 'DM Sans', sans-serif;
-    padding: 28px 20px;
+    width: 100%;
   }
 
   .success-hero {
@@ -328,6 +428,151 @@ const successStyles = `
     min-height: 44px;
     text-decoration: none;
     width: min(100%, 560px);
+  }
+
+  .payment-failed-page {
+    color: #171267;
+    display: grid;
+    justify-items: center;
+    width: 100%;
+  }
+
+  .failed-card {
+    align-items: center;
+    background: #ffffff;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    max-width: 560px;
+    padding: 34px 34px 28px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .failed-icon {
+    align-items: center;
+    background: #ffe6e8;
+    border: 4px solid #ff002b;
+    border-radius: 50%;
+    box-shadow: 0 0 18px rgba(255, 0, 43, .38);
+    color: #ff002b;
+    display: inline-flex;
+    height: 48px;
+    justify-content: center;
+    margin-bottom: 22px;
+    width: 48px;
+  }
+
+  .failed-icon svg {
+    height: 27px;
+    width: 27px;
+  }
+
+  .failed-card h1 {
+    color: #171267;
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin: 0 0 10px;
+  }
+
+  .failed-card > p {
+    color: #384076;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0 0 20px;
+    max-width: 420px;
+  }
+
+  .failure-reason {
+    background: #ffc9d0;
+    border: 1px solid #ff4f67;
+    border-radius: 9px;
+    color: #171267;
+    display: grid;
+    gap: 6px;
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    text-align: left;
+    width: 100%;
+  }
+
+  .failure-reason strong {
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .failure-reason span {
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .failed-summary {
+    background: #f4f5fb;
+    border-radius: 9px;
+    padding: 18px 20px;
+    text-align: left;
+    width: 100%;
+  }
+
+  .failed-summary h2 {
+    color: #171267;
+    font-size: 17px;
+    font-weight: 900;
+    margin: 0 0 16px;
+  }
+
+  .failed-summary dl {
+    border-bottom: 1px solid #d6d8e6;
+    display: grid;
+    gap: 10px;
+    margin: 0 0 14px;
+    padding-bottom: 12px;
+  }
+
+  .failed-summary dl div,
+  .failed-total {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: 1fr auto;
+  }
+
+  .failed-summary dt,
+  .failed-summary dd,
+  .failed-total span,
+  .failed-total strong {
+    color: #384076;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .failed-summary dd {
+    color: #171267;
+    margin: 0;
+    max-width: 240px;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+
+  .failed-summary dd.orange,
+  .failed-total strong {
+    color: #ff6b20;
+  }
+
+  .failed-new-payment {
+    background: #ff6b20;
+    border: 0;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 900;
+    height: 44px;
+    margin-top: 14px;
+    width: 100%;
   }
 
   @media (min-width: 680px) {

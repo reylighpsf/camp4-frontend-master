@@ -110,9 +110,9 @@ export default function VerifyEmailResult() {
     success: "Berhasil",
     error: "Gagal",
   }[status];
-  const paymentState = {
+  const choosePlanState = {
     email: registrationEmail,
-    notice: "Email berhasil diverifikasi. Silakan lanjutkan pembayaran membership.",
+    notice: "Email berhasil diverifikasi. Silakan pilih membership plan.",
   };
 
   return (
@@ -231,7 +231,7 @@ export default function VerifyEmailResult() {
       <section className="verify-result-card">
         <h1>
           {status === "success"
-            ? "Complete Your Membership Payment"
+            ? "Continue to Choose Membership Plan"
             : "Email Verification"}
         </h1>
 
@@ -239,7 +239,7 @@ export default function VerifyEmailResult() {
           {status === "loading"
             ? "Mohon tunggu, kami sedang memverifikasi email kamu."
             : status === "success"
-              ? "Open the payment link to complete your payment securely."
+              ? "Choose your membership plan to continue your payment securely."
               : message}
         </p>
 
@@ -248,11 +248,11 @@ export default function VerifyEmailResult() {
         )}
 
         <Link
-          to={status === "success" ? "/payment" : "/sign-up"}
-          state={status === "success" ? paymentState : undefined}
+          to={status === "success" ? "/choose-plan" : "/sign-up"}
+          state={status === "success" ? choosePlanState : undefined}
           className={`verify-result-button${status === "success" ? "" : " is-muted"}`}
         >
-          {status === "success" ? "Continue to Payment" : "Back To Sign Up"}
+          {status === "success" ? "Continue to Choose Membership Plan" : "Back To Sign Up"}
         </Link>
       </section>
     </AuthFrame>
