@@ -3,13 +3,29 @@ import { Link } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import MemberIcon from "../../../../components/member/MemberIcon";
 import api from "../../../../components/auth/authApi";
-import { authMembershipPlans, getAuthMembershipPlan } from "../../../auth/membership/hooks/authPlans";
+import {
+  authMembershipPlans,
+  getAuthMembershipPlan,
+  getPlanIdFromCatalogCode,
+  getTransactionTypeFromPlanId,
+} from "../../../auth/membership/hooks/authPlans";
 
 const tabs = [
   { label: "Account Settings", icon: "profile", to: "/member/profile" },
   { label: "Membership Plan", icon: "check", active: true, to: "/member/profile/membership" },
-  { label: "Security", icon: "check" },
+  { label: "Security", icon: "check", to: "/member/profile?tab=security" },
   { label: "Notifications", icon: "bell" },
+];
+
+const membershipBenefits = [
+  "Unlimited access to all gym facilities",
+  "Personalized workout guidance from trainers",
+  "Priority access to classes and special programs",
+  "Monthly body composition and fitness tracking",
+  "Secure locker access at every visit",
+  "Exclusive discounts on merchandise and events",
+  "Member-only rewards and wellness perks",
+  "Seamless activity tracking through VocaFit",
 ];
 
 const formatDate = (value) => {
@@ -40,6 +56,12 @@ const formatDateTime = (value) => {
 };
 
 const formatTransactionType = (value) =>
+  String(value || "-")
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const formatTierName = (value) =>
   String(value || "-")
     .replaceAll("_", " ")
     .toLowerCase()
@@ -139,6 +161,10 @@ export default function ProfileMembershipPlanPage() {
   const [loading, setLoading] = useState(true);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState("");
+  const [paymentPlan, setPaymentPlan] = useState(null);
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("QRIS");
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const [error, setError] = useState("");
   const [registrationPlanId, setRegistrationPlanId] = useState("");
 
@@ -224,7 +250,13 @@ export default function ProfileMembershipPlanPage() {
   );
   const endDate = formatDate(membershipSnapshot?.end || profile?.membership_end_date || profile?.membership?.end_date);
   const availablePlans = useMemo(() => {
-    if (catalogPlans.length === 0) return authMembershipPlans;
+    if (catalogPlans.length === 0) {
+      return authMembershipPlans.map((plan) => ({
+        ...plan,
+        paymentPlanId: plan.id,
+        prices: [{ tierCode: "DEFAULT", tierName: "Harga", price: plan.price }],
+      }));
+    }
 
     return catalogPlans.map((item) => {
       const price = item.prices?.[0]?.price || 0;
@@ -236,12 +268,24 @@ export default function ProfileMembershipPlanPage() {
         ],
         description: item.description || "Membership plan dari katalog backend.",
         id: item.code,
+        catalogCode: item.code,
         name: item.name,
+        paymentPlanId: getPlanIdFromCatalogCode(item.code),
         period: item.duration_days ? `${item.duration_days} hari` : "plan",
         price: formatCurrency(price),
+        prices: (item.prices || []).map((priceItem) => ({
+          price: formatCurrency(priceItem.price),
+          tierCode: priceItem.tier_code,
+          tierName: priceItem.tier_name || formatTierName(priceItem.tier_code),
+        })),
       };
     });
   }, [catalogPlans]);
+  const currentPaymentPlan =
+    availablePlans.find((plan) => plan.id === currentPlan.id || plan.catalogCode === currentPlan.id) ||
+    availablePlans[0] ||
+    null;
+  const memberId = profile?.id ? `VF-${String(profile.id).slice(0, 8).toUpperCase()}` : "VF-2024-1234";
 
   const viewTransactionDetails = async (transactionId) => {
     setActionLoadingId(transactionId);
@@ -270,6 +314,40 @@ export default function ProfileMembershipPlanPage() {
     } finally {
       setActionLoadingId("");
     }
+  };
+
+  const createMembershipPayment = async () => {
+    if (!paymentPlan) return;
+
+    setPaymentLoading(true);
+    setError("");
+    try {
+      const response = await api.post("/transactions/create", {
+        paymentMethod,
+        transactionType: paymentPlan.catalogCode || getTransactionTypeFromPlanId(paymentPlan.paymentPlanId || paymentPlan.id),
+      });
+      const transaction = response.data?.data?.transaction || response.data?.data;
+      const paymentUrl = response.data?.data?.paymentUrl;
+
+      if (paymentMethod === "QRIS" && paymentUrl) {
+        window.location.href = paymentUrl;
+        return;
+      }
+
+      setSelectedTransaction(transaction || null);
+      setPaymentPlan(null);
+      await fetchTransactions();
+    } catch (err) {
+      setError(getErrorMessage(err, "Gagal membuat pembayaran membership."));
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const returnToMembershipPlans = () => {
+    if (paymentLoading) return;
+    setPaymentPlan(null);
+    setIsUpgradeOpen(true);
   };
 
   return (
@@ -426,10 +504,28 @@ export default function ProfileMembershipPlanPage() {
           border: 2px solid transparent;
           border-radius: 12px;
           box-shadow: 0 14px 28px rgba(8, 4, 120, .08);
+          cursor: pointer;
           display: flex;
           flex-direction: column;
           min-height: 310px;
           padding: 22px;
+          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+          will-change: transform;
+        }
+
+        .profile-plan-card:hover {
+          box-shadow: 0 22px 42px rgba(8, 4, 120, .16);
+          transform: translateY(-5px);
+        }
+
+        .profile-plan-card:active {
+          transform: translateY(-1px) scale(.992);
+        }
+
+        .profile-plan-card:focus-visible {
+          border-color: #0b0871;
+          outline: none;
+          box-shadow: 0 0 0 4px rgba(11, 8, 113, .14), 0 22px 42px rgba(8, 4, 120, .16);
         }
 
         .profile-plan-card.is-active {
@@ -464,9 +560,47 @@ export default function ProfileMembershipPlanPage() {
           font-size: 12px;
         }
 
+        .profile-plan-price-list {
+          border: 1px solid #eceef3;
+          border-radius: 8px;
+          display: grid;
+          gap: 0;
+          margin: 0 0 14px;
+          overflow: hidden;
+        }
+
+        .profile-plan-price-row {
+          align-items: center;
+          background: #f8f8fb;
+          display: grid;
+          gap: 10px;
+          grid-template-columns: minmax(0, 1fr) auto;
+          min-height: 38px;
+          padding: 8px 10px;
+        }
+
+        .profile-plan-price-row + .profile-plan-price-row {
+          border-top: 1px solid #eceef3;
+        }
+
+        .profile-plan-price-row span {
+          color: #565a91;
+          font-size: 11px;
+          font-weight: 900;
+          line-height: 1.2;
+        }
+
+        .profile-plan-price-row b {
+          color: #ff7a00;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
         .profile-plan-card ul {
           display: grid;
           gap: 9px;
+          flex: 1;
           list-style: none;
           margin: 0;
           padding: 0;
@@ -490,6 +624,399 @@ export default function ProfileMembershipPlanPage() {
           position: absolute;
           top: 5px;
           width: 8px;
+        }
+
+        .profile-plan-pay-btn {
+          align-items: center;
+          background: #ff7a00;
+          border: 0;
+          border-radius: 8px;
+          color: #ffffff;
+          cursor: pointer;
+          display: inline-flex;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 900;
+          justify-content: center;
+          margin-top: 18px;
+          min-height: 40px;
+          padding: 0 14px;
+          text-decoration: none;
+          text-transform: uppercase;
+        }
+
+        .profile-plan-pay-btn:hover {
+          box-shadow: 0 10px 20px rgba(255, 122, 0, .18);
+          transform: translateY(-1px);
+        }
+
+        .profile-payment-backdrop {
+          align-items: center;
+          background: rgba(8, 4, 120, .54);
+          display: flex;
+          inset: 0;
+          justify-content: center;
+          padding: 24px;
+          position: fixed;
+          z-index: 1000;
+        }
+
+        .profile-payment-modal {
+          background: #ffffff;
+          border-radius: 12px;
+          box-shadow: 0 24px 80px rgba(0,0,0,.28);
+          padding: 24px;
+          width: min(100%, 520px);
+        }
+
+        .profile-payment-modal h2 {
+          color: #0b0871;
+          font-size: 22px;
+          font-weight: 900;
+          margin: 0 0 6px;
+        }
+
+        .profile-payment-modal p {
+          color: #565a91;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1.4;
+          margin: 0 0 18px;
+        }
+
+        .profile-payment-summary {
+          background: #f8f8fb;
+          border: 1px solid #eceef3;
+          border-radius: 8px;
+          display: grid;
+          gap: 8px;
+          margin-bottom: 16px;
+          padding: 14px;
+        }
+
+        .profile-payment-summary span {
+          color: #565a91;
+          font-size: 11px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .profile-payment-summary strong {
+          color: #0b0871;
+          font-size: 16px;
+          font-weight: 900;
+        }
+
+        .profile-payment-methods {
+          display: grid;
+          gap: 10px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          margin-bottom: 18px;
+        }
+
+        .profile-payment-methods button {
+          background: #ffffff;
+          border: 1px solid #0b0871;
+          border-radius: 8px;
+          color: #0b0871;
+          cursor: pointer;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 900;
+          min-height: 42px;
+          text-transform: uppercase;
+        }
+
+        .profile-payment-methods button.active {
+          background: #0b0871;
+          color: #ffffff;
+        }
+
+        .profile-payment-actions {
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+        }
+
+        .profile-payment-actions button {
+          border-radius: 8px;
+          cursor: pointer;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 900;
+          min-height: 40px;
+          padding: 0 14px;
+          text-transform: uppercase;
+        }
+
+        .profile-payment-cancel {
+          background: #ffffff;
+          border: 1px solid #c73822;
+          color: #c73822;
+        }
+
+        .profile-payment-submit {
+          background: #ff7a00;
+          border: 1px solid #ff7a00;
+          color: #ffffff;
+        }
+
+        .profile-payment-actions button:disabled {
+          cursor: not-allowed;
+          opacity: .62;
+        }
+
+        .upgrade-plan-modal {
+          background: #ffffff;
+          border-radius: 12px;
+          box-shadow: 0 24px 80px rgba(0,0,0,.28);
+          max-height: calc(100vh - 48px);
+          overflow-y: auto;
+          padding: 24px;
+          width: min(100%, 980px);
+        }
+
+        .upgrade-plan-head {
+          align-items: start;
+          border-bottom: 1px solid #eceef3;
+          display: flex;
+          gap: 16px;
+          justify-content: space-between;
+          margin-bottom: 18px;
+          padding-bottom: 14px;
+        }
+
+        .upgrade-plan-head h2 {
+          color: #0b0871;
+          font-size: 22px;
+          font-weight: 900;
+          margin: 0 0 6px;
+        }
+
+        .upgrade-plan-head p {
+          color: #565a91;
+          font-size: 13px;
+          font-weight: 800;
+          margin: 0;
+        }
+
+        .upgrade-plan-close {
+          background: #f4f5f8;
+          border: 1px solid #d8dbe6;
+          border-radius: 8px;
+          color: #11131d;
+          cursor: pointer;
+          font: inherit;
+          font-size: 16px;
+          font-weight: 900;
+          height: 34px;
+          width: 34px;
+        }
+
+        .membership-overview {
+          display: grid;
+          gap: 26px;
+        }
+
+        .membership-hero-card {
+          background: linear-gradient(115deg, #ff7a00 0%, #ff4b16 52%, #ec001e 100%);
+          border-radius: 12px;
+          color: #ffffff;
+          display: grid;
+          gap: 20px;
+          padding: 26px 28px 22px;
+        }
+
+        .membership-hero-top {
+          align-items: start;
+          display: flex;
+          gap: 18px;
+          justify-content: space-between;
+        }
+
+        .membership-hero-top h2 {
+          color: #ffffff;
+          font-size: 22px;
+          font-weight: 900;
+          margin: 0 0 6px;
+        }
+
+        .membership-hero-top p {
+          color: #ffffff;
+          font-size: 14px;
+          font-weight: 700;
+          margin: 0;
+        }
+
+        .membership-hero-price {
+          color: #ffffff;
+          font-size: 20px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .membership-hero-facts {
+          display: grid;
+          gap: 16px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .membership-fact {
+          background: rgba(255, 255, 255, .12);
+          border: 1px solid rgba(255, 255, 255, .18);
+          border-radius: 8px;
+          min-height: 64px;
+          padding: 13px;
+        }
+
+        .membership-fact span {
+          color: rgba(255,255,255,.78);
+          display: block;
+          font-size: 12px;
+          font-weight: 800;
+          margin-bottom: 7px;
+        }
+
+        .membership-fact strong {
+          color: #ffffff;
+          display: block;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1.25;
+        }
+
+        .membership-content-grid {
+          align-items: start;
+          display: grid;
+          gap: 24px;
+          grid-template-columns: minmax(0, 1fr) 272px;
+        }
+
+        .membership-benefits-card,
+        .membership-next-card {
+          background: #ffffff;
+          border-radius: 12px;
+          box-shadow: 0 14px 28px rgba(8, 4, 120, .08);
+          padding: 22px;
+        }
+
+        .membership-benefits-card h2,
+        .membership-next-card h2 {
+          color: #0b0871;
+          font-size: 15px;
+          font-weight: 900;
+          margin: 0 0 18px;
+        }
+
+        .membership-benefit-grid {
+          display: grid;
+          gap: 14px 20px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          list-style: none;
+          margin: 0;
+          padding: 0;
+        }
+
+        .membership-benefit-grid li {
+          align-items: start;
+          color: #0b0871;
+          display: grid;
+          font-size: 12px;
+          font-weight: 700;
+          gap: 10px;
+          grid-template-columns: 20px minmax(0, 1fr);
+          line-height: 1.25;
+        }
+
+        .membership-benefit-grid span {
+          align-items: center;
+          border: 2px solid #24c870;
+          border-radius: 50%;
+          color: #24c870;
+          display: inline-flex;
+          font-size: 11px;
+          font-weight: 900;
+          height: 18px;
+          justify-content: center;
+          width: 18px;
+        }
+
+        .membership-next-card {
+          display: grid;
+          gap: 12px;
+        }
+
+        .membership-next-item {
+          align-items: center;
+          border-radius: 8px;
+          display: grid;
+          gap: 12px;
+          grid-template-columns: 34px minmax(0, 1fr);
+          min-height: 54px;
+          padding: 10px;
+        }
+
+        .membership-next-item.amount {
+          background: #eef4ff;
+        }
+
+        .membership-next-item.due {
+          background: #fff0c2;
+        }
+
+        .membership-next-icon {
+          align-items: center;
+          background: #ffffff;
+          border-radius: 8px;
+          color: #3474ff;
+          display: inline-flex;
+          height: 34px;
+          justify-content: center;
+          width: 34px;
+        }
+
+        .membership-next-item.due .membership-next-icon {
+          color: #ff7a00;
+        }
+
+        .membership-next-item span {
+          color: #7177aa;
+          display: block;
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .membership-next-item strong {
+          color: #25399a;
+          display: block;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .membership-action-stack {
+          display: grid;
+          gap: 12px;
+        }
+
+        .membership-action-stack button {
+          border: 0;
+          border-radius: 10px;
+          cursor: pointer;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 900;
+          min-height: 42px;
+        }
+
+        .membership-upgrade-btn {
+          background: #1f55f2;
+          box-shadow: 0 10px 18px rgba(31, 85, 242, .28);
+          color: #ffffff;
+        }
+
+        .membership-renew-btn {
+          background: #edf4ff;
+          color: #25399a;
         }
 
         .profile-plan-loading {
@@ -635,12 +1162,24 @@ export default function ProfileMembershipPlanPage() {
         @media (max-width: 1040px) {
           .profile-plan-hero,
           .profile-plan-stats,
-          .profile-plan-grid {
+          .profile-plan-grid,
+          .membership-content-grid,
+          .membership-hero-facts {
             grid-template-columns: 1fr;
           }
 
           .profile-plan-price {
             text-align: left;
+          }
+        }
+
+        @media (max-width: 680px) {
+          .membership-hero-top {
+            flex-direction: column;
+          }
+
+          .membership-benefit-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
@@ -667,48 +1206,78 @@ export default function ProfileMembershipPlanPage() {
         {loading && <p className="profile-plan-loading">Memuat membership plan...</p>}
         {error && <div className="profile-plan-alert">{error}</div>}
 
-        <section className="profile-plan-hero">
-          <div>
-            <span className="profile-plan-label">Current Membership</span>
-            <h2>{currentPlan.name}</h2>
-            <p>{currentPlan.description}</p>
-          </div>
-          <div className="profile-plan-price">
-            {currentPlan.price}
-            <span>/ {currentPlan.period}</span>
-          </div>
-        </section>
-
-        <section className="profile-plan-stats" aria-label="Membership details">
-          <div className="profile-plan-stat">
-            <span>Status</span>
-            <strong>{status}</strong>
-          </div>
-          <div className="profile-plan-stat">
-            <span>Start Date</span>
-            <strong>{startDate}</strong>
-          </div>
-          <div className="profile-plan-stat">
-            <span>Active Until</span>
-            <strong>{endDate}</strong>
-          </div>
-        </section>
-
-        <section className="profile-plan-grid" aria-label="Available membership plans">
-          {availablePlans.map((plan) => (
-            <article className={`profile-plan-card ${plan.id === currentPlan.id ? "is-active" : ""}`} key={plan.id}>
-              <h3>{plan.name}</h3>
-              <p>{plan.description}</p>
-              <strong>
-                {plan.price} <span>/ {plan.period}</span>
+        <section className="membership-overview">
+          <article className="membership-hero-card">
+            <div className="membership-hero-top">
+              <div>
+                <h2>{currentPlan.name}</h2>
+                <p>{currentPlan.description}</p>
+              </div>
+              <strong className="membership-hero-price">
+                {currentPlan.price} / {currentPlan.period}
               </strong>
-              <ul>
-                {plan.benefits.map((benefit) => (
-                  <li key={benefit}>{benefit}</li>
+            </div>
+
+            <div className="membership-hero-facts">
+              <div className="membership-fact">
+                <span>Member ID</span>
+                <strong>{memberId}</strong>
+              </div>
+              <div className="membership-fact">
+                <span>Start Date</span>
+                <strong>{startDate}</strong>
+              </div>
+              <div className="membership-fact">
+                <span>Expiration</span>
+                <strong>{endDate}</strong>
+              </div>
+              <div className="membership-fact">
+                <span>Status</span>
+                <strong>{status}</strong>
+              </div>
+            </div>
+          </article>
+
+          <div className="membership-content-grid">
+            <section className="membership-benefits-card">
+              <h2>Membership Benefits</h2>
+              <ul className="membership-benefit-grid">
+                {membershipBenefits.map((benefit) => (
+                  <li key={benefit}>
+                    <span>✓</span>
+                    {benefit}
+                  </li>
                 ))}
               </ul>
-            </article>
-          ))}
+            </section>
+
+            <aside className="membership-action-stack">
+              <section className="membership-next-card">
+                <h2>Next Payment</h2>
+                <div className="membership-next-item amount">
+                  <span className="membership-next-icon"><MemberIcon name="calendar" /></span>
+                  <div>
+                    <span>Amount</span>
+                    <strong>{currentPlan.price}</strong>
+                  </div>
+                </div>
+                <div className="membership-next-item due">
+                  <span className="membership-next-icon"><MemberIcon name="check" /></span>
+                  <div>
+                    <span>Due Date</span>
+                    <strong>{endDate}</strong>
+                  </div>
+                </div>
+              </section>
+
+              <button className="membership-upgrade-btn" onClick={() => setIsUpgradeOpen(true)} type="button">
+                Upgrade Plan
+              </button>
+              <button className="membership-renew-btn" onClick={() => currentPaymentPlan && setPaymentPlan(currentPaymentPlan)} type="button">
+                Renew Membership
+              </button>
+            </aside>
+          </div>
         </section>
 
         <section className="profile-transaction-panel">
@@ -790,6 +1359,117 @@ export default function ProfileMembershipPlanPage() {
           </div>
         </section>
       </section>
+
+      {paymentPlan && (
+        <div className="profile-payment-backdrop">
+          <section className="profile-payment-modal" role="dialog" aria-modal="true">
+            <h2>Payment Membership</h2>
+            <p>Pilih metode pembayaran untuk memperpanjang membership.</p>
+
+            <div className="profile-payment-summary">
+              <span>Membership Plan</span>
+              <strong>{paymentPlan.name}</strong>
+              <span>Durasi</span>
+              <strong>{paymentPlan.period}</strong>
+            </div>
+
+            <div className="profile-payment-methods">
+              {["QRIS", "CASH"].map((method) => (
+                <button
+                  className={paymentMethod === method ? "active" : ""}
+                  key={method}
+                  onClick={() => setPaymentMethod(method)}
+                  type="button"
+                >
+                  {method}
+                </button>
+              ))}
+            </div>
+
+            <div className="profile-payment-actions">
+              <button className="profile-payment-cancel" onClick={returnToMembershipPlans} type="button">
+                Batal
+              </button>
+              <button
+                className="profile-payment-submit"
+                disabled={paymentLoading}
+                onClick={createMembershipPayment}
+                type="button"
+              >
+                {paymentLoading ? "Memproses..." : "Buat Payment"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isUpgradeOpen && (
+        <div className="profile-payment-backdrop">
+          <section className="upgrade-plan-modal" role="dialog" aria-modal="true">
+            <div className="upgrade-plan-head">
+              <div>
+                <h2>Choose Membership Plan</h2>
+                <p>Pilih membership yang ingin digunakan untuk upgrade atau perpanjangan.</p>
+              </div>
+              <button className="upgrade-plan-close" onClick={() => setIsUpgradeOpen(false)} type="button" aria-label="Tutup">
+                x
+              </button>
+            </div>
+
+            <section className="profile-plan-grid" aria-label="Available membership plans">
+              {availablePlans.map((plan) => (
+                <article
+                  className={`profile-plan-card ${plan.id === currentPlan.id ? "is-active" : ""}`}
+                  key={plan.id}
+                  onClick={() => {
+                    setIsUpgradeOpen(false);
+                    setPaymentPlan(plan);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setIsUpgradeOpen(false);
+                      setPaymentPlan(plan);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <h3>{plan.name}</h3>
+                  <p>{plan.description}</p>
+                  <strong>
+                    {plan.price} <span>/ {plan.period}</span>
+                  </strong>
+                  <div className="profile-plan-price-list" aria-label={`Harga ${plan.name}`}>
+                    {plan.prices.map((price) => (
+                      <div className="profile-plan-price-row" key={`${plan.id}-${price.tierCode}`}>
+                        <span>{price.tierName}</span>
+                        <b>{price.price}</b>
+                      </div>
+                    ))}
+                  </div>
+                  <ul>
+                    {plan.benefits.map((benefit) => (
+                      <li key={benefit}>{benefit}</li>
+                    ))}
+                  </ul>
+                  <button
+                    className="profile-plan-pay-btn"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setIsUpgradeOpen(false);
+                      setPaymentPlan(plan);
+                    }}
+                    type="button"
+                  >
+                    Pilih Plan
+                  </button>
+                </article>
+              ))}
+            </section>
+          </section>
+        </div>
+      )}
     </MemberLayout>
   );
 }

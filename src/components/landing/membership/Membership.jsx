@@ -7,8 +7,9 @@ import { authMembershipPlans, mapCatalogsToMembershipPlans } from "../../../page
 import MembershipPlanCards from "./MembershipPlanCards";
 
 const steps = [
-  ["Choose Your Plan", "Select the membership that fits your routine."],
   ["Create Account", "Sign up and complete your member profile."],
+  ["Verify Email", "Confirm your email before choosing a membership."],
+  ["Choose Your Plan", "Select the membership that fits your routine."],
   ["Complete Payment", "Confirm your package through secure payment."],
   ["Get QR Code", "Use your member QR code for gym check-in."],
 ];
@@ -274,11 +275,14 @@ export default function MembershipPage() {
           border-radius: 8px;
           box-shadow: 0 16px 34px rgba(0,0,0,.16);
           color: #0a1185;
+          cursor: pointer;
           display: flex;
           flex-direction: column;
           min-height: 320px;
           padding: clamp(18px, 2vw, 28px);
           text-align: left;
+          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+          will-change: transform;
         }
 
         .membership-plan.is-featured {
@@ -287,6 +291,23 @@ export default function MembershipPage() {
           box-shadow: 0 22px 48px rgba(0,0,0,.28);
           color: #fff;
           transform: translateY(-16px);
+        }
+
+        .membership-plan:hover {
+          box-shadow: 0 24px 50px rgba(0,0,0,.24);
+          transform: translateY(-6px);
+        }
+
+        .membership-plan.is-featured:hover {
+          transform: translateY(-22px);
+        }
+
+        .membership-plan:active {
+          transform: translateY(-2px) scale(.992);
+        }
+
+        .membership-plan.is-featured:active {
+          transform: translateY(-14px) scale(.992);
         }
 
         .plan-kicker {
@@ -310,6 +331,53 @@ export default function MembershipPage() {
           font-size: 13px;
           font-weight: 800;
           opacity: .78;
+        }
+
+        .membership-price-list {
+          border: 1px solid rgba(10, 17, 133, .12);
+          border-radius: 8px;
+          display: grid;
+          margin-top: 16px;
+          overflow: hidden;
+        }
+
+        .membership-plan.is-featured .membership-price-list {
+          border-color: rgba(255, 255, 255, .18);
+        }
+
+        .membership-price-row {
+          align-items: center;
+          background: rgba(10, 17, 133, .04);
+          display: grid;
+          gap: 10px;
+          grid-template-columns: minmax(0, 1fr) auto;
+          min-height: 38px;
+          padding: 8px 10px;
+        }
+
+        .membership-plan.is-featured .membership-price-row {
+          background: rgba(255, 255, 255, .08);
+        }
+
+        .membership-price-row + .membership-price-row {
+          border-top: 1px solid rgba(10, 17, 133, .1);
+        }
+
+        .membership-plan.is-featured .membership-price-row + .membership-price-row {
+          border-top-color: rgba(255, 255, 255, .14);
+        }
+
+        .membership-price-row span {
+          font-size: 11px;
+          line-height: 1.2;
+          opacity: .82;
+        }
+
+        .membership-price-row b {
+          color: #ff7a00;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: nowrap;
         }
 
         .membership-plan ul {
@@ -535,7 +603,6 @@ export default function MembershipPage() {
         <div className="membership-nav-links">
           <Link to="/">Home</Link>
           <Link to="/explore">Explore</Link>
-          <Link to="/membership">Membership</Link>
           <Link to="/sign-in">Sign In</Link>
           <Link className="nav-join" to="/sign-up">
             Join Us
@@ -549,7 +616,7 @@ export default function MembershipPage() {
           <p>Choose the membership plan that fits your routine and unlock member gym access, workout tracking, trainer schedule, and support.</p>
           <div className="membership-hero-actions">
             <a className="membership-primary-btn" href="#plans">View Plans</a>
-            <Link className="membership-secondary-btn" to="/choose-plan">Join Us</Link>
+            <Link className="membership-secondary-btn" to="/sign-up">Join Us</Link>
           </div>
         </div>
         <div
@@ -612,7 +679,7 @@ export default function MembershipPage() {
         <div className="membership-cta">
           <h2>Ready to Become a Vocafit Member?</h2>
           <p>Pick your plan and start building a healthier routine today.</p>
-          <Link to="/choose-plan">Join Us</Link>
+          <Link to="/sign-up">Join Us</Link>
         </div>
       </section>
     </main>

@@ -214,8 +214,8 @@ export default function Payment() {
         </p>
 
         <div className="payment-actions">
-          <Link className="payment-back" to={cashPending ? "/member" : "/sign-up"}>
-            {cashPending ? "Continue To Member Dashboard" : "Back To Registration"}
+          <Link className="payment-back" to={cashPending ? "/member" : "/choose-plan"}>
+            {cashPending ? "Continue To Member Dashboard" : "Back To Choose Plan"}
           </Link>
           <button className="payment-submit" disabled={loading || cashPending} onClick={handlePay} type="button">
             {cashPending ? "Waiting Confirmation" : loading ? "Processing..." : "Pay Now"}

@@ -1,17 +1,39 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Home from "../../components/landing/home/Home";
 import Explore from "../../components/landing/explore/Explore";
 import MembershipPlanCards from "../../components/landing/membership/MembershipPlanCards";
 import Facilities from "../../components/landing/facilities/Facilities";
 import Footer from "../../components/landing/footer/Footer";
+import api from "../../components/auth/authApi";
+import { authMembershipPlans, mapCatalogsToMembershipPlans } from "../auth/membership/hooks/authPlans";
 
 export default function LandingPage({ scrollToExplore = false }) {
+  const [plans, setPlans] = useState(authMembershipPlans);
+
   useEffect(() => {
     if (!scrollToExplore) return;
 
     const exploreSection = document.getElementById("explore");
     exploreSection?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [scrollToExplore]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchCatalogPlans = async () => {
+      try {
+        const response = await api.get("/catalogs");
+        if (isMounted) setPlans(mapCatalogsToMembershipPlans(response.data?.data || []));
+      } catch {
+        if (isMounted) setPlans(authMembershipPlans);
+      }
+    };
+
+    fetchCatalogPlans();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <main className="landing-page">
@@ -586,11 +608,14 @@ export default function LandingPage({ scrollToExplore = false }) {
           border: 3px solid transparent;
           border-radius: 8px;
           color: #0a1185;
+          cursor: pointer;
           display: flex;
           flex-direction: column;
           min-height: 300px;
           padding: clamp(18px, 2vw, 28px);
           text-align: left;
+          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+          will-change: transform;
         }
 
         .membership-plan.is-featured {
@@ -598,6 +623,23 @@ export default function LandingPage({ scrollToExplore = false }) {
           border-color: #ff7a00;
           color: #fff;
           transform: translateY(-16px);
+        }
+
+        .membership-plan:hover {
+          box-shadow: 0 24px 50px rgba(0,0,0,.24);
+          transform: translateY(-6px);
+        }
+
+        .membership-plan.is-featured:hover {
+          transform: translateY(-22px);
+        }
+
+        .membership-plan:active {
+          transform: translateY(-2px) scale(.992);
+        }
+
+        .membership-plan.is-featured:active {
+          transform: translateY(-14px) scale(.992);
         }
 
         .plan-kicker {
@@ -627,6 +669,53 @@ export default function LandingPage({ scrollToExplore = false }) {
           font-size: 13px;
           font-weight: 800;
           opacity: 0.78;
+        }
+
+        .membership-price-list {
+          border: 1px solid rgba(10, 17, 133, .12);
+          border-radius: 8px;
+          display: grid;
+          margin-top: 16px;
+          overflow: hidden;
+        }
+
+        .membership-plan.is-featured .membership-price-list {
+          border-color: rgba(255, 255, 255, .18);
+        }
+
+        .membership-price-row {
+          align-items: center;
+          background: rgba(10, 17, 133, .04);
+          display: grid;
+          gap: 10px;
+          grid-template-columns: minmax(0, 1fr) auto;
+          min-height: 38px;
+          padding: 8px 10px;
+        }
+
+        .membership-plan.is-featured .membership-price-row {
+          background: rgba(255, 255, 255, .08);
+        }
+
+        .membership-price-row + .membership-price-row {
+          border-top: 1px solid rgba(10, 17, 133, .1);
+        }
+
+        .membership-plan.is-featured .membership-price-row + .membership-price-row {
+          border-top-color: rgba(255, 255, 255, .14);
+        }
+
+        .membership-price-row span {
+          font-size: 11px;
+          line-height: 1.2;
+          opacity: .82;
+        }
+
+        .membership-price-row b {
+          color: #ff7a00;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: nowrap;
         }
 
         .membership-plan ul {
@@ -929,7 +1018,7 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
       `}</style>
       <Home />
-      <MembershipPlanCards compact />
+      <MembershipPlanCards compact plans={plans} />
       <Explore />
       <Facilities />
       <Footer />

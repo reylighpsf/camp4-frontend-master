@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "../../../../../components/auth/authApi";
+import { enrichTransactionMembers } from "../paymentHelpers";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
@@ -16,8 +17,11 @@ export default function usePayments() {
     setListLoading(true);
     setListError("");
     try {
-      const response = await api.get("/transactions/cash/pending");
-      setPayments(response.data?.data || []);
+      const [paymentResponse, usersResponse] = await Promise.all([
+        api.get("/transactions/cash/pending"),
+        api.get("/admin/users"),
+      ]);
+      setPayments(enrichTransactionMembers(paymentResponse.data?.data || [], usersResponse.data?.data || []));
     } catch (err) {
       setListError(getErrorMessage(err, "Gagal memuat data pembayaran."));
       setPayments([]);

@@ -26,11 +26,10 @@ export default function ChoosePlan() {
   }, []);
 
   return (
-    <AuthFrame currentStep={1} aside={null} contentClassName="auth-plan-page">
+    <AuthFrame currentStep={3} aside={null} contentClassName="auth-plan-page">
       <h1>Choose Your Member Plan</h1>
       <p className="auth-subtitle">
-        Pick the membership that fits your training rhythm before creating your
-        account.
+        Email kamu sudah diverifikasi. Pilih membership yang sesuai, lalu lanjutkan ke pembayaran.
       </p>
 
       <MembershipPlanCards plans={plans} />

@@ -337,17 +337,22 @@ export default function TrainerBookingPage() {
 
         .trainer-actions {
           display: flex;
-          gap: 8px;
+          gap: 10px;
+          width: 100%;
         }
 
         .trainer-action {
-          border-radius: 5px;
+          align-items: center;
+          border-radius: 7px;
           cursor: pointer;
+          display: inline-flex;
           font: inherit;
-          font-size: 10px;
+          font-size: 11px;
           font-weight: 900;
-          height: 26px;
-          padding: 0 12px;
+          height: 34px;
+          justify-content: center;
+          padding: 0 14px;
+          text-decoration: none;
         }
 
         .trainer-action.primary {
@@ -360,6 +365,14 @@ export default function TrainerBookingPage() {
           background: #fff;
           border: 1px solid #0b0871;
           color: #0b0871;
+        }
+
+        .trainer-action.book-package {
+          background: #ff7a00;
+          border-color: #ff7a00;
+          box-shadow: 0 8px 16px rgba(255, 122, 0, .22);
+          color: #fff;
+          min-width: 132px;
         }
 
         .trainer-status {
@@ -674,8 +687,7 @@ export default function TrainerBookingPage() {
                       >
                         View Profile
                       </button>
-                      <Link className="trainer-action secondary" to={`/member/trainer-checkout?trainerId=${trainer.id}`}>Book Package</Link>
-                      <Link className="trainer-action secondary" to="/member/trainer-packages">My Packages</Link>
+                      <Link className="trainer-action book-package" to={`/member/trainer-checkout?trainerId=${trainer.id}`}>Book Package</Link>
                     </div>
                   </div>
                 </article>
@@ -686,7 +698,7 @@ export default function TrainerBookingPage() {
 
         <aside className="session-panel" id="sessions">
           <div className="session-head">
-            <h2>My Trainer Packages</h2>
+            <h2 id="my-trainer-packages">My Trainer Packages</h2>
             <a href="#sessions" onClick={(event) => { event.preventDefault(); fetchPackages(); }}>Refresh</a>
           </div>
           {packageError && <p className="trainer-message error">{packageError}</p>}

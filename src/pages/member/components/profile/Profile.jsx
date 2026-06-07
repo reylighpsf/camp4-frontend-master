@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import MemberIcon from "../../../../components/member/MemberIcon";
 import api from "../../../../components/auth/authApi";
@@ -7,9 +7,9 @@ import { useAuth } from "../../../../components/auth/useAuth";
 import { getAuthMembershipPlan } from "../../../auth/membership/hooks/authPlans";
 
 const tabs = [
-  { label: "Account Settings", icon: "profile", active: true, to: "/member/profile" },
+  { label: "Account Settings", icon: "profile", section: "account" },
   { label: "Membership Plan", icon: "check", to: "/member/profile/membership" },
-  { label: "Security", icon: "check" },
+  { label: "Security", icon: "check", section: "security" },
   { label: "Notifications", icon: "bell" },
 ];
 
@@ -70,11 +70,24 @@ const getMembershipPlanName = (profile, registrationPlanId) => {
 export default function ProfilePage() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const activeSection = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("tab") === "security" ? "security" : "account";
+  }, [location.search]);
   const [profile, setProfile] = useState(user || null);
   const [formValues, setFormValues] = useState({
     fullName: user?.full_name || "",
     email: user?.email || "",
-    password: "",
+    phoneNumber: user?.phone_number || "",
+    birthPlace: user?.birth_place || "",
+    birthDate: "",
+    address: "",
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -97,7 +110,10 @@ export default function ProfilePage() {
         setFormValues({
           fullName: nextProfile?.full_name || "",
           email: nextProfile?.email || "",
-          password: "",
+          phoneNumber: nextProfile?.phone_number || nextProfile?.phone || "",
+          birthPlace: nextProfile?.birth_place || nextProfile?.birthPlace || "",
+          birthDate: nextProfile?.birth_date ? String(nextProfile.birth_date).slice(0, 10) : "",
+          address: nextProfile?.address || "",
         });
       } catch (err) {
         if (isMounted) setError(getErrorMessage(err, "Gagal memuat profile."));
@@ -126,7 +142,6 @@ export default function ProfilePage() {
 
   const memberId = profile?.id ? `VF${String(profile.id).slice(0, 10).toUpperCase()}` : "VF1234567890";
   const joinDate = formatDate(profile?.created_at);
-  const planEndDate = formatDate(profile?.membership_end_date || profile?.membership?.end_date);
 
   const updateField = (field, value) => {
     setFormValues((current) => ({ ...current, [field]: value }));
@@ -140,14 +155,16 @@ export default function ProfilePage() {
 
     const payload = {
       fullName: formValues.fullName.trim(),
+      phoneNumber: formValues.phoneNumber.trim(),
+      birthPlace: formValues.birthPlace.trim(),
+      birthDate: formValues.birthDate,
+      address: formValues.address.trim(),
     };
-    if (formValues.password.trim()) payload.password = formValues.password;
 
     try {
       const response = await api.put("/users/me", payload);
       const updatedProfile = response.data?.data || profile;
       setProfile((current) => ({ ...current, ...updatedProfile }));
-      setFormValues((current) => ({ ...current, password: "" }));
       setMessage("Profile berhasil diperbarui.");
     } catch (err) {
       setError(getErrorMessage(err, "Gagal menyimpan profile."));
@@ -180,12 +197,53 @@ export default function ProfilePage() {
     }
   };
 
+  const updatePasswordField = (field, value) => {
+    setPasswordForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handlePasswordSubmit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setMessage("");
+    setError("");
+
+    if (!passwordForm.currentPassword.trim()) {
+      setSaving(false);
+      setError("Password sekarang wajib diisi.");
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      setSaving(false);
+      setError("Password minimal 6 karakter.");
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setSaving(false);
+      setError("Konfirmasi password tidak sama.");
+      return;
+    }
+
+    try {
+      await api.put("/users/me", { password: passwordForm.newPassword });
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setMessage("Password berhasil diperbarui.");
+    } catch (err) {
+      setError(getErrorMessage(err, "Gagal mengubah password."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <MemberLayout active="Profile">
       <style>{`
         .profile-page {
           display: grid;
-          gap: 22px;
+          gap: 24px;
+          max-width: 1180px;
+          width: 100%;
         }
 
         .profile-title {
@@ -248,22 +306,22 @@ export default function ProfilePage() {
         .profile-grid {
           align-items: start;
           display: grid;
-          gap: 22px;
-          grid-template-columns: 330px minmax(0, 1fr);
+          gap: 24px;
+          grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
         }
 
         .profile-card,
         .profile-form-card {
           background: #ffffff;
-          border-radius: 12px;
+          border-radius: 10px;
           box-shadow: 0 14px 28px rgba(8, 4, 120, .08);
         }
 
         .profile-card {
           display: grid;
           justify-items: center;
-          min-height: 356px;
-          padding: 28px 22px 24px;
+          min-height: 360px;
+          padding: 26px 20px 24px;
         }
 
         .profile-avatar-wrap {
@@ -273,8 +331,8 @@ export default function ProfilePage() {
         .profile-avatar,
         .profile-avatar-image {
           border-radius: 50%;
-          height: 112px;
-          width: 112px;
+          height: 108px;
+          width: 108px;
         }
 
         .profile-avatar {
@@ -287,8 +345,8 @@ export default function ProfilePage() {
         }
 
         .profile-avatar svg {
-          height: 58px;
-          width: 58px;
+          height: 56px;
+          width: 56px;
         }
 
         .profile-avatar-image {
@@ -304,11 +362,11 @@ export default function ProfilePage() {
           bottom: 5px;
           color: #ffffff;
           display: inline-flex;
-          height: 34px;
+          height: 36px;
           justify-content: center;
           position: absolute;
           right: -2px;
-          width: 34px;
+          width: 36px;
         }
 
         .profile-camera svg {
@@ -318,7 +376,7 @@ export default function ProfilePage() {
 
         .profile-name {
           color: #0b0871;
-          font-size: 15px;
+          font-size: 16px;
           font-weight: 900;
           margin-top: 16px;
           text-align: center;
@@ -326,7 +384,7 @@ export default function ProfilePage() {
 
         .profile-role {
           color: #7a7db5;
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 800;
           margin-top: 3px;
           text-align: center;
@@ -334,20 +392,20 @@ export default function ProfilePage() {
 
         .profile-meta-list {
           display: grid;
-          gap: 8px;
-          margin-top: 28px;
+          gap: 10px;
+          margin-top: 30px;
           width: 100%;
         }
 
         .profile-meta {
           align-items: center;
           background: #f4f5fb;
-          border-radius: 8px;
+          border-radius: 7px;
           color: #0b0871;
           display: flex;
           gap: 12px;
-          min-height: 58px;
-          padding: 10px 14px;
+          min-height: 56px;
+          padding: 10px 12px;
         }
 
         .profile-meta svg {
@@ -360,21 +418,21 @@ export default function ProfilePage() {
         .profile-meta span {
           color: #8a8cbe;
           display: block;
-          font-size: 10px;
+          font-size: 11px;
           font-weight: 900;
           margin-bottom: 3px;
         }
 
         .profile-meta strong {
           display: block;
-          font-size: 11px;
+          font-size: 13px;
           font-weight: 900;
           overflow-wrap: anywhere;
         }
 
         .profile-form-card {
-          min-height: 310px;
-          padding: 26px 24px 24px;
+          min-height: 360px;
+          padding: 24px 24px 28px;
         }
 
         .profile-danger-card {
@@ -382,7 +440,7 @@ export default function ProfilePage() {
           border: 1px solid #ffd0c7;
           border-radius: 12px;
           box-shadow: 0 14px 28px rgba(8, 4, 120, .08);
-          grid-column: 2;
+          grid-column: 1 / -1;
           margin-top: 18px;
           padding: 22px 24px;
         }
@@ -406,12 +464,12 @@ export default function ProfilePage() {
           color: #0b0871;
           font-size: 16px;
           font-weight: 900;
-          margin: 0 0 20px;
+          margin: 0 0 22px;
         }
 
         .profile-form {
           display: grid;
-          gap: 18px;
+          gap: 20px;
         }
 
         .profile-form-grid {
@@ -424,7 +482,7 @@ export default function ProfilePage() {
           color: #0b0871;
           display: grid;
           gap: 8px;
-          font-size: 12px;
+          font-size: 14px;
           font-weight: 900;
         }
 
@@ -435,12 +493,12 @@ export default function ProfilePage() {
         .profile-input {
           background: #f4f5fb;
           border: 1px solid transparent;
-          border-radius: 9px;
+          border-radius: 8px;
           color: #0b0871;
           font: inherit;
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 800;
-          height: 47px;
+          height: 48px;
           outline: 0;
           padding: 0 16px;
           width: 100%;
@@ -454,6 +512,35 @@ export default function ProfilePage() {
         .profile-input:disabled {
           color: #6f72a6;
           cursor: not-allowed;
+        }
+
+        .profile-textarea {
+          height: 74px;
+          padding-bottom: 12px;
+          padding-top: 12px;
+          resize: none;
+        }
+
+        .profile-input-shell {
+          position: relative;
+        }
+
+        .profile-input-shell .profile-input {
+          padding-right: 42px;
+        }
+
+        .profile-input-icon {
+          color: #0b0871;
+          pointer-events: none;
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        .profile-input-icon svg {
+          height: 18px;
+          width: 18px;
         }
 
         .profile-actions {
@@ -471,7 +558,7 @@ export default function ProfilePage() {
           font: inherit;
           font-size: 12px;
           font-weight: 900;
-          height: 38px;
+          height: 42px;
           min-width: 136px;
           padding: 0 18px;
         }
@@ -519,6 +606,20 @@ export default function ProfilePage() {
 
         }
 
+        .profile-security-card {
+          justify-self: center;
+          min-height: 450px;
+          width: min(100%, 950px);
+        }
+
+        .profile-security-copy {
+          color: #6f72a6;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1.5;
+          margin: -8px 0 0;
+        }
+
         .profile-delete {
           background: #c73822;
           border: 0;
@@ -528,7 +629,7 @@ export default function ProfilePage() {
           font: inherit;
           font-size: 12px;
           font-weight: 900;
-          min-height: 38px;
+          min-height: 42px;
           padding: 0 18px;
         }
 
@@ -559,12 +660,23 @@ export default function ProfilePage() {
         <nav className="profile-tabs" aria-label="Profile settings">
           {tabs.map((tab) => (
             tab.to ? (
-            <Link className={`profile-tab ${tab.active ? "is-active" : ""}`} key={tab.label} to={tab.to}>
+            <Link className="profile-tab" key={tab.label} to={tab.to}>
               <MemberIcon name={tab.icon} />
               <span>{tab.label}</span>
             </Link>
             ) : (
-              <button className="profile-tab" key={tab.label} type="button">
+              <button
+                className={`profile-tab ${tab.section === activeSection ? "is-active" : ""}`}
+                key={tab.label}
+                onClick={() => {
+                  if (tab.section === "security") {
+                    navigate("/member/profile?tab=security");
+                    return;
+                  }
+                  if (tab.section === "account") navigate("/member/profile");
+                }}
+                type="button"
+              >
                 <MemberIcon name={tab.icon} />
                 <span>{tab.label}</span>
               </button>
@@ -576,112 +688,179 @@ export default function ProfilePage() {
         {error && <div className="profile-alert error">{error}</div>}
         {message && <div className="profile-alert success">{message}</div>}
 
-        <div className="profile-grid">
-          <aside className="profile-card">
-            <div className="profile-avatar-wrap">
-              <div className="profile-avatar">
-                {profile?.profile_image_url ? (
-                  <img className="profile-avatar-image" src={profile.profile_image_url} alt="" />
-                ) : (
-                  <MemberIcon name="flower" />
-                )}
+        {activeSection === "account" ? (
+          <div className="profile-grid">
+            <aside className="profile-card">
+              <div className="profile-avatar-wrap">
+                <div className="profile-avatar">
+                  {profile?.profile_image_url ? (
+                    <img className="profile-avatar-image" src={profile.profile_image_url} alt="" />
+                  ) : (
+                    <MemberIcon name="flower" />
+                  )}
+                </div>
+                <span className="profile-camera" aria-hidden="true">
+                  <CameraIcon />
+                </span>
               </div>
-              <span className="profile-camera" aria-hidden="true">
-                <CameraIcon />
-              </span>
-            </div>
 
-            <div>
-              <div className="profile-name">{profile?.full_name || formValues.fullName || "Member"}</div>
-              <div className="profile-role">{membershipText}</div>
-            </div>
+              <div>
+                <div className="profile-name">{profile?.full_name || formValues.fullName || "Member"}</div>
+                <div className="profile-role">{membershipText}</div>
+              </div>
 
-            <div className="profile-meta-list">
-              <div className="profile-meta">
-                <MemberIcon name="profile" />
-                <div>
-                  <span>Member ID</span>
-                  <strong>{memberId}</strong>
+              <div className="profile-meta-list">
+                <div className="profile-meta">
+                  <MemberIcon name="profile" />
+                  <div>
+                    <span>Member ID</span>
+                    <strong>{memberId}</strong>
+                  </div>
+                </div>
+                <div className="profile-meta">
+                  <MemberIcon name="calendar" />
+                  <div>
+                    <span>Join Date</span>
+                    <strong>{joinDate}</strong>
+                  </div>
                 </div>
               </div>
-              <div className="profile-meta">
-                <MemberIcon name="calendar" />
-                <div>
-                  <span>Join Date</span>
-                  <strong>{joinDate}</strong>
-                </div>
-              </div>
-              <div className="profile-meta">
-                <MemberIcon name="card" />
-                <div>
-                  <span>Membership Ends</span>
-                  <strong>{planEndDate}</strong>
-                </div>
-              </div>
-            </div>
-          </aside>
+            </aside>
 
-          <section className="profile-form-card">
-            <h2>Personal Information</h2>
-            <form className="profile-form" onSubmit={handleSubmit}>
+            <section className="profile-form-card">
+              <h2>Personal Information</h2>
+              <form className="profile-form" onSubmit={handleSubmit}>
+                <div className="profile-form-grid">
+                  <label className="profile-field">
+                    Full Name
+                    <input
+                      className="profile-input"
+                      value={formValues.fullName}
+                      onChange={(event) => updateField("fullName", event.target.value)}
+                      placeholder="John Doe"
+                      required
+                    />
+                  </label>
+                  <label className="profile-field">
+                    Email Address
+                    <input className="profile-input" value={formValues.email} disabled />
+                  </label>
+                  <label className="profile-field">
+                    Phone Number
+                    <input
+                      className="profile-input"
+                      value={formValues.phoneNumber}
+                      onChange={(event) => updateField("phoneNumber", event.target.value)}
+                      placeholder="+62 812 3456 7890"
+                    />
+                  </label>
+                  <label className="profile-field">
+                    Date of Birth
+                    <span className="profile-input-shell">
+                      <input
+                        className="profile-input"
+                        type="date"
+                        value={formValues.birthDate}
+                        onChange={(event) => updateField("birthDate", event.target.value)}
+                      />
+                      <span className="profile-input-icon" aria-hidden="true">
+                        <MemberIcon name="calendar" />
+                      </span>
+                    </span>
+                  </label>
+                  <label className="profile-field">
+                    Place of Birth
+                    <input
+                      className="profile-input"
+                      value={formValues.birthPlace}
+                      onChange={(event) => updateField("birthPlace", event.target.value)}
+                      placeholder="Surabaya"
+                    />
+                  </label>
+                  <label className="profile-field is-wide">
+                    Address
+                    <textarea
+                      className="profile-input profile-textarea"
+                      value={formValues.address}
+                      onChange={(event) => updateField("address", event.target.value)}
+                      placeholder="Jl. Ketintang Barat No. 09, Surabaya, Jawa Timur"
+                    />
+                  </label>
+                </div>
+
+                <div className="profile-actions">
+                  <button className="profile-save" disabled={saving || loading} type="submit">
+                    {saving ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            <section className="profile-danger-card">
+              <h2>Delete Account</h2>
+              <p>
+                Aksi ini akan menonaktifkan akun kamu dan menghapus sesi login saat ini.
+              </p>
+              <button
+                className="profile-delete"
+                disabled={deleting || loading}
+                onClick={handleDeleteAccount}
+                type="button"
+              >
+                {deleting ? "Deleting..." : "Delete Account"}
+              </button>
+            </section>
+          </div>
+        ) : (
+          <section className="profile-form-card profile-security-card">
+            <h2>Change Password</h2>
+            <p className="profile-security-copy">
+              Gunakan password baru seperti alur reset password. Password minimal 6 karakter.
+            </p>
+            <form className="profile-form" onSubmit={handlePasswordSubmit}>
               <div className="profile-form-grid">
-                <label className="profile-field">
-                  Full Name
-                  <input
-                    className="profile-input"
-                    value={formValues.fullName}
-                    onChange={(event) => updateField("fullName", event.target.value)}
-                    placeholder="John Doe"
-                    required
-                  />
-                </label>
-                <label className="profile-field">
-                  Email
-                  <input className="profile-input" value={formValues.email} disabled />
-                </label>
-                <label className="profile-field">
-                  Role
-                  <input className="profile-input" value={profile?.role || "member"} disabled />
-                </label>
-                <label className="profile-field">
-                  Membership
-                  <input className="profile-input" value={membershipText} disabled />
-                </label>
                 <label className="profile-field is-wide">
-                  New Password
+                  Password Sekarang
                   <input
                     className="profile-input"
                     type="password"
-                    value={formValues.password}
-                    onChange={(event) => updateField("password", event.target.value)}
-                    placeholder="Kosongkan jika tidak ingin mengubah password"
+                    value={passwordForm.currentPassword}
+                    onChange={(event) => updatePasswordField("currentPassword", event.target.value)}
+                    autoComplete="current-password"
+                    required
+                  />
+                </label>
+                <label className="profile-field is-wide">
+                  Password Baru
+                  <input
+                    className="profile-input"
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={(event) => updatePasswordField("newPassword", event.target.value)}
+                    autoComplete="new-password"
+                    required
+                  />
+                </label>
+                <label className="profile-field is-wide">
+                  Konfirmasi Password
+                  <input
+                    className="profile-input"
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(event) => updatePasswordField("confirmPassword", event.target.value)}
+                    autoComplete="new-password"
+                    required
                   />
                 </label>
               </div>
-
               <div className="profile-actions">
                 <button className="profile-save" disabled={saving || loading} type="submit">
-                  {saving ? "Saving..." : "Save Changes"}
+                  {saving ? "Saving..." : "Save Password"}
                 </button>
               </div>
             </form>
           </section>
-
-          <section className="profile-danger-card">
-            <h2>Delete Account</h2>
-            <p>
-              Aksi ini akan menonaktifkan akun kamu dan menghapus sesi login saat ini.
-            </p>
-            <button
-              className="profile-delete"
-              disabled={deleting || loading}
-              onClick={handleDeleteAccount}
-              type="button"
-            >
-              {deleting ? "Deleting..." : "Delete Account"}
-            </button>
-          </section>
-        </div>
+        )}
       </section>
     </MemberLayout>
   );

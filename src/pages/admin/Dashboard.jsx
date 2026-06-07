@@ -314,15 +314,31 @@ export default function AdminPage() {
         .payment-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 11px;
-          margin-top: 4px;
+          font-size: 12px;
+          margin-top: 12px;
         }
 
         .payment-table td,
         .payment-table th {
-          border: 1px solid #0e0e16;
-          padding: 10px 9px;
-          text-align: left;
+          border: 0;
+          padding: 14px 12px;
+          text-align: center;
+        }
+
+        .payment-table th {
+          background: #ffe08d;
+          color: #111111;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .payment-table td {
+          color: #111111;
+          font-weight: 500;
+        }
+
+        .payment-table tbody tr {
+          height: 48px;
         }
 
         .empty-state {

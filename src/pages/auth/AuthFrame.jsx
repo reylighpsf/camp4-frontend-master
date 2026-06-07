@@ -3,9 +3,9 @@ import { useEffect } from "react";
 import { authMembershipPlans, getAuthMembershipPlan } from "./membership/hooks/authPlans";
 
 const steps = [
-  "Choose Plan",
-  "Create Account",
+  "Register",
   "Verify Email",
+  "Choose Plan",
   "Payment",
 ];
 
@@ -80,7 +80,7 @@ export function MembershipPlanCards({ plans = authMembershipPlans }) {
               </li>
             ))}
           </ul>
-          <Link to={`/sign-up?plan=${plan.id}`} className="auth-primary-btn">
+          <Link to={`/payment?plan=${plan.id}`} className="auth-primary-btn">
             Choose Plan
           </Link>
         </article>
@@ -257,6 +257,11 @@ const authStyles = `
 
   .auth-checkout-shell.auth-centered {
     grid-template-columns: minmax(0, 610px) 330px;
+    justify-content: center;
+  }
+
+  .auth-checkout-shell.auth-single-page {
+    grid-template-columns: minmax(0, 610px);
     justify-content: center;
   }
 
@@ -611,14 +616,27 @@ const authStyles = `
     border: 1px solid #e6e8f1;
     border-radius: 8px;
     background: #fff;
+    cursor: pointer;
     padding: 22px 18px 18px;
     display: flex;
     flex-direction: column;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    will-change: transform;
   }
 
   .auth-plan-card.is-featured {
     border-color: #ff6b20;
     box-shadow: 0 12px 28px rgba(255, 107, 32, 0.12);
+  }
+
+  .auth-plan-card:hover {
+    border-color: #ff6b20;
+    box-shadow: 0 18px 36px rgba(23, 18, 103, 0.14);
+    transform: translateY(-5px);
+  }
+
+  .auth-plan-card:active {
+    transform: translateY(-1px) scale(.992);
   }
 
   .auth-plan-badge {
@@ -741,7 +759,8 @@ const authStyles = `
     }
 
     .auth-checkout-shell,
-    .auth-checkout-shell.auth-centered {
+    .auth-checkout-shell.auth-centered,
+    .auth-checkout-shell.auth-single-page {
       grid-template-columns: 1fr;
       padding: 24px 18px;
     }

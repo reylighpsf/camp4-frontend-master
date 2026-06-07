@@ -11,6 +11,11 @@ const getErrorMessage = (err, fallback) =>
 
 const getCatalogPrice = (catalog) => Number(catalog?.prices?.[0]?.price || 0);
 
+const isUuid = (value) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || ""),
+  );
+
 const paymentMethods = [
   { id: "qris", value: "QRIS", label: "QRIS" },
   { id: "cash", value: "CASH", label: "Cash" },
@@ -79,7 +84,7 @@ export default function TrainerCheckoutPage() {
       setError("Pilih package trainer dulu.");
       return;
     }
-    if (!selectedTrainerId) {
+    if (!selectedTrainerId || !isUuid(selectedTrainerId)) {
       setError("Pilih trainer dulu.");
       return;
     }
@@ -154,7 +159,9 @@ export default function TrainerCheckoutPage() {
                 <select value={selectedTrainerId} onChange={(event) => setSelectedTrainerId(event.target.value)}>
                   <option value="">Pilih trainer</option>
                   {trainers.map((trainer) => (
-                    <option key={trainer.id} value={trainer.id}>{trainer.name}</option>
+                    <option disabled={!isUuid(trainer.id)} key={trainer.id} value={trainer.id}>
+                      {trainer.name}{!isUuid(trainer.id) ? " (ID tidak valid)" : ""}
+                    </option>
                   ))}
                 </select>
               </label>

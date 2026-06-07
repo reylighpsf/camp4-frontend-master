@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 const membershipPlans = [
   {
@@ -25,6 +25,7 @@ const membershipPlans = [
 ];
 
 export default function MembershipPlanCards({ compact = false, plans = membershipPlans }) {
+  const navigate = useNavigate();
   const normalizedPlans = plans.map((plan) => ({
     features: plan.features || plan.benefits || [],
     highlight: plan.highlight || plan.id === "premium",
@@ -32,22 +33,40 @@ export default function MembershipPlanCards({ compact = false, plans = membershi
     name: plan.name,
     period: plan.period,
     price: plan.price,
+    prices: plan.prices || [{ tierCode: "DEFAULT", tierName: "Harga", price: plan.price }],
   }));
 
   const cards = normalizedPlans.map((plan) => (
     <article
       className={`membership-plan ${plan.highlight ? "is-featured" : ""}`}
       key={plan.id || plan.name}
+      onClick={() => navigate("/sign-up")}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          navigate("/sign-up");
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       <p className="plan-kicker">{plan.name}</p>
       <h2>{plan.price}</h2>
       <span>{plan.period}</span>
+      <div className="membership-price-list" aria-label={`Harga ${plan.name}`}>
+        {plan.prices.map((price) => (
+          <div className="membership-price-row" key={`${plan.id || plan.name}-${price.tierCode}`}>
+            <span>{price.tierName}</span>
+            <b>{price.price}</b>
+          </div>
+        ))}
+      </div>
       <ul>
         {plan.features.map((feature) => (
           <li key={feature}>{feature}</li>
         ))}
       </ul>
-      <Link to={plan.id ? `/sign-up?plan=${plan.id}` : "/membership"}>
+      <Link to="/sign-up" onClick={(event) => event.stopPropagation()}>
         {plan.highlight ? "View Plan" : "Choose This Plan"}
       </Link>
     </article>

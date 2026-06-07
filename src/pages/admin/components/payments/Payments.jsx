@@ -1,4 +1,3 @@
-import { Link } from "react-router";
 import AdminLayout from "../../../../components/admin/AdminLayout";
 import usePayments from "./hooks/usePayments";
 import {
@@ -39,9 +38,6 @@ export default function PaymentsPage() {
             <h2>Daftar Pembayaran Cash</h2>
             <p>Konfirmasi pembayaran member berdasarkan struk yang diupload.</p>
           </div>
-          <Link className="payments-link secondary" to="/admin/payments/history">
-            Riwayat
-          </Link>
         </div>
         <div className="payments-nav">
           <button
