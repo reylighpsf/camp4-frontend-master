@@ -26,19 +26,20 @@ const trainerStyles = `
 
   .trainer-panel {
     background: #fff;
-    border: 1px solid #eceef3;
-    border-radius: 12px;
+    border: 0;
+    border-radius: 10px;
     color: #05050c;
     overflow: hidden;
+    padding: 24px;
   }
 
   .trainer-panel-title {
     color: #05050c;
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 800;
     margin: 0;
-    padding: 20px 24px 14px;
-    text-transform: uppercase;
+    padding: 0 0 18px;
+    text-transform: none;
   }
 
   .trainer-add-btn,
@@ -77,21 +78,27 @@ const trainerStyles = `
   }
 
   .trainer-table th {
-    background: #f0f1f5;
-    color: #30333d;
-    font-size: 11px;
-    font-weight: 800;
-    padding: 14px 16px;
-    text-align: left;
-    text-transform: uppercase;
+    background: #ffe08d;
+    color: #111111;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 16px 18px;
+    text-align: center;
+    text-transform: none;
   }
 
   .trainer-table td {
-    border-top: 1px solid #eceef3;
-    color: #05050c;
+    border-top: 0;
+    color: #111111;
     font-size: 13px;
-    padding: 18px 16px;
+    font-weight: 500;
+    padding: 18px;
+    text-align: center;
     vertical-align: middle;
+  }
+
+  .trainer-table tbody tr {
+    height: 58px;
   }
 
   .trainer-table th:first-child,
@@ -113,6 +120,7 @@ const trainerStyles = `
     height: 40px;
     object-fit: cover;
     width: 40px;
+    margin: 0 auto;
   }
 
   .trainer-bio {
@@ -140,17 +148,18 @@ const trainerStyles = `
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
+    justify-content: center;
   }
 
   .trainer-row-action {
-    border-radius: 7px;
+    border-radius: 999px;
     cursor: pointer;
     font: inherit;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
-    min-height: 36px;
-    padding: 0 12px;
-    text-transform: uppercase;
+    min-height: 30px;
+    padding: 0 10px;
+    text-transform: none;
   }
 
   .trainer-row-action.edit {

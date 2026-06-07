@@ -11,6 +11,10 @@ export default function Signup() {
   const [form, setForm] = useState({
     fullName: "",
     email: "",
+    phoneNumber: "",
+    birthPlace: "",
+    birthDate: "",
+    address: "",
     password: "",
     confirmPassword: "",
     acceptedTerms: false,
@@ -75,6 +79,18 @@ export default function Signup() {
       errors.fullName = "Nama minimal 2 karakter";
     }
     if (!emailRegex.test(form.email)) errors.email = "Email tidak valid";
+    if (form.phoneNumber.trim().length < 8) {
+      errors.phoneNumber = "Nomor HP minimal 8 karakter";
+    }
+    if (form.birthPlace.trim().length < 2) {
+      errors.birthPlace = "Tempat lahir wajib diisi";
+    }
+    if (!form.birthDate) {
+      errors.birthDate = "Tanggal lahir wajib diisi";
+    }
+    if (form.address.trim().length < 5) {
+      errors.address = "Alamat minimal 5 karakter";
+    }
     if (form.password.length < 6) {
       errors.password = "Password minimal 6 karakter";
     }
@@ -106,6 +122,10 @@ export default function Signup() {
       const normalizedEmail = form.email.trim();
       formData.append("fullName", form.fullName.trim());
       formData.append("email", normalizedEmail);
+      formData.append("phoneNumber", form.phoneNumber.trim());
+      formData.append("birthPlace", form.birthPlace.trim());
+      formData.append("birthDate", form.birthDate);
+      formData.append("address", form.address.trim());
       formData.append("password", form.password);
       formData.append("image", form.image);
 
@@ -194,6 +214,72 @@ export default function Signup() {
               />
               {fieldErrors.email && (
                 <p className="auth-error">{fieldErrors.email}</p>
+              )}
+            </div>
+
+            <div className="auth-field">
+              <label htmlFor="phoneNumber">Phone Number</label>
+              <input
+                id="phoneNumber"
+                name="phoneNumber"
+                type="tel"
+                value={form.phoneNumber}
+                onChange={handleChange}
+                className={fieldErrors.phoneNumber ? "has-error" : ""}
+                placeholder="+62 812 3456 7890"
+                autoComplete="tel"
+              />
+              {fieldErrors.phoneNumber && (
+                <p className="auth-error">{fieldErrors.phoneNumber}</p>
+              )}
+            </div>
+
+            <div className="auth-field">
+              <label htmlFor="birthPlace">Place of Birth</label>
+              <input
+                id="birthPlace"
+                name="birthPlace"
+                type="text"
+                value={form.birthPlace}
+                onChange={handleChange}
+                className={fieldErrors.birthPlace ? "has-error" : ""}
+                placeholder="Surabaya"
+                autoComplete="address-level2"
+              />
+              {fieldErrors.birthPlace && (
+                <p className="auth-error">{fieldErrors.birthPlace}</p>
+              )}
+            </div>
+
+            <div className="auth-field">
+              <label htmlFor="birthDate">Date of Birth</label>
+              <input
+                id="birthDate"
+                name="birthDate"
+                type="date"
+                value={form.birthDate}
+                onChange={handleChange}
+                className={fieldErrors.birthDate ? "has-error" : ""}
+              />
+              {fieldErrors.birthDate && (
+                <p className="auth-error">{fieldErrors.birthDate}</p>
+              )}
+            </div>
+
+            <div className="auth-field">
+              <label htmlFor="address">Address</label>
+              <input
+                id="address"
+                name="address"
+                type="text"
+                value={form.address}
+                onChange={handleChange}
+                className={fieldErrors.address ? "has-error" : ""}
+                placeholder="Alamat tempat tinggal"
+                autoComplete="street-address"
+              />
+              {fieldErrors.address && (
+                <p className="auth-error">{fieldErrors.address}</p>
               )}
             </div>
 

@@ -114,7 +114,7 @@ export default function Signin() {
                   value={form.email}
                   onChange={handleChange}
                   className={fieldErrors.email ? "has-error" : ""}
-                  placeholder="johndoe@gmail.com"
+                  placeholder="johndoe.23277@unesa.ac.id"
                   autoComplete="email"
                 />
                 {fieldErrors.email && <small>{fieldErrors.email}</small>}

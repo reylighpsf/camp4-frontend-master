@@ -3,10 +3,33 @@ import AdminLayout from "../../../../components/admin/AdminLayout";
 import useActiveMembers from "./hooks/useActiveMembers";
 
 const activeMemberStyles = `
+  .active-member-page {
+    display: grid;
+    gap: 22px;
+  }
+
+  .sr-only {
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
+
+  .active-member-title {
+    display: none;
+  }
+
+  .active-member-subtitle {
+    display: none;
+  }
+
   .active-member-panel {
-    background: #fff;
-    border-radius: 14px;
-    padding: 28px 30px 30px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 14px 28px rgba(8, 4, 120, .08);
+    padding: 26px 28px 30px;
   }
 
   .active-member-head {
@@ -18,7 +41,9 @@ const activeMemberStyles = `
   }
 
   .active-member-head h2 {
+    color: #0b0871;
     font-size: 20px;
+    font-weight: 800;
     margin: 0 0 6px;
   }
 
@@ -33,7 +58,7 @@ const activeMemberStyles = `
     background: #11131d;
     border: 1px solid #11131d;
     border-radius: 8px;
-    color: #fff;
+    color: #ffffff;
     cursor: pointer;
     font: inherit;
     font-size: 12px;
@@ -53,6 +78,7 @@ const activeMemberStyles = `
   .active-member-refresh.primary {
     background: #ff7314;
     border-color: #ff7314;
+    color: #ffffff;
   }
 
   .active-member-refresh:disabled {
@@ -69,38 +95,41 @@ const activeMemberStyles = `
     display: grid;
     gap: 16px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-bottom: 26px;
+    margin: 0 0 26px;
+    max-width: none;
   }
 
   .active-member-card {
-    background: #f7f8fb;
+    background: #ffffff;
     border: 1px solid #eceef3;
     border-radius: 8px;
-    min-height: 132px;
-    padding: 22px;
+    box-shadow: 0 6px 0 rgba(8, 4, 120, .16), 0 12px 24px rgba(8, 4, 120, .08);
+    min-height: 138px;
+    padding: 24px;
   }
 
   .active-member-card span {
-    color: #6b7280;
+    color: #0b0871;
     display: block;
-    font-size: 12px;
-    font-weight: 800;
-    margin-bottom: 16px;
-    text-transform: uppercase;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
   }
 
   .active-member-card strong {
-    color: #080478;
+    color: #0b0871;
     display: block;
     font-size: 42px;
-    font-weight: 800;
+    font-weight: 900;
     line-height: 1;
   }
 
   .active-member-card p {
-    color: #6b7280;
-    font-size: 13px;
+    color: #c8cad5;
+    font-size: 11px;
+    font-weight: 800;
     margin: 10px 0 0;
+    text-transform: uppercase;
   }
 
   .active-member-alert {
@@ -113,68 +142,79 @@ const activeMemberStyles = `
   }
 
   .active-member-table-wrap {
+    background: #ffffff;
+    border-radius: 10px;
     overflow-x: auto;
+    padding: 0;
+  }
+
+  .active-member-table-title {
+    color: #0b0871;
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0 0 18px;
   }
 
   .active-member-table {
     border-collapse: collapse;
-    min-width: 1080px;
+    min-width: 680px;
     width: 100%;
   }
 
   .active-member-table th {
-    background: #f0f1f5;
-    color: #30333d;
-    font-size: 11px;
-    padding: 14px;
-    text-align: left;
-    text-transform: uppercase;
+    background: #ffe08d;
+    color: #11131d;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 16px 18px;
+    text-align: center;
+    text-transform: none;
   }
 
   .active-member-table td {
-    border-bottom: 1px solid #eceef3;
+    border-bottom: 0;
+    color: #111111;
     font-size: 13px;
-    padding: 14px;
+    font-weight: 500;
+    padding: 18px;
+    text-align: center;
     vertical-align: middle;
+  }
+
+  .active-member-table tbody tr {
+    height: 58px;
   }
 
   .active-member-profile {
     align-items: center;
-    display: flex;
-    gap: 12px;
+    display: block;
+    text-align: center;
   }
 
   .active-member-avatar {
-    background: #080478;
-    border-radius: 8px;
-    color: #fff;
-    display: grid;
-    flex: 0 0 auto;
-    font-weight: 800;
-    height: 42px;
-    place-items: center;
-    width: 42px;
+    display: none;
   }
 
   .active-member-profile strong {
     display: block;
-    margin-bottom: 4px;
+    font-weight: 500;
+    margin-bottom: 0;
   }
 
   .active-member-badge {
-    background: #edfdf3;
+    background: transparent;
     border-radius: 999px;
-    color: #16794c;
+    color: #111111;
     display: inline-flex;
-    font-size: 11px;
-    font-weight: 800;
-    padding: 6px 10px;
-    text-transform: uppercase;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0;
+    text-transform: none;
   }
 
   .active-member-badge.inactive {
-    background: #fff1f0;
-    color: #c73822;
+    background: transparent;
+    color: #111111;
   }
 
   .active-member-status {
@@ -190,18 +230,19 @@ const activeMemberStyles = `
   .active-member-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
+    justify-content: center;
   }
 
   .active-member-action {
-    border-radius: 8px;
+    border-radius: 999px;
     cursor: pointer;
     font: inherit;
-    font-size: 12px;
-    font-weight: 900;
-    min-height: 36px;
-    padding: 0 12px;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 800;
+    min-height: 30px;
+    padding: 0 10px;
+    text-transform: none;
   }
 
   .active-member-action.detail,
@@ -297,6 +338,10 @@ const activeMemberStyles = `
   }
 
   @media (max-width: 760px) {
+    .active-member-page {
+      gap: 18px;
+    }
+
     .active-member-head {
       align-items: stretch;
       flex-direction: column;
@@ -312,33 +357,52 @@ const activeMemberStyles = `
 
     .active-member-cards {
       grid-template-columns: 1fr;
+      gap: 18px;
     }
   }
 `;
 
-const formatDate = (value) => {
+const formatTime = (value) => {
   if (!value) return "-";
   return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   }).format(new Date(value));
 };
 
-const getInitial = (name) => String(name || "M").trim().charAt(0).toUpperCase();
+const formatMembershipPlan = (member) => {
+  const planName =
+    member.membership_plan_name ||
+    member.membership?.plan_name ||
+    member.membership?.name ||
+    member.membership_name ||
+    member.plan_name ||
+    member.tier;
 
-const isMemberActive = (member) => {
-  const status = String(member.membership_status || member.membership?.status || member.status || "").toLowerCase();
-  if (status === "active" || status === "aktif") return true;
-  if (member.active_membership || member.is_active_member) return true;
-  const endDate = member.membership_end_date || member.membership?.end_date;
-  if (endDate) return new Date(endDate) >= new Date();
-  return false;
+  if (planName) return planName;
+
+  const plan =
+    member.membership_plan_code ||
+    member.membership?.plan_code ||
+    member.membership_price_code;
+
+  if (!plan) return "-";
+
+  const normalizedPlan = String(plan).toUpperCase();
+  if (normalizedPlan === "MEMBERSHIP_DAILY") return "Daily Pass";
+  if (normalizedPlan === "MEMBERSHIP_MONTHLY") return "Monthly Membership";
+  if (normalizedPlan === "MAHASISWA_VOKASI") return "Mahasiswa Vokasi";
+  if (normalizedPlan === "MAHASISWA_NON_VOKASI") return "Mahasiswa Non Vokasi";
+  if (normalizedPlan === "PEGAWAI_KARYAWAN") return "Pegawai/Karyawan";
+  if (normalizedPlan === "UMUM") return "Umum";
+
+  return String(plan).replaceAll("_", " ");
 };
 
-const getMembershipType = (member) => member.tier || member.membership_price_code || "-";
-
-const getMembershipEndDate = (member) => member.membership_end_date || member.membership?.end_date;
+const isMemberActive = (member) => {
+  return Boolean(member.is_currently_checked_in);
+};
 
 export default function ActiveMemberPage() {
   const {
@@ -350,15 +414,9 @@ export default function ActiveMemberPage() {
     actionError,
     actionSuccessMessage,
     refetch,
-    updateMembership,
-    deleteMembership,
-    getUserDetail,
     createUser,
   } = useActiveMembers();
-  const [editingMember, setEditingMember] = useState(null);
-  const [detailMember, setDetailMember] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [membershipForm, setMembershipForm] = useState({ membershipPriceCode: "UMUM" });
   const [createForm, setCreateForm] = useState({
     email: "",
     fullName: "",
@@ -368,37 +426,6 @@ export default function ActiveMemberPage() {
     penaltyAmount: "0",
     role: "member",
   });
-
-  const openEditModal = (member) => {
-    setEditingMember(member);
-    setMembershipForm({
-      membershipPriceCode: member.membership_price_code || "UMUM",
-    });
-  };
-
-  const handleDeleteMembership = async (member) => {
-    if (!window.confirm(`Hapus member ${member.full_name || "member ini"}?`)) return;
-    await deleteMembership(member.id);
-  };
-
-  const handleSubmitMembership = async (event) => {
-    event.preventDefault();
-    if (!editingMember || !membershipForm.membershipPriceCode) return;
-
-    const result = await updateMembership({
-      userId: editingMember.id,
-      membershipPriceCode: membershipForm.membershipPriceCode,
-    });
-
-    if (result.ok) {
-      setEditingMember(null);
-    }
-  };
-
-  const openDetailModal = async (member) => {
-    const result = await getUserDetail(member.id);
-    if (result.ok) setDetailMember(result.data);
-  };
 
   const openCreateModal = () => {
     setCreateForm({
@@ -420,14 +447,15 @@ export default function ActiveMemberPage() {
   };
 
   return (
-    <AdminLayout title="Active Member" subtitle="Kelola member aktif dan status akun.">
+    <AdminLayout title="Active Member" subtitle="Monitoring member yang sedang berada di gym.">
       <style>{activeMemberStyles}</style>
 
+      <section className="active-member-page">
       <section className="active-member-panel">
         <div className="active-member-head">
           <div>
             <h2>Ringkasan Member</h2>
-            <p>Pantau jumlah member aktif dan total member yang terdaftar.</p>
+            <p>Pantau semua member dengan status tap-in dan tap-out terakhir.</p>
           </div>
           <div className="active-member-head-actions">
             <button className="active-member-refresh primary" onClick={openCreateModal} type="button">
@@ -445,34 +473,33 @@ export default function ActiveMemberPage() {
 
         <section className="active-member-cards" aria-label="Ringkasan member">
           <article className="active-member-card">
-            <span>Member Aktif</span>
+            <span>Member Sedang Tap In</span>
             <strong>{summary.activeMembers}</strong>
-            <p>Member dengan status aktif saat ini.</p>
+            <p>Member yang sudah tap-in dan belum tap-out.</p>
           </article>
           <article className="active-member-card">
-            <span>Member Terdaftar</span>
-            <strong>{summary.registeredMembers}</strong>
-            <p>Total akun member yang terdaftar.</p>
+            <span>Total Check In Hari Ini</span>
+            <strong>{summary.checkInsToday}</strong>
+            <p>Member yang check in hari ini.</p>
           </article>
         </section>
 
         <div className="active-member-table-wrap">
+          <h2 className="active-member-table-title">Daftar Member Aktif</h2>
           <table className="active-member-table">
             <thead>
               <tr>
-                <th>Member</th>
-                <th>Penalty</th>
-                <th>Membership</th>
-                <th>Berakhir</th>
-                <th>Terdaftar</th>
+                <th>No</th>
+                <th>Nama Member</th>
+                <th>Check In</th>
+                <th>Membership Plan</th>
                 <th>Status</th>
-                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td className="active-member-status" colSpan="7">
+                  <td className="active-member-status" colSpan="5">
                     Memuat daftar member...
                   </td>
                 </tr>
@@ -480,7 +507,7 @@ export default function ActiveMemberPage() {
 
               {!loading && error && (
                 <tr>
-                  <td className="active-member-status error" colSpan="7">
+                  <td className="active-member-status error" colSpan="5">
                     {error}
                   </td>
                 </tr>
@@ -488,64 +515,35 @@ export default function ActiveMemberPage() {
 
               {!loading && !error && members.length === 0 && (
                 <tr>
-                  <td className="active-member-status" colSpan="7">
-                    Belum ada member terdaftar.
+                  <td className="active-member-status" colSpan="5">
+                    Belum ada data member di database.
                   </td>
                 </tr>
               )}
 
               {!loading &&
                 !error &&
-                members.map((member) => {
+                members.map((member, index) => {
                   const isActive = isMemberActive(member);
 
                   return (
                     <tr key={member.id}>
                       <td>
+                        {index + 1}
+                      </td>
+                      <td>
                         <div className="active-member-profile">
-                          <div className="active-member-avatar">{getInitial(member.full_name)}</div>
                           <div>
                             <strong>{member.full_name || "-"}</strong>
-                            <span className="active-member-muted">{member.email || "-"}</span>
                           </div>
                         </div>
                       </td>
-                      <td>Rp {Number(member.penalty_amount || 0).toLocaleString("id-ID")}</td>
-                      <td>{getMembershipType(member)}</td>
-                      <td>{formatDate(getMembershipEndDate(member))}</td>
-                      <td>{formatDate(member.created_at)}</td>
+                      <td>{formatTime(member.check_in_at)}</td>
+                      <td>{formatMembershipPlan(member)}</td>
                       <td>
                         <span className={`active-member-badge ${isActive ? "" : "inactive"}`}>
                           {isActive ? "Aktif" : "Tidak Aktif"}
                         </span>
-                      </td>
-                      <td>
-                        <div className="active-member-actions">
-                          <button
-                            className="active-member-action detail"
-                            disabled={actionLoadingId === member.id}
-                            onClick={() => openDetailModal(member)}
-                            type="button"
-                          >
-                            Detail
-                          </button>
-                          <button
-                            className="active-member-action edit"
-                            disabled={actionLoadingId === member.id}
-                            onClick={() => openEditModal(member)}
-                            type="button"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="active-member-action delete"
-                            disabled={actionLoadingId === member.id}
-                            onClick={() => handleDeleteMembership(member)}
-                            type="button"
-                          >
-                            Delete
-                          </button>
-                        </div>
                       </td>
                     </tr>
                   );
@@ -554,77 +552,7 @@ export default function ActiveMemberPage() {
           </table>
         </div>
       </section>
-
-      {editingMember && (
-        <div className="membership-modal-backdrop">
-          <section className="membership-modal" role="dialog" aria-modal="true">
-            <h2>Perbarui Tier Membership</h2>
-            <p>{editingMember.full_name || editingMember.email || "Member"}</p>
-            <form className="membership-form" onSubmit={handleSubmitMembership}>
-              <label>
-                Tier Harga
-                <select
-                  value={membershipForm.membershipPriceCode}
-                  onChange={(event) => setMembershipForm((value) => ({ ...value, membershipPriceCode: event.target.value }))}
-                >
-                  <option value="UMUM">Umum</option>
-                  <option value="PEGAWAI_KARYAWAN">Pegawai/Karyawan</option>
-                  <option value="MAHASISWA_NON_VOKASI">Mahasiswa Non Vokasi</option>
-                  <option value="MAHASISWA_VOKASI">Mahasiswa Vokasi</option>
-                </select>
-              </label>
-              <div className="membership-modal-actions">
-                <button className="active-member-action delete" onClick={() => setEditingMember(null)} type="button">
-                  Batal
-                </button>
-                <button className="active-member-action edit" disabled={actionLoadingId === editingMember.id} type="submit">
-                  {actionLoadingId === editingMember.id ? "..." : "Simpan"}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
-
-      {detailMember && (
-        <div className="membership-modal-backdrop">
-          <section className="membership-modal" role="dialog" aria-modal="true">
-            <h2>Detail User</h2>
-            <p>{detailMember.full_name || detailMember.email || "User"}</p>
-            <div className="membership-form">
-              <label>
-                Email
-                <input readOnly value={detailMember.email || "-"} />
-              </label>
-              <label>
-                Role
-                <input readOnly value={detailMember.role || "-"} />
-              </label>
-              <label>
-                Tier Harga
-                <input readOnly value={detailMember.tier || detailMember.membership_price_code || "-"} />
-              </label>
-              <label>
-                Penalty
-                <input readOnly value={`Rp ${Number(detailMember.penalty_amount || 0).toLocaleString("id-ID")}`} />
-              </label>
-              <label>
-                Verified
-                <input readOnly value={detailMember.is_verified ? "Ya" : "Tidak"} />
-              </label>
-              <label>
-                Terdaftar
-                <input readOnly value={formatDate(detailMember.created_at)} />
-              </label>
-            </div>
-            <div className="membership-modal-actions">
-              <button className="active-member-action edit" onClick={() => setDetailMember(null)} type="button">
-                Tutup
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
+      </section>
 
       {isCreateOpen && (
         <div className="membership-modal-backdrop">

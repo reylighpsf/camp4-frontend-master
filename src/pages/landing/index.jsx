@@ -608,11 +608,14 @@ export default function LandingPage({ scrollToExplore = false }) {
           border: 3px solid transparent;
           border-radius: 8px;
           color: #0a1185;
+          cursor: pointer;
           display: flex;
           flex-direction: column;
           min-height: 300px;
           padding: clamp(18px, 2vw, 28px);
           text-align: left;
+          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+          will-change: transform;
         }
 
         .membership-plan.is-featured {
@@ -620,6 +623,23 @@ export default function LandingPage({ scrollToExplore = false }) {
           border-color: #ff7a00;
           color: #fff;
           transform: translateY(-16px);
+        }
+
+        .membership-plan:hover {
+          box-shadow: 0 24px 50px rgba(0,0,0,.24);
+          transform: translateY(-6px);
+        }
+
+        .membership-plan.is-featured:hover {
+          transform: translateY(-22px);
+        }
+
+        .membership-plan:active {
+          transform: translateY(-2px) scale(.992);
+        }
+
+        .membership-plan.is-featured:active {
+          transform: translateY(-14px) scale(.992);
         }
 
         .plan-kicker {

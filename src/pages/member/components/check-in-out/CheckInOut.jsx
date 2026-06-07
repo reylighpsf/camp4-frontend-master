@@ -49,19 +49,15 @@ const getStoredTapHistory = (userId) => {
 
 export default function CheckInOutPage() {
   const { user } = useAuth();
-  const historyStorageKey = `vocafit-tap-history-${user?.id || "guest"}`;
   const [profile, setProfile] = useState(null);
   const [qrToken, setQrToken] = useState("");
   const [showQr, setShowQr] = useState(true);
   const [crowd, setCrowd] = useState(null);
   const [socketConnected, setSocketConnected] = useState(false);
   const [loadingQr, setLoadingQr] = useState(true);
-  const [scanLoading, setScanLoading] = useState(false);
   const [error, setError] = useState("");
-  const [scanMessage, setScanMessage] = useState("");
-  const [lastAction, setLastAction] = useState("");
-  const [currentSession, setCurrentSession] = useState(null);
-  const [tapRows, setTapRows] = useState(() => getStoredTapHistory(user?.id));
+  const currentSession = null;
+  const [tapRows] = useState(() => getStoredTapHistory(user?.id));
   const [membershipEndDate, setMembershipEndDate] = useState(null);
   const [isMembershipActive, setIsMembershipActive] = useState(false);
   const [membershipRemainingText, setMembershipRemainingText] = useState("Memuat status membership...");
@@ -69,7 +65,6 @@ export default function CheckInOutPage() {
   const fetchQr = useCallback(async () => {
     setLoadingQr(true);
     setError("");
-    setScanMessage("");
     try {
       const response = await api.get("/visits/qr");
       setQrToken(response.data?.data?.qr || response.data?.data?.qrToken || "");
@@ -80,65 +75,6 @@ export default function CheckInOutPage() {
       setLoadingQr(false);
     }
   }, []);
-
-  const scanCurrentQr = async () => {
-    if (!qrToken) {
-      setError("QR belum tersedia. Refresh QR terlebih dahulu.");
-      return;
-    }
-
-    const configuredSecret = import.meta.env.VITE_IOT_SECRET_KEY || localStorage.getItem("vocafit-iot-secret") || "";
-    const iotSecret = configuredSecret || window.prompt("Masukkan IOT secret untuk simulasi tap in/out") || "";
-
-    if (!iotSecret) {
-      setError("IOT secret wajib diisi untuk scan QR.");
-      return;
-    }
-
-    localStorage.setItem("vocafit-iot-secret", iotSecret);
-    setScanLoading(true);
-    setError("");
-    setScanMessage("");
-
-    try {
-      const response = await api.post(
-        "/visits/scan",
-        { qr: qrToken },
-        { headers: { "x-iot-secret": iotSecret } },
-      );
-      const result = response.data?.data || {};
-      const now = new Date().toISOString();
-      setLastAction(result.action || "");
-      setScanMessage(result.message || response.data?.message || "Scan QR berhasil.");
-
-      if (result.action === "TAP_IN") {
-        const nextSession = { tapIn: now, tapOut: null };
-        setCurrentSession(nextSession);
-        setTapRows((currentRows) => {
-          const nextRows = [nextSession, ...currentRows].slice(0, 20);
-          localStorage.setItem(historyStorageKey, JSON.stringify(nextRows));
-          return nextRows;
-        });
-      }
-
-      if (result.action === "TAP_OUT") {
-        setCurrentSession(null);
-        setTapRows((currentRows) => {
-          const nextSession = { ...(currentSession || currentRows[0] || { tapIn: now }), tapOut: now };
-          const nextRows = currentRows.length > 0 ? [nextSession, ...currentRows.slice(1)].slice(0, 20) : [nextSession];
-          localStorage.setItem(historyStorageKey, JSON.stringify(nextRows));
-          return nextRows;
-        });
-      }
-
-      await fetchCrowd();
-      await fetchQr();
-    } catch (err) {
-      setError(getErrorMessage(err, "Gagal scan QR."));
-    } finally {
-      setScanLoading(false);
-    }
-  };
 
   const fetchCrowd = useCallback(async () => {
     try {
@@ -686,20 +622,11 @@ export default function CheckInOutPage() {
               )}
             </div>
             {error && <p className="tap-error">{error}</p>}
-            {scanMessage && <p className="tap-success">{scanMessage}</p>}
             <div className="tap-actions">
               <button className="tap-button hide" onClick={() => setShowQr((current) => !current)} type="button">
                 {showQr ? "Hide QR Code" : "Show QR Code"}
               </button>
               <button className="tap-button refresh" onClick={fetchQr} type="button">Refresh QR</button>
-              <button
-                className="tap-button refresh"
-                disabled={scanLoading || loadingQr || !qrToken}
-                onClick={scanCurrentQr}
-                type="button"
-              >
-                {scanLoading ? "Scanning..." : "Simulate Tap"}
-              </button>
             </div>
             <p className="tap-help">Show this QR code at the entrance gate.</p>
           </article>
@@ -733,7 +660,7 @@ export default function CheckInOutPage() {
                   <span className="session-icon">↻</span>
                   <div className="session-copy">
                     <strong>{latestSession ? formatDuration(latestSession.tapIn, latestSession.tapOut || new Date()) : "-"}</strong>
-                    <small>{lastAction || "Time in gym"}</small>
+                    <small>Time in gym</small>
                   </div>
                 </div>
               </div>

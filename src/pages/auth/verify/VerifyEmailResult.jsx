@@ -110,41 +110,151 @@ export default function VerifyEmailResult() {
     success: "Berhasil",
     error: "Gagal",
   }[status];
-  const choosePlanPath = "/choose-plan";
-  const choosePlanState = {
+  const paymentState = {
     email: registrationEmail,
-    notice: "Email berhasil diverifikasi. Silakan pilih membership plan.",
+    notice: "Email berhasil diverifikasi. Silakan lanjutkan pembayaran membership.",
   };
 
   return (
     <AuthFrame
-      currentStep={2}
-      contentClassName="auth-single-page"
+      currentStep={4}
+      contentClassName="verify-result-page"
       aside={null}
+      showSteps={false}
     >
-      <h1>Email Verification</h1>
-      <span className={`auth-status ${status}`}>{statusLabel}</span>
+      <style>{`
+        .verify-result-page {
+          align-items: center;
+          display: flex;
+          justify-content: center;
+          min-height: 100vh;
+          padding: 30px 16px;
+        }
 
-      <p className="auth-subtitle">
-        {status === "loading"
-          ? "Mohon tunggu, kami sedang memverifikasi email kamu."
-          : message}
-      </p>
+        .verify-result-card {
+          align-items: center;
+          background: #ffffff;
+          border-radius: 10px;
+          display: flex;
+          flex-direction: column;
+          max-width: 535px;
+          min-height: 420px;
+          padding: 42px 36px 34px;
+          text-align: center;
+          width: 100%;
+        }
 
-      <div className="auth-actions">
-        <Link
-          to={status === "success" ? choosePlanPath : "/sign-up"}
-          state={status === "success" ? choosePlanState : undefined}
-          className="auth-secondary-btn"
-        >
-          {status === "success" ? "Choose Member Plan" : "Back To Sign Up"}
-        </Link>
-        {status === "success" && (
-          <Link to="/sign-up" className="auth-outline-btn">
-            Back To Sign Up
-          </Link>
+        .verify-result-card h1 {
+          color: #0b0871;
+          font-size: 29px;
+          font-weight: 900;
+          line-height: 1.12;
+          margin: 0;
+        }
+
+        .verify-result-card p {
+          color: #29258f;
+          font-size: 17px;
+          font-weight: 700;
+          line-height: 1.25;
+          margin: 14px 0 0;
+          max-width: 390px;
+        }
+
+        .verify-result-status {
+          border-radius: 999px;
+          display: inline-flex;
+          font-size: 14px;
+          font-weight: 900;
+          margin-top: 28px;
+          padding: 9px 14px;
+        }
+
+        .verify-result-status.loading {
+          background: #f6f7fb;
+          color: #29258f;
+        }
+
+        .verify-result-status.success {
+          background: #ecfff5;
+          color: #0f9b55;
+        }
+
+        .verify-result-status.error {
+          background: #fff0e9;
+          color: #d84b17;
+        }
+
+        .verify-result-button {
+          align-items: center;
+          background: #ff6414;
+          border: 0;
+          border-radius: 10px;
+          color: #ffffff;
+          cursor: pointer;
+          display: inline-flex;
+          font: inherit;
+          font-size: 15px;
+          font-weight: 800;
+          height: 49px;
+          justify-content: center;
+          margin-top: 29px;
+          text-decoration: none;
+          width: 100%;
+        }
+
+        .verify-result-button:hover {
+          background: #f45d0f;
+        }
+
+        .verify-result-button.is-muted {
+          background: #0b0871;
+        }
+
+        @media (max-width: 560px) {
+          .verify-result-card {
+            min-height: 380px;
+            padding: 34px 22px 26px;
+          }
+
+          .verify-result-card h1 {
+            font-size: 25px;
+          }
+
+          .verify-result-card p,
+          .verify-result-button {
+            font-size: 14px;
+          }
+        }
+      `}</style>
+
+      <section className="verify-result-card">
+        <h1>
+          {status === "success"
+            ? "Complete Your Membership Payment"
+            : "Email Verification"}
+        </h1>
+
+        <p>
+          {status === "loading"
+            ? "Mohon tunggu, kami sedang memverifikasi email kamu."
+            : status === "success"
+              ? "Open the payment link to complete your payment securely."
+              : message}
+        </p>
+
+        {status !== "success" && (
+          <span className={`verify-result-status ${status}`}>{statusLabel}</span>
         )}
-      </div>
+
+        <Link
+          to={status === "success" ? "/payment" : "/sign-up"}
+          state={status === "success" ? paymentState : undefined}
+          className={`verify-result-button${status === "success" ? "" : " is-muted"}`}
+        >
+          {status === "success" ? "Continue to Payment" : "Back To Sign Up"}
+        </Link>
+      </section>
     </AuthFrame>
   );
 }

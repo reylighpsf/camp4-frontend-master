@@ -29,7 +29,6 @@ import ProfilePage from "../pages/member/components/profile/Profile";
 import ProfileMembershipPlanPage from "../pages/member/components/profile/MembershipPlan";
 import TrainerBookingPage from "../pages/member/components/trainer-booking/TrainerBooking";
 import TrainerCheckoutPage from "../pages/member/components/trainer-packages/TrainerCheckout";
-import TrainerPackagesPage from "../pages/member/components/trainer-packages/TrainerPackages";
 import WorkoutTrackingPage from "../pages/member/components/workout-tracking/WorkoutTracking";
 import UnauthorizedPage from "../pages/Unauthorized";
 import NotFound from "../pages/NotFound";
@@ -238,23 +237,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/member/trainer-packages",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["member"]}>
-          <TrainerPackagesPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: <Navigate replace to="/member/trainer-booking" />,
   },
   {
     path: "/member/trainer-packages/:packageId",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["member"]}>
-          <TrainerPackagesPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: <Navigate replace to="/member/trainer-booking" />,
   },
   {
     path: "/member/profile",

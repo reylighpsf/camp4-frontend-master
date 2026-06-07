@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 const membershipPlans = [
   {
@@ -25,6 +25,7 @@ const membershipPlans = [
 ];
 
 export default function MembershipPlanCards({ compact = false, plans = membershipPlans }) {
+  const navigate = useNavigate();
   const normalizedPlans = plans.map((plan) => ({
     features: plan.features || plan.benefits || [],
     highlight: plan.highlight || plan.id === "premium",
@@ -39,6 +40,15 @@ export default function MembershipPlanCards({ compact = false, plans = membershi
     <article
       className={`membership-plan ${plan.highlight ? "is-featured" : ""}`}
       key={plan.id || plan.name}
+      onClick={() => navigate("/sign-up")}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          navigate("/sign-up");
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       <p className="plan-kicker">{plan.name}</p>
       <h2>{plan.price}</h2>
@@ -56,7 +66,7 @@ export default function MembershipPlanCards({ compact = false, plans = membershi
           <li key={feature}>{feature}</li>
         ))}
       </ul>
-      <Link to="/sign-up">
+      <Link to="/sign-up" onClick={(event) => event.stopPropagation()}>
         {plan.highlight ? "View Plan" : "Choose This Plan"}
       </Link>
     </article>

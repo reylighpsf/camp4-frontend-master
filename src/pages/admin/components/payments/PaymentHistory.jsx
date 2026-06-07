@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
 import AdminLayout from "../../../../components/admin/AdminLayout";
 import api from "../../../../components/auth/authApi";
 import {
@@ -97,9 +96,6 @@ export default function PaymentHistoryPage() {
             <h2>Riwayat Pembayaran</h2>
             <p>Pembayaran cash yang sudah diterima atau ditolak oleh pengurus.</p>
           </div>
-          <Link className="payments-link secondary" to="/admin/payments">
-            Pending Cash
-          </Link>
         </div>
         <div className="payments-nav">
           <button className="payments-refresh" disabled={loading} onClick={fetchHistory} type="button">

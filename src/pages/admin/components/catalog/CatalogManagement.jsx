@@ -643,7 +643,10 @@ const catalogStyles = `
   }
 
   .catalog-table-wrap {
+    background: #ffffff;
+    border-radius: 10px;
     overflow-x: auto;
+    padding: 24px;
   }
 
   .catalog-table {
@@ -653,20 +656,27 @@ const catalogStyles = `
   }
 
   .catalog-table th {
-    background: #f0f1f5;
-    color: #30333d;
-    font-size: 11px;
-    padding: 12px;
-    text-align: left;
-    text-transform: uppercase;
+    background: #ffe08d;
+    color: #111111;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 16px 18px;
+    text-align: center;
+    text-transform: none;
   }
 
   .catalog-table td {
-    border-bottom: 1px solid #eceef3;
+    border-bottom: 0;
     color: #11131d;
-    font-size: 12px;
-    padding: 13px 12px;
-    vertical-align: top;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 18px;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .catalog-table tbody tr {
+    height: 58px;
   }
 
   .catalog-table strong,
@@ -714,6 +724,7 @@ const catalogStyles = `
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
+    justify-content: center;
   }
 
   .catalog-actions .edit {

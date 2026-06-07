@@ -146,7 +146,10 @@ body,
 ========================= */
 
 .news-table-wrap {
+  background: #ffffff;
+  border-radius: 10px;
   overflow-x: auto;
+  padding: 24px;
 }
 
 .news-table {
@@ -156,20 +159,27 @@ body,
 }
 
 .news-table th {
-  padding: 14px;
-  background: #f0f1f5;
-
-  text-align: left;
-  font-size: 11px;
-  text-transform: uppercase;
+  background: #ffe08d;
+  color: #111111;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 16px 18px;
+  text-align: center;
+  text-transform: none;
 }
 
 .news-table td {
-  padding: 14px;
-  border-bottom: 1px solid #eceef3;
-
+  border-bottom: 0;
+  color: #111111;
   font-size: 13px;
+  font-weight: 500;
+  padding: 18px;
+  text-align: center;
   vertical-align: middle;
+}
+
+.news-table tbody tr {
+  height: 58px;
 }
 
 .news-thumb {
@@ -200,6 +210,7 @@ body,
 .news-row-actions {
   display: flex;
   gap: 8px;
+  justify-content: center;
 }
 
 .news-row-btn {

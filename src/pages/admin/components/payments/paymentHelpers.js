@@ -181,7 +181,10 @@ export const paymentStyles = `
   }
 
   .payments-table-wrap {
+    background: #ffffff;
+    border-radius: 10px;
     overflow-x: auto;
+    padding: 24px;
   }
 
   .payments-table {
@@ -191,19 +194,27 @@ export const paymentStyles = `
   }
 
   .payments-table th {
-    background: #f0f1f5;
-    color: #30333d;
-    font-size: 11px;
-    padding: 14px;
-    text-align: left;
-    text-transform: uppercase;
+    background: #ffe08d;
+    color: #111111;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 16px 18px;
+    text-align: center;
+    text-transform: none;
   }
 
   .payments-table td {
-    border-bottom: 1px solid #eceef3;
+    border-bottom: 0;
+    color: #111111;
     font-size: 13px;
-    padding: 14px;
+    font-weight: 500;
+    padding: 18px;
+    text-align: center;
     vertical-align: middle;
+  }
+
+  .payments-table tbody tr {
+    height: 58px;
   }
 
   .payments-member strong {
@@ -249,17 +260,18 @@ export const paymentStyles = `
   .payments-actions {
     display: flex;
     gap: 8px;
+    justify-content: center;
   }
 
   .payments-action {
-    border-radius: 8px;
+    border-radius: 999px;
     cursor: pointer;
     font: inherit;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
-    height: 34px;
-    padding: 0 12px;
-    text-transform: uppercase;
+    height: 30px;
+    padding: 0 10px;
+    text-transform: none;
   }
 
   .payments-action.accept {
