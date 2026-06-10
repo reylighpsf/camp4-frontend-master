@@ -18,37 +18,67 @@ const isToday = (value) => {
 
 const getCheckInTime = (user) =>
   user.check_in_at ||
+  user.tap_in_time ||
   user.last_check_in_at ||
   user.latest_check_in_at ||
+  user.last_tap_in_time ||
   user.visit?.check_in_at ||
-  user.current_visit?.check_in_at;
+  user.visit?.tap_in_time ||
+  user.current_visit?.check_in_at ||
+  user.current_visit?.tap_in_time;
 
-const getTransactionTime = (transaction) =>
-  transaction?.settled_at ||
-  transaction?.confirmed_at ||
-  transaction?.created_at ||
-  "";
+const getCheckOutTime = (user) =>
+  user.check_out_at ||
+  user.tap_out_time ||
+  user.last_check_out_at ||
+  user.latest_check_out_at ||
+  user.last_tap_out_time ||
+  user.visit?.check_out_at ||
+  user.visit?.tap_out_time ||
+  user.current_visit?.check_out_at ||
+  user.current_visit?.tap_out_time;
 
-const getLatestMembershipPlansByUser = (transactions = []) => {
-  const latestPlans = new Map();
+const MEMBERSHIP_PLAN_NAMES = {
+  MEMBERSHIP_DAILY: "Membership Daily",
+  MEMBERSHIP_MONTHLY: "Membership Monthly",
+};
 
-  transactions
-    .filter((transaction) => {
-      const family = String(transaction.transaction_family || "").toUpperCase();
-      const type = String(transaction.transaction_type || "").toUpperCase();
-      return transaction.user_id && transaction.status === "SUCCESS" && (family === "MEMBERSHIP" || type.includes("MEMBERSHIP"));
-    })
-    .forEach((transaction) => {
-      const current = latestPlans.get(transaction.user_id);
-      const currentTime = new Date(getTransactionTime(current)).getTime() || 0;
-      const nextTime = new Date(getTransactionTime(transaction)).getTime() || 0;
+const getMembershipPlanName = (user) => {
+  const planName =
+    user.membership_plan_name ||
+    user.membership?.name ||
+    user.membership_name ||
+    user.plan_name;
 
-      if (!current || nextTime >= currentTime) {
-        latestPlans.set(transaction.user_id, transaction.catalog_name || transaction.transaction_type || "");
-      }
-    });
+  if (planName) return planName;
 
-  return latestPlans;
+  const planCode = user.membership?.plan_code;
+
+  if (!planCode) return "";
+
+  return MEMBERSHIP_PLAN_NAMES[String(planCode).toUpperCase()] || String(planCode).replaceAll("_", " ");
+};
+
+const isCurrentlyCheckedIn = (user) => {
+  if (typeof user.is_currently_checked_in === "boolean") return user.is_currently_checked_in;
+  if (typeof user.is_inside_gym === "boolean") return user.is_inside_gym;
+  if (String(user.visit_status || "").toUpperCase() === "INSIDE") return true;
+
+  const checkIn = getCheckInTime(user);
+  const checkOut = getCheckOutTime(user);
+  return Boolean(checkIn && !checkOut);
+};
+
+const isMembershipActive = (user) => {
+  const status = String(user.membership?.status || "").toUpperCase();
+  if (status === "ACTIVE") return true;
+  if (status === "EXPIRED" || status === "INACTIVE") return false;
+
+  const endDate = user.membership?.end_date;
+  if (!endDate) return false;
+
+  const endTime = new Date(endDate).getTime();
+  return Number.isFinite(endTime) && endTime > Date.now();
 };
 
 export default function useActiveMembers() {
@@ -58,37 +88,38 @@ export default function useActiveMembers() {
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [actionSuccessMessage, setActionSuccessMessage] = useState("");
+  const [crowdCount, setCrowdCount] = useState(0);
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      let response;
-      try {
-        response = await api.get("/admin/active-members", {
-          params: { page: 1, limit: 100 },
-        });
-      } catch (err) {
-        if (err.response?.status !== 404) throw err;
-        response = await api.get("/admin/users", {
-          params: { page: 1, limit: 100 },
-        });
-      }
+      const [response, crowdResponse] = await Promise.all([
+        api.get("/admin/users", { params: { page: 1, limit: 100 } }),
+        api.get("/visits/crowd").catch(() => null),
+      ]);
 
-      const historyResponse = await api.get("/transactions/history", {
-        params: { page: 1, limit: 100 },
-      }).catch(() => null);
-      const plansByUser = getLatestMembershipPlansByUser(historyResponse?.data?.data || []);
-      const nextUsers = (response.data?.data || []).map((user) => ({
-        ...user,
-        membership_plan_name: user.membership_plan_name || plansByUser.get(user.id) || "",
-      }));
+      const nextUsers = (response.data?.data || []).map((user) => {
+        const isActive = isMembershipActive(user);
 
+        return {
+          ...user,
+          membership_plan_name: getMembershipPlanName(user),
+          check_in_at: getCheckInTime(user),
+          check_out_at: getCheckOutTime(user),
+          is_currently_checked_in: isCurrentlyCheckedIn(user),
+          is_membership_active: isActive,
+          membership_status_label: isActive ? "Aktif" : "Tidak Aktif",
+        };
+      });
+
+      setCrowdCount(Number(crowdResponse?.data?.data?.count || 0));
       setUsers(nextUsers);
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat data member."));
       setUsers([]);
+      setCrowdCount(0);
     } finally {
       setLoading(false);
     }
@@ -188,14 +219,16 @@ export default function useActiveMembers() {
   const summary = useMemo(
     () => {
       const todayCheckIns = members.filter((member) => isToday(getCheckInTime(member)));
+      const checkedInFromRows = members.filter((member) => member.is_currently_checked_in).length;
 
       return {
-        activeMembers: members.filter((member) => member.is_currently_checked_in).length,
+        activeMembers: Math.max(checkedInFromRows, crowdCount),
         checkInsToday: todayCheckIns.length,
+        activeMemberships: members.filter((member) => member.is_membership_active).length,
         registeredMembers: members.length,
       };
     },
-    [members],
+    [crowdCount, members],
   );
 
   return {

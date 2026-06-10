@@ -16,8 +16,9 @@ const normalizeNewsItem = (item) => ({
   id: item.id || item.news_id || item.title,
   tag: item.category || item.type || "News",
   title: item.title || "Untitled News",
-  text: item.content || item.description || "",
+  text: item.summary || item.content || item.description || "",
   imageUrl: resolveImageUrl(item.image_url || item.imageUrl || item.image || ""),
+  author: item.author || "",
   createdAt: item.created_at || item.createdAt || "",
 });
 

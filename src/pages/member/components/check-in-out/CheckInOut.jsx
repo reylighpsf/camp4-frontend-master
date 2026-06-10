@@ -56,8 +56,8 @@ export default function CheckInOutPage() {
   const [socketConnected, setSocketConnected] = useState(false);
   const [loadingQr, setLoadingQr] = useState(true);
   const [error, setError] = useState("");
-  const currentSession = null;
-  const [tapRows] = useState(() => getStoredTapHistory(user?.id));
+  const [currentSession, setCurrentSession] = useState(null);
+  const [tapRows, setTapRows] = useState(() => getStoredTapHistory(user?.id));
   const [membershipEndDate, setMembershipEndDate] = useState(null);
   const [isMembershipActive, setIsMembershipActive] = useState(false);
   const [membershipRemainingText, setMembershipRemainingText] = useState("Memuat status membership...");
@@ -111,16 +111,45 @@ export default function CheckInOutPage() {
     }
   }, []);
 
+  const fetchVisitStatus = useCallback(async () => {
+    try {
+      const response = await api.get("/visits/status");
+      const status = response.data?.data || null;
+      setCurrentSession(
+        status?.status === "INSIDE"
+          ? { tapIn: status.tapInTime, tapOut: null }
+          : null,
+      );
+    } catch {
+      setCurrentSession(null);
+    }
+  }, []);
+
+  const fetchVisitHistory = useCallback(async () => {
+    try {
+      const response = await api.get("/visits/history", { params: { page: 1, limit: 20 } });
+      const rows = (response.data?.data || []).map((visit) => ({
+        tapIn: visit.tap_in_time,
+        tapOut: visit.tap_out_time,
+      }));
+      setTapRows(rows);
+    } catch {
+      setTapRows(getStoredTapHistory(user?.id));
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchProfile();
       fetchMembershipStatus();
+      fetchVisitStatus();
+      fetchVisitHistory();
       fetchQr();
       fetchCrowd();
     }, 0);
 
     return () => clearTimeout(timeoutId);
-  }, [fetchCrowd, fetchMembershipStatus, fetchProfile, fetchQr]);
+  }, [fetchCrowd, fetchMembershipStatus, fetchProfile, fetchQr, fetchVisitHistory, fetchVisitStatus]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -373,7 +402,7 @@ export default function CheckInOutPage() {
     gap: 22px;
   }
 
-  .session-item span {
+  .session-item > span {
     display: block;
     margin-bottom: 9px;
 
@@ -383,13 +412,13 @@ export default function CheckInOutPage() {
   }
 
   .session-box {
-    min-height: 76px;
+    min-height: 88px;
 
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 20px;
 
-    padding: 14px 26px;
+    padding: 16px 32px;
     border-radius: 8px;
   }
 
@@ -412,15 +441,25 @@ export default function CheckInOutPage() {
   }
 
   .session-icon {
-    width: 44px;
-    height: 44px;
+    width: 56px;
+    height: 56px;
 
-    display: grid;
-    place-items: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex: 0 0 auto;
 
-    border-radius: 8px;
+    border-radius: 10px;
     color: #ffffff;
+    font-size: 26px;
+    line-height: 1;
+    margin: 0;
+  }
+
+  .session-icon svg {
+    display: block;
+    height: 30px;
+    width: 30px;
   }
 
   .session-box.orange .session-icon {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import api from "../../../../components/auth/authApi";
+import { confirmAction } from "../../../../utils/sweetAlert";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
@@ -22,29 +23,28 @@ const getWorkoutMeta = (name = "") => {
       .filter(([key, value]) => key && value),
   );
 
-  if (structured.type || structured.duration || structured.calories || structured.date) {
+  if (structured.type || structured.duration || structured.date) {
     return {
       date: structured.date || "",
       type: structured.type || "Workout",
       duration: structured.duration || "-",
-      calories: structured.calories || "-",
     };
   }
 
   const normalized = name.toLowerCase();
   if (normalized.includes("run") || normalized.includes("cardio")) {
-    return { type: "Morning Run", duration: "35 min", calories: "280 kcal" };
+    return { type: "Morning Run", duration: "35 min" };
   }
   if (normalized.includes("yoga")) {
-    return { type: "Yoga Session", duration: "45 min", calories: "120 kcal" };
+    return { type: "Yoga Session", duration: "45 min" };
   }
   if (normalized.includes("swim")) {
-    return { type: "Swimming", duration: "30 min", calories: "310 kcal" };
+    return { type: "Swimming", duration: "30 min" };
   }
   if (normalized.includes("hiit")) {
-    return { type: "HIIT Cardio", duration: "20 min", calories: "215 kcal" };
+    return { type: "HIIT Cardio", duration: "20 min" };
   }
-  return { type: name || "Workout", duration: "50 min", calories: "340 kcal" };
+  return { type: name || "Workout", duration: "50 min" };
 };
 
 const workoutGuides = [
@@ -74,7 +74,6 @@ export default function WorkoutTrackingPage() {
     date: new Date().toISOString().slice(0, 10),
     type: "",
     duration: "",
-    calories: "",
   });
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -108,7 +107,6 @@ export default function WorkoutTrackingPage() {
     return [
       { value: activities.length, label: "Sessions", caption: "Workout Completed" },
       { value: `${Math.max(activities.length * 1.5, 0).toFixed(0)}h ${activities.length * 12}m`, label: "", caption: "Active Hours" },
-      { value: activities.length * 140, label: "kcal", caption: "Calories Burned" },
       { value: completed, label: "Visits", caption: "Checked in this week" },
     ];
   }, [activities]);
@@ -119,14 +117,16 @@ export default function WorkoutTrackingPage() {
     setSaving(true);
     setError("");
     try {
+      const durationMinutes = Number.parseInt(formValues.duration, 10);
       await api.post("/activities", {
-        taskName: `date: ${formValues.date} | type: ${formValues.type.trim()} | duration: ${formValues.duration.trim()} | calories: ${formValues.calories.trim()}`,
+        taskName: `date: ${formValues.date} | type: ${formValues.type.trim()} | duration: ${formValues.duration.trim()}`,
+        targetValue: Number.isFinite(durationMinutes) && durationMinutes > 0 ? durationMinutes : 30,
+        unit: "min",
       });
       setFormValues({
         date: new Date().toISOString().slice(0, 10),
         type: "",
         duration: "",
-        calories: "",
       });
       setShowForm(false);
       fetchActivities();
@@ -151,7 +151,13 @@ export default function WorkoutTrackingPage() {
   };
 
   const handleDelete = async (activity) => {
-    if (!window.confirm(`Hapus workout "${activity.task_name}"?`)) return;
+    const confirmed = await confirmAction({
+      confirmButtonColor: "#c73822",
+      confirmButtonText: "Hapus",
+      text: `Workout "${activity.task_name}" akan dihapus.`,
+      title: "Hapus Workout?",
+    });
+    if (!confirmed) return;
     try {
       await api.delete(`/activities/${activity.id}`);
       fetchActivities();
@@ -575,19 +581,18 @@ export default function WorkoutTrackingPage() {
                   <th>Date</th>
                   <th>Type</th>
                   <th>Duration</th>
-                  <th>Calories</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && (
                   <tr>
-                    <td className="workout-status" colSpan="5">Memuat workout...</td>
+                    <td className="workout-status" colSpan="4">Memuat workout...</td>
                   </tr>
                 )}
                 {!loading && activities.length === 0 && (
                   <tr>
-                    <td className="workout-status" colSpan="5">Belum ada workout.</td>
+                    <td className="workout-status" colSpan="4">Belum ada workout.</td>
                   </tr>
                 )}
                 {!loading && activities.map((activity) => {
@@ -597,7 +602,6 @@ export default function WorkoutTrackingPage() {
                       <td>{meta.date ? formatDate(meta.date) : formatDate(activity.created_at)}</td>
                       <td>{meta.type}</td>
                       <td>{meta.duration}</td>
-                      <td>{meta.calories}</td>
                       <td>
                         <div className="workout-action-cell">
                           <button className="table-action" onClick={() => handleToggle(activity)} type="button">
@@ -672,15 +676,6 @@ export default function WorkoutTrackingPage() {
                     placeholder="35 min"
                     value={formValues.duration}
                     onChange={(event) => updateField("duration", event.target.value)}
-                  />
-                </label>
-                <label className="workout-field">
-                  <span>Calories</span>
-                  <input
-                    className="workout-input"
-                    placeholder="280 kcal"
-                    value={formValues.calories}
-                    onChange={(event) => updateField("calories", event.target.value)}
                   />
                 </label>
               </div>

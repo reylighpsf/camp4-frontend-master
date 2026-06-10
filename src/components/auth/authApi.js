@@ -13,6 +13,12 @@ export const authApi = {
       headers: { "Content-Type": "multipart/form-data" },
     }),
   signin: (data) => api.post("/auth/login", data),
+  registerGoogle: (data) =>
+    api.post("/auth/register/google", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  loginGoogle: (data) => api.post("/auth/login/google", data),
+  resendVerificationEmail: (data) => api.post("/auth/register/resend", data),
   verifyEmail: (token) => api.get(`/auth/verify-email/${token}`),
   me: () => api.get("/users/me"),
   logout: () => api.post("/auth/logout"),

@@ -26,6 +26,17 @@ const formatCountdown = (milliseconds) => {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 };
 
+const formatDateTime = (value) => {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+};
+
 const getTransactionPayload = (responseData) => {
   const data = responseData?.data || responseData || {};
   const transaction = data.transaction || data;
@@ -35,11 +46,25 @@ const getTransactionPayload = (responseData) => {
   };
 };
 
+const getWaitingPaymentStorageKey = (planId) => `vocafit-waiting-payment-${planId || "default"}`;
+
+const buildWaitingPayment = ({ paymentMethod = "QRIS", paymentUrl, planId, total, transaction }) => ({
+  email: transaction?.email || localStorage.getItem("vocafit-registration-email") || "",
+  expireAt: transaction?.expire_at || transaction?.expireAt || "",
+  paymentMethod,
+  paymentUrl: paymentUrl || transaction?.payment_url || transaction?.paymentUrl || "",
+  planId,
+  status: transaction?.status || "PENDING",
+  total: transaction?.amount || total,
+  transaction,
+});
+
 export default function Payment() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [selectedMethodId, setSelectedMethodId] = useState("qris");
   const [loading, setLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [cashPending, setCashPending] = useState(false);
@@ -57,13 +82,14 @@ export default function Payment() {
     paymentMethods.find((method) => method.id === selectedMethodId) ||
     paymentMethods[0];
   const total = parsePrice(selectedPlan.price);
+  const waitingPaymentStorageKey = getWaitingPaymentStorageKey(selectedPlan.id);
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchCatalogPlans = async () => {
       try {
-        const response = await api.get("/catalogs");
+        const response = await api.get("/catalogs/membership");
         if (isMounted) setPlans(mapCatalogsToMembershipPlans(response.data?.data || []));
       } catch {
         if (isMounted) setPlans(authMembershipPlans);
@@ -77,6 +103,27 @@ export default function Payment() {
   }, []);
 
   useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      try {
+        const savedWaitingPayment = JSON.parse(sessionStorage.getItem(waitingPaymentStorageKey) || "null");
+        if (!savedWaitingPayment?.paymentUrl) return;
+
+        const expireTime = savedWaitingPayment.expireAt ? new Date(savedWaitingPayment.expireAt).getTime() : 0;
+        if (expireTime && expireTime <= Date.now()) {
+          sessionStorage.removeItem(waitingPaymentStorageKey);
+          return;
+        }
+
+        setWaitingPayment(savedWaitingPayment);
+      } catch {
+        sessionStorage.removeItem(waitingPaymentStorageKey);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [waitingPaymentStorageKey]);
+
+  useEffect(() => {
     if (!waitingPayment?.expireAt) return undefined;
 
     const updateRemaining = () => {
@@ -87,6 +134,32 @@ export default function Payment() {
     const intervalId = window.setInterval(updateRemaining, 1000);
     return () => window.clearInterval(intervalId);
   }, [waitingPayment?.expireAt]);
+
+  useEffect(() => {
+    if (!waitingPayment || remainingMs > 0) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      sessionStorage.removeItem(waitingPaymentStorageKey);
+      navigate("/payment/success?status=expire", {
+        replace: true,
+        state: {
+          accountType:
+            waitingPayment.transaction?.tier_name ||
+            waitingPayment.transaction?.account_tier_code ||
+            "",
+          amount: waitingPayment.transaction?.amount || total,
+          expiredAt: waitingPayment.expireAt,
+          paymentMethod: waitingPayment.paymentMethod,
+          paymentStatus: "expire",
+          planId: selectedPlan.id,
+          total: waitingPayment.transaction?.amount || total,
+          transactionId: waitingPayment.transaction?.order_id || waitingPayment.transaction?.id,
+        },
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [navigate, remainingMs, selectedPlan.id, total, waitingPayment, waitingPaymentStorageKey]);
 
   const goToPaymentSuccess = ({ transaction, status }) => {
     navigate("/payment/success", {
@@ -117,14 +190,15 @@ export default function Payment() {
 
       if (selectedMethod.paymentMethod === "QRIS") {
         if (paymentUrl) {
-          setWaitingPayment({
-            email: transaction?.email || localStorage.getItem("vocafit-registration-email") || "",
-            expireAt: transaction?.expire_at || transaction?.expireAt || "",
+          const nextWaitingPayment = buildWaitingPayment({
             paymentMethod: "QRIS",
             paymentUrl,
-            status: transaction?.status || "PENDING",
+            planId: selectedPlan.id,
+            total: transaction?.amount || total,
             transaction,
           });
+          sessionStorage.setItem(waitingPaymentStorageKey, JSON.stringify(nextWaitingPayment));
+          setWaitingPayment(nextWaitingPayment);
           setMessage("");
           return;
         }
@@ -148,6 +222,28 @@ export default function Payment() {
         return;
       }
 
+      const activeOrder = err.response?.data?.data;
+      if (nextError === "You already have an active order" && activeOrder) {
+        const restoredPaymentUrl = activeOrder.paymentUrl || activeOrder.payment_url;
+        if (!restoredPaymentUrl) {
+          setError("Order aktif ditemukan, tetapi link pembayaran tidak tersedia.");
+          return;
+        }
+
+        const nextWaitingPayment = buildWaitingPayment({
+          paymentMethod: activeOrder.payment_method || selectedMethod.paymentMethod,
+          paymentUrl: restoredPaymentUrl,
+          planId: selectedPlan.id,
+          total: activeOrder.amount || total,
+          transaction: activeOrder,
+        });
+        sessionStorage.setItem(waitingPaymentStorageKey, JSON.stringify(nextWaitingPayment));
+        setWaitingPayment(nextWaitingPayment);
+        setMessage("Order pembayaran aktif ditemukan. Lanjutkan pembayaran dari order yang sama.");
+        setError("");
+        return;
+      }
+
       setError(nextError);
     } finally {
       setLoading(false);
@@ -157,6 +253,53 @@ export default function Payment() {
   const openPaymentLink = () => {
     if (!waitingPayment?.paymentUrl) return;
     window.location.href = waitingPayment.paymentUrl;
+  };
+
+  const createNewPayment = () => {
+    sessionStorage.removeItem(waitingPaymentStorageKey);
+    setWaitingPayment(null);
+    setRemainingMs(30 * 60 * 1000);
+    setMessage("");
+    setError("");
+    setCashPending(false);
+  };
+
+  const cancelPayment = async () => {
+    const transactionId = waitingPayment?.transaction?.id;
+    if (!transactionId) {
+      setError("Transaction ID tidak tersedia untuk cancel payment.");
+      return;
+    }
+
+    setCancelLoading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      await api.post(`/transactions/${transactionId}/cancel`);
+      sessionStorage.removeItem(waitingPaymentStorageKey);
+      setWaitingPayment(null);
+      setRemainingMs(30 * 60 * 1000);
+      setMessage("Payment berhasil dibatalkan. Kamu bisa membuat payment baru.");
+    } catch (err) {
+      const status = err.response?.status;
+      const cancelError =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "Gagal membatalkan payment.";
+
+      if (status === 404 || cancelError === "Transaction not found") {
+        sessionStorage.removeItem(waitingPaymentStorageKey);
+        setWaitingPayment(null);
+        setRemainingMs(30 * 60 * 1000);
+        setMessage("Payment lama sudah tidak ditemukan di backend. Silakan buat payment baru.");
+        return;
+      }
+
+      setError(cancelError);
+    } finally {
+      setCancelLoading(false);
+    }
   };
 
   if (waitingPayment) {
@@ -190,10 +333,13 @@ export default function Payment() {
             <h2>Order Summary</h2>
             <dl>
               <div><dt>Transaction ID:</dt><dd>{transactionId}</dd></div>
+              <div><dt>Status:</dt><dd>{waitingPayment.status || transaction.status || "PENDING"}</dd></div>
+              <div><dt>Expired At:</dt><dd>{formatDateTime(waitingPayment.expireAt || transaction.expire_at)}</dd></div>
               <div><dt>User Email:</dt><dd>{userEmail}</dd></div>
               <div><dt>Membership:</dt><dd>{selectedPlan.name}</dd></div>
               <div><dt>Account Type:</dt><dd>{transaction.tier_name || transaction.account_tier_code || "-"}</dd></div>
               <div><dt>Price:</dt><dd className="orange">{formatCurrency(basePrice || total)}</dd></div>
+              <div><dt>Payment URL:</dt><dd className="payment-url">{waitingPayment.paymentUrl}</dd></div>
             </dl>
             <div className="payment-waiting-total">
               <span>Total Payment:</span>
@@ -203,6 +349,17 @@ export default function Payment() {
 
           <button className="payment-open-link" onClick={openPaymentLink} type="button">
             Open Payment Link
+          </button>
+          <button
+            className="payment-cancel-link"
+            disabled={cancelLoading}
+            onClick={cancelPayment}
+            type="button"
+          >
+            {cancelLoading ? "Cancelling..." : "Cancel Payment"}
+          </button>
+          <button className="payment-new-link" onClick={createNewPayment} type="button">
+            Back To Payment Form
           </button>
         </section>
       </AuthFrame>
@@ -708,6 +865,10 @@ const paymentStyles = `
     text-align: right;
   }
 
+  .payment-waiting-summary dd.payment-url {
+    max-width: 300px;
+  }
+
   .payment-waiting-summary dd.orange,
   .payment-waiting-total strong {
     color: #ff6b20;
@@ -725,6 +886,39 @@ const paymentStyles = `
     height: 48px;
     margin-top: 14px;
     width: 100%;
+  }
+
+  .payment-new-link {
+    background: #ffffff;
+    border: 1px solid #171267;
+    border-radius: 10px;
+    color: #171267;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 900;
+    height: 48px;
+    margin-top: 10px;
+    width: 100%;
+  }
+
+  .payment-cancel-link {
+    background: #fff1f0;
+    border: 1px solid #d23b2a;
+    border-radius: 10px;
+    color: #c73822;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 900;
+    height: 48px;
+    margin-top: 10px;
+    width: 100%;
+  }
+
+  .payment-cancel-link:disabled {
+    cursor: not-allowed;
+    opacity: .65;
   }
 
   @media (max-width: 940px) {

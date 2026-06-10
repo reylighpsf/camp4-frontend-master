@@ -12,7 +12,6 @@ export default function Signup() {
     fullName: "",
     email: "",
     phoneNumber: "",
-    birthPlace: "",
     birthDate: "",
     address: "",
     password: "",
@@ -79,11 +78,8 @@ export default function Signup() {
       errors.fullName = "Nama minimal 2 karakter";
     }
     if (!emailRegex.test(form.email)) errors.email = "Email tidak valid";
-    if (form.phoneNumber.trim().length < 8) {
-      errors.phoneNumber = "Nomor HP minimal 8 karakter";
-    }
-    if (form.birthPlace.trim().length < 2) {
-      errors.birthPlace = "Tempat lahir wajib diisi";
+    if (!/^\+628[1-9][0-9]{6,10}$/.test(form.phoneNumber.trim())) {
+      errors.phoneNumber = "Gunakan format +628xxxxxxxx";
     }
     if (!form.birthDate) {
       errors.birthDate = "Tanggal lahir wajib diisi";
@@ -123,7 +119,6 @@ export default function Signup() {
       formData.append("fullName", form.fullName.trim());
       formData.append("email", normalizedEmail);
       formData.append("phoneNumber", form.phoneNumber.trim());
-      formData.append("birthPlace", form.birthPlace.trim());
       formData.append("birthDate", form.birthDate);
       formData.append("address", form.address.trim());
       formData.append("password", form.password);
@@ -226,28 +221,11 @@ export default function Signup() {
                 value={form.phoneNumber}
                 onChange={handleChange}
                 className={fieldErrors.phoneNumber ? "has-error" : ""}
-                placeholder="+62 812 3456 7890"
+                placeholder="+628123456789"
                 autoComplete="tel"
               />
               {fieldErrors.phoneNumber && (
                 <p className="auth-error">{fieldErrors.phoneNumber}</p>
-              )}
-            </div>
-
-            <div className="auth-field">
-              <label htmlFor="birthPlace">Place of Birth</label>
-              <input
-                id="birthPlace"
-                name="birthPlace"
-                type="text"
-                value={form.birthPlace}
-                onChange={handleChange}
-                className={fieldErrors.birthPlace ? "has-error" : ""}
-                placeholder="Surabaya"
-                autoComplete="address-level2"
-              />
-              {fieldErrors.birthPlace && (
-                <p className="auth-error">{fieldErrors.birthPlace}</p>
               )}
             </div>
 

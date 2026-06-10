@@ -1,18 +1,87 @@
-import { useLocation, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router";
 import { AuthFrame } from "../AuthFrame";
+import Swal from "sweetalert2";
+import { authApi } from "../../../components/auth/authApi";
+
+const RESEND_COOLDOWN_MS = 2 * 60 * 1000;
+
+const getResendStorageKey = (email) => `vocafit-verify-resend-at-${email || "default"}`;
+
+const formatCooldown = (milliseconds) => {
+  const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+};
 
 export default function VerifyEmail() {
   const location = useLocation();
-  const navigate = useNavigate();
   const email =
     location.state?.email ||
     localStorage.getItem("vocafit-registration-email") ||
     "";
+  const [cooldownMs, setCooldownMs] = useState(0);
 
-  const goToVerifySuccess = () => {
-    const params = new URLSearchParams({ status: "success" });
-    if (email) params.set("email", email);
-    navigate(`/verify-email/result?${params.toString()}`);
+  useEffect(() => {
+    const storageKey = getResendStorageKey(email);
+    let intervalId;
+
+    const timeoutId = window.setTimeout(() => {
+      const updateCooldown = () => {
+        const lastSentAt = Number(localStorage.getItem(storageKey) || 0);
+        setCooldownMs(Math.max(0, lastSentAt + RESEND_COOLDOWN_MS - Date.now()));
+      };
+
+      updateCooldown();
+      intervalId = window.setInterval(updateCooldown, 1000);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [email]);
+
+  const handleResendEmail = async () => {
+    if (cooldownMs > 0) {
+      await Swal.fire({
+        confirmButtonColor: "#ff6414",
+        icon: "info",
+        text: `Tunggu ${formatCooldown(cooldownMs)} sebelum mengirim ulang verify email.`,
+        title: "Belum bisa resend",
+      });
+      return;
+    }
+
+    if (!email) {
+      await Swal.fire({
+        confirmButtonColor: "#ff6414",
+        icon: "warning",
+        text: "Email pendaftaran tidak ditemukan. Silakan kembali ke halaman sign up.",
+        title: "Email Tidak Ada",
+      });
+      return;
+    }
+
+    try {
+      await authApi.resendVerificationEmail({ email });
+      localStorage.setItem(getResendStorageKey(email), String(Date.now()));
+      setCooldownMs(RESEND_COOLDOWN_MS);
+      await Swal.fire({
+        confirmButtonColor: "#ff6414",
+        icon: "success",
+        text: `Verify email telah terkirim ke ${email}.`,
+        title: "Email Terkirim",
+      });
+    } catch (err) {
+      await Swal.fire({
+        confirmButtonColor: "#ff6414",
+        icon: "error",
+        text: err.response?.data?.message || err.response?.data?.error || "Gagal mengirim ulang verify email.",
+        title: "Resend Gagal",
+      });
+    }
   };
 
   return (
@@ -118,6 +187,11 @@ export default function VerifyEmail() {
           background: #f45d0f;
         }
 
+        .verify-email-button:disabled {
+          cursor: not-allowed;
+          opacity: .7;
+        }
+
         @media (max-width: 640px) {
           .verify-email-card {
             padding: 24px 22px;
@@ -150,8 +224,13 @@ export default function VerifyEmail() {
           <strong>{email || "email yang kamu daftarkan"}</strong>
         </div>
 
-        <button className="verify-email-button" type="button" onClick={goToVerifySuccess}>
-          Resend Email
+        <button
+          className="verify-email-button"
+          disabled={cooldownMs > 0}
+          type="button"
+          onClick={handleResendEmail}
+        >
+          {cooldownMs > 0 ? `Resend Email (${formatCooldown(cooldownMs)})` : "Resend Email"}
         </button>
       </section>
     </AuthFrame>

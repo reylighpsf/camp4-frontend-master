@@ -15,3 +15,33 @@ body,
   margin: 0;
   padding: 0;
 }
+
+:where([class~="card"], [class$="-card"], [class*="-card "]):not(.auth-card):not(
+    .payment-card
+  ):not(.payment-waiting-card):not(.success-card):not(.failed-card):not(
+    .verify-email-card
+  ):not(.verify-result-card):not(.book-session-card):not(.trainer-detail-card) {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+:where([class~="card"], [class$="-card"], [class*="-card "]):not(.auth-card):not(
+    .payment-card
+  ):not(.payment-waiting-card):not(.success-card):not(.failed-card):not(
+    .verify-email-card
+  ):not(.verify-result-card):not(.book-session-card):not(.trainer-detail-card):hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 36px rgba(11, 8, 113, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where([class~="card"], [class$="-card"], [class*="-card "]) {
+    transition: none;
+  }
+
+  :where([class~="card"], [class$="-card"], [class*="-card "]):hover {
+    transform: none;
+  }
+}

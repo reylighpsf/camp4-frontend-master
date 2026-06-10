@@ -60,13 +60,16 @@ export default function useNewsActions() {
     }
   };
 
-  const updateNews = async () => {
+  const updateNews = async ({ id, values, image }) => {
     setSubmitLoading(true);
     setSubmitError("");
     setSubmitSuccessMessage("");
     try {
-      setSubmitError("Backend belum menyediakan endpoint untuk memperbarui berita.");
-      return { ok: false, error: "Backend belum menyediakan endpoint untuk memperbarui berita." };
+      const response = await api.put(`/news/${id}`, buildNewsPayload({ values, image }), {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setSubmitSuccessMessage("Berita berhasil diperbarui.");
+      return { ok: true, data: response.data?.data };
     } catch (err) {
       const message = getErrorMessage(err, "Gagal memperbarui berita.");
       setSubmitError(message);

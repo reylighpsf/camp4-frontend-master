@@ -8,6 +8,7 @@ import {
   enrichTransactionMembers,
   paymentStyles,
 } from "./paymentHelpers";
+import { confirmAction } from "../../../../utils/sweetAlert";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
@@ -69,7 +70,13 @@ export default function PaymentHistoryPage() {
   };
 
   const cancelTransaction = async (transaction) => {
-    if (!window.confirm(`Batalkan transaksi ${transaction.order_id || transaction.id}?`)) return;
+    const confirmed = await confirmAction({
+      confirmButtonColor: "#c73822",
+      confirmButtonText: "Batalkan",
+      text: `Transaksi ${transaction.order_id || transaction.id} akan dibatalkan.`,
+      title: "Batalkan Transaksi?",
+    });
+    if (!confirmed) return;
 
     setActionLoadingId(transaction.id);
     setActionMessage("");

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import AdminSidebar, { Icon } from "../../../../components/admin/AdminSidebar";
+import api from "../../../../components/auth/authApi";
 import { useAuth } from "../../../../components/auth/useAuth";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
 import useNewsActions from "./hooks/useNewsActions";
 import useNewsForm from "./hooks/useNewsForm";
 import useNewsImageUpload from "./hooks/useNewsImageUpload";
+import { confirmAction } from "../../../../utils/sweetAlert";
 
 const newsUpdateStyles = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
@@ -559,6 +561,24 @@ export default function NewsUpdatePage() {
     setIsFormOpen(true);
   };
 
+  const handleEdit = async (item) => {
+    let detail = item;
+    try {
+      const response = await api.get(`/news/${item.id}`);
+      detail = response.data?.data || item;
+    } catch {
+      // Keep table data if detail fetch fails.
+    }
+
+    setEditingNews(detail);
+    newsForm.resetForm({
+      title: detail.title || "",
+      description: detail.content || detail.summary || "",
+    });
+    newsImage.resetImage();
+    setIsFormOpen(true);
+  };
+
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingNews(null);
@@ -579,7 +599,13 @@ export default function NewsUpdatePage() {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Hapus berita "${item.title}"?`)) return;
+    const confirmed = await confirmAction({
+      confirmButtonColor: "#c73822",
+      confirmButtonText: "Hapus",
+      text: `Berita "${item.title}" akan dihapus.`,
+      title: "Hapus Berita?",
+    });
+    if (!confirmed) return;
 
     const result = await newsActions.deleteNews(item.id);
     if (result.ok) newsActions.fetchNews();
@@ -650,12 +676,19 @@ export default function NewsUpdatePage() {
                       </td>
                       <td className="news-title-cell">
                         <strong>{item.title}</strong>
-                        <span>{item.content}</span>
+                        <span>{item.summary || item.content}</span>
                       </td>
                       <td>{formatDate(item.created_at)}</td>
-                      <td>{item.author_id ? "Admin" : "-"}</td>
+                      <td>{item.author || "-"}</td>
                       <td>
                         <div className="news-row-actions">
+                          <button
+                            className="news-row-btn edit"
+                            onClick={() => handleEdit(item)}
+                            type="button"
+                          >
+                            Edit
+                          </button>
                           <button
                             className="news-row-btn delete"
                             disabled={newsActions.deleteLoadingId === item.id}

@@ -25,9 +25,10 @@ export default function TrainerCheckoutPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialTrainerId = searchParams.get("trainerId") || "";
+  const initialCatalogCode = searchParams.get("catalog") || "";
   const [catalogs, setCatalogs] = useState([]);
   const [trainers, setTrainers] = useState([]);
-  const [selectedCatalogCode, setSelectedCatalogCode] = useState("");
+  const [selectedCatalogCode, setSelectedCatalogCode] = useState(initialCatalogCode);
   const [selectedTrainerId, setSelectedTrainerId] = useState(initialTrainerId);
   const [participantText, setParticipantText] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("QRIS");
@@ -42,7 +43,7 @@ export default function TrainerCheckoutPage() {
       setError("");
       try {
         const [catalogResponse, trainerResponse] = await Promise.all([
-          api.get("/catalogs"),
+          api.get("/catalogs/trainer"),
           api.get("/trainers"),
         ]);
         if (!mounted) return;

@@ -364,11 +364,13 @@ const activeMemberStyles = `
 
 const formatTime = (value) => {
   if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
   return new Intl.DateTimeFormat("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).format(new Date(value));
+  }).format(date);
 };
 
 const formatMembershipPlan = (member) => {
@@ -401,7 +403,7 @@ const formatMembershipPlan = (member) => {
 };
 
 const isMemberActive = (member) => {
-  return Boolean(member.is_currently_checked_in);
+  return Boolean(member.is_membership_active);
 };
 
 export default function ActiveMemberPage() {
@@ -455,7 +457,7 @@ export default function ActiveMemberPage() {
         <div className="active-member-head">
           <div>
             <h2>Ringkasan Member</h2>
-            <p>Pantau semua member dengan status tap-in dan tap-out terakhir.</p>
+            <p>Pantau semua member terdaftar dan status membership terbaru.</p>
           </div>
           <div className="active-member-head-actions">
             <button className="active-member-refresh primary" onClick={openCreateModal} type="button">
@@ -473,14 +475,14 @@ export default function ActiveMemberPage() {
 
         <section className="active-member-cards" aria-label="Ringkasan member">
           <article className="active-member-card">
-            <span>Member Sedang Tap In</span>
-            <strong>{summary.activeMembers}</strong>
-            <p>Member yang sudah tap-in dan belum tap-out.</p>
+            <span>Membership Aktif</span>
+            <strong>{summary.activeMemberships}</strong>
+            <p>Member dengan membership aktif.</p>
           </article>
           <article className="active-member-card">
-            <span>Total Check In Hari Ini</span>
-            <strong>{summary.checkInsToday}</strong>
-            <p>Member yang check in hari ini.</p>
+            <span>Total Member Terdaftar</span>
+            <strong>{summary.registeredMembers}</strong>
+            <p>User member verified di database.</p>
           </article>
         </section>
 
@@ -542,7 +544,7 @@ export default function ActiveMemberPage() {
                       <td>{formatMembershipPlan(member)}</td>
                       <td>
                         <span className={`active-member-badge ${isActive ? "" : "inactive"}`}>
-                          {isActive ? "Aktif" : "Tidak Aktif"}
+                          {member.membership_status_label || (isActive ? "Aktif" : "Tidak Aktif")}
                         </span>
                       </td>
                     </tr>
