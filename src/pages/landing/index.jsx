@@ -22,7 +22,7 @@ export default function LandingPage({ scrollToExplore = false }) {
 
     const fetchCatalogPlans = async () => {
       try {
-        const response = await api.get("/catalogs");
+        const response = await api.get("/catalogs/membership");
         if (isMounted) setPlans(mapCatalogsToMembershipPlans(response.data?.data || []));
       } catch {
         if (isMounted) setPlans(authMembershipPlans);
@@ -215,6 +215,8 @@ export default function LandingPage({ scrollToExplore = false }) {
           font-size: clamp(16px, 1.4vw, 22px);
           font-weight: 900;
           text-transform: uppercase;
+          animation: exploreTickerRight 4s linear infinite;
+          will-change: transform;
         }
 
         .explore-ticker span::before {
@@ -224,6 +226,15 @@ export default function LandingPage({ scrollToExplore = false }) {
           height: 11px;
           background: #ffb000;
           border-radius: 50%;
+        }
+
+        @keyframes exploreTickerRight {
+          from {
+            transform: translateX(-100%);
+          }
+          to {
+            transform: translateX(0);
+          }
         }
 
         .landing-section {
@@ -369,19 +380,27 @@ export default function LandingPage({ scrollToExplore = false }) {
           align-items: center;
           border-left: 4px solid #ff7a00;
           display: flex;
-          gap: 16px;
-          min-height: clamp(74px, 6vw, 96px);
+          gap: 24px;
+          min-height: clamp(98px, 8vw, 128px);
           padding-left: 18px;
         }
 
         .info-item span,
         .why-card span {
+          align-items: center;
           border: 3px solid #ffd45f;
           border-radius: 50%;
-          display: block;
+          color: #ffd45f;
+          display: inline-flex;
           flex: 0 0 auto;
-          height: clamp(36px, 3.4vw, 50px);
-          width: clamp(36px, 3.4vw, 50px);
+          height: clamp(76px, 6.5vw, 104px);
+          justify-content: center;
+          width: clamp(76px, 6.5vw, 104px);
+        }
+
+        .info-item span svg {
+          height: 76%;
+          width: 76%;
         }
 
         .info-item h3 {
@@ -401,42 +420,57 @@ export default function LandingPage({ scrollToExplore = false }) {
           background: #0a1185;
           color: #fff;
           overflow: hidden;
-          padding: clamp(58px, 7vw, 96px) 0 clamp(72px, 8vw, 112px);
+          padding: clamp(48px, 5vw, 72px) 0 clamp(76px, 7vw, 104px);
         }
 
         .facilities-title {
           width: min(100%, 1320px);
           max-width: none;
-          margin: 0 auto 28px;
-          padding: 0 clamp(22px, 6vw, 112px);
+          margin: 0 auto clamp(32px, 4vw, 54px);
+          min-height: clamp(220px, 25vw, 330px);
+          padding: clamp(30px, 4vw, 62px) clamp(22px, 6vw, 112px) 0;
           position: relative;
+        }
+
+        .facilities-title::before {
+          background: #ffd45f;
+          content: '';
+          height: clamp(170px, 19vw, 260px);
+          left: clamp(22px, 6vw, 112px);
+          position: absolute;
+          top: clamp(28px, 3.6vw, 56px);
+          width: 3px;
+          z-index: 2;
         }
 
         .facilities-title h2 {
           color: #ffd45f;
           font-family: 'Anton', sans-serif;
-          font-size: clamp(52px, 7vw, 96px);
+          font-size: clamp(58px, 7.8vw, 118px);
           font-weight: 400;
           letter-spacing: 0;
           line-height: 0.95;
+          padding-left: clamp(34px, 4.8vw, 76px);
           text-transform: uppercase;
         }
 
         .facilities-title h2::after {
-          color: rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.22);
           content: 'FACILITIES';
-          font-size: clamp(78px, 13vw, 184px);
-          left: clamp(22px, 6vw, 112px);
+          font-size: clamp(104px, 18vw, 250px);
+          left: calc(clamp(22px, 6vw, 112px) + clamp(48px, 4.2vw, 70px));
+          line-height: 0.76;
           position: absolute;
-          top: -22px;
+          top: clamp(18px, 2.6vw, 42px);
           z-index: 0;
         }
 
         .facilities-title p {
-          color: #fff;
-          font-size: clamp(13px, 1vw, 17px);
-          font-weight: 700;
-          margin-top: 10px;
+          color: #ffd45f;
+          font-size: clamp(22px, 2.5vw, 40px);
+          font-weight: 600;
+          margin-top: clamp(42px, 5vw, 76px);
+          padding-left: clamp(34px, 4.8vw, 76px);
           position: relative;
           z-index: 1;
         }
@@ -447,44 +481,119 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
 
         .facilities-track {
-          display: grid;
-          grid-template-columns: repeat(5, minmax(170px, 1fr));
-          gap: clamp(10px, 1.1vw, 18px);
+          align-items: center;
+          display: flex;
+          justify-content: center;
           margin: 0 auto;
+          min-height: clamp(210px, 24vw, 340px);
+          overflow: visible;
+          position: relative;
           width: 100%;
           max-width: none;
-          padding: 0 clamp(22px, 6vw, 112px);
+          padding: 0;
         }
 
         .facility-slide {
-          aspect-ratio: 1.42 / 1;
-          border-radius: 4px;
+          aspect-ratio: 1.58 / 1;
+          border-radius: 9px;
+          flex: 0 0 clamp(230px, 27vw, 420px);
+          margin: 0 clamp(-82px, -7vw, -32px);
           overflow: hidden;
           position: relative;
+          transition:
+            flex-basis 260ms ease,
+            transform 260ms ease,
+            filter 260ms ease,
+            opacity 260ms ease;
+          z-index: 1;
         }
 
         .facility-slide img {
-          filter: brightness(0.55);
+          filter: brightness(0.54);
           height: 100%;
           object-fit: cover;
           width: 100%;
         }
 
         .facility-slide span {
-          bottom: 14px;
+          bottom: clamp(16px, 2vw, 26px);
           color: #fff;
-          font-size: clamp(15px, 1.2vw, 22px);
+          font-size: clamp(18px, 2vw, 32px);
           font-weight: 900;
-          left: 16px;
+          left: 50%;
           position: absolute;
+          text-align: center;
+          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+          transform: translateX(-50%);
+          white-space: nowrap;
         }
 
         .facility-slide.is-active {
-          transform: translateY(28px);
+          flex-basis: clamp(350px, 38vw, 620px);
+          transform: translateY(-28px);
+          z-index: 3;
         }
 
         .facility-slide.is-active img {
           filter: brightness(0.42);
+        }
+
+        .facility-nav {
+          align-items: center;
+          background: rgba(255, 255, 255, 0.14);
+          border: 3px solid #fff;
+          border-radius: 8px;
+          color: #fff;
+          cursor: pointer;
+          display: inline-flex;
+          height: clamp(34px, 3.8vw, 50px);
+          justify-content: center;
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          width: clamp(34px, 3.8vw, 50px);
+          z-index: 4;
+        }
+
+        .facility-nav:hover {
+          background: rgba(255, 255, 255, 0.24);
+        }
+
+        .facility-nav svg {
+          height: 72%;
+          width: 72%;
+        }
+
+        .facility-nav.is-prev {
+          animation: facilityArrowLeft 1.35s ease-in-out infinite;
+          left: clamp(16px, 2.2vw, 36px);
+        }
+
+        .facility-nav.is-next {
+          animation: facilityArrowRight 1.35s ease-in-out infinite;
+          right: clamp(16px, 2.2vw, 36px);
+        }
+
+        @keyframes facilityArrowLeft {
+          0%,
+          100% {
+            transform: translateY(-50%) translateX(0);
+          }
+
+          50% {
+            transform: translateY(-50%) translateX(-8px);
+          }
+        }
+
+        @keyframes facilityArrowRight {
+          0%,
+          100% {
+            transform: translateY(-50%) translateX(0);
+          }
+
+          50% {
+            transform: translateY(-50%) translateX(8px);
+          }
         }
 
         .why-us {
@@ -528,9 +637,16 @@ export default function LandingPage({ scrollToExplore = false }) {
         .why-card span {
           background: #0a1185;
           border: 0;
-          height: 34px;
+          border-radius: 6px;
+          color: #ffd45f;
+          height: 68px;
           margin-bottom: 16px;
-          width: 34px;
+          width: 68px;
+        }
+
+        .why-card span svg {
+          height: 42px;
+          width: 42px;
         }
 
         .why-card h3 {
@@ -887,55 +1003,146 @@ export default function LandingPage({ scrollToExplore = false }) {
           background: #0a1185;
           color: #fff;
           display: grid;
-          gap: 40px;
-          grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr);
-          padding: clamp(48px, 6vw, 78px) clamp(22px, 6vw, 112px);
+          gap: 0;
+          padding: 0;
+        }
+
+        .footer-main {
+          display: grid;
+          gap: clamp(40px, 7vw, 92px);
+          grid-template-columns: minmax(250px, .9fr) minmax(0, 2.2fr);
+          padding: 70px clamp(28px, 7vw, 128px) 64px;
         }
 
         .footer-brand {
           align-items: flex-start;
+          display: grid;
+          gap: 22px;
+        }
+
+        .footer-logo-row {
+          align-items: center;
           display: flex;
           gap: 14px;
         }
 
         .footer-brand img {
-          height: 42px;
-          width: 42px;
+          height: 48px;
+          object-fit: contain;
+          width: 48px;
         }
 
-        .landing-footer strong {
+        .footer-logo-row strong {
           color: #ff8a00;
-          font-size: clamp(17px, 1.3vw, 24px);
+          font-size: 30px;
           font-weight: 900;
         }
 
-        .landing-footer p {
+        .footer-brand p {
           color: #fff;
-          margin-top: 6px;
-          font-size: clamp(13px, 1vw, 16px);
-          line-height: 1.5;
+          font-size: 15px;
+          font-weight: 500;
+          line-height: 1.28;
+          margin: 0;
+          max-width: 240px;
+        }
+
+        .footer-social {
+          display: flex;
+          gap: 14px;
+        }
+
+        .footer-social a {
+          align-items: center;
+          background: #ffdd82;
+          border-radius: 50%;
+          color: #0a1185;
+          display: inline-flex;
+          height: 34px;
+          justify-content: center;
+          text-decoration: none;
+          width: 34px;
+        }
+
+        .footer-social svg {
+          height: 21px;
+          width: 21px;
         }
 
         .footer-columns {
           display: grid;
-          gap: 28px;
+          gap: clamp(34px, 6vw, 86px);
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
         .footer-columns h3 {
           color: #fff;
-          font-size: clamp(12px, 0.9vw, 15px);
-          font-weight: 900;
-          margin-bottom: 14px;
+          font-size: 18px;
+          font-weight: 600;
+          letter-spacing: 0;
+          margin: 0 0 28px;
           text-transform: uppercase;
         }
 
         .footer-columns a {
-          color: #dfe4ff;
+          color: #ffffff;
           display: block;
-          font-size: clamp(12px, 0.85vw, 14px);
-          font-weight: 700;
-          margin-bottom: 9px;
+          font-size: 15px;
+          font-weight: 600;
+          margin-bottom: 16px;
+          text-decoration: none;
+          text-transform: uppercase;
+        }
+
+        .footer-contact p {
+          align-items: flex-start;
+          color: #ffffff;
+          display: grid;
+          font-size: 15px;
+          font-weight: 600;
+          gap: 20px;
+          grid-template-columns: 22px minmax(0, 1fr);
+          line-height: 1.25;
+          margin: 0 0 18px;
+          text-transform: uppercase;
+        }
+
+        .footer-contact svg {
+          color: #ffffff;
+          height: 22px;
+          width: 22px;
+        }
+
+        .footer-contact p:not(:first-of-type) {
+          text-transform: none;
+        }
+
+        .footer-bottom {
+          align-items: center;
+          border-top: 1px solid rgba(255,255,255,.16);
+          display: flex;
+          gap: 24px;
+          justify-content: space-between;
+          min-height: 68px;
+          padding: 0 clamp(28px, 7vw, 128px);
+        }
+
+        .footer-bottom p {
+          color: rgba(255,255,255,.72);
+          font-size: 12px;
+          font-weight: 500;
+          margin: 0;
+        }
+
+        .footer-bottom div {
+          display: flex;
+          gap: 28px;
+        }
+
+        .footer-bottom a {
+          color: rgba(255,255,255,.78);
+          font-size: 12px;
+          font-weight: 500;
           text-decoration: none;
         }
 
@@ -951,7 +1158,7 @@ export default function LandingPage({ scrollToExplore = false }) {
           .membership-plans,
           .steps-grid,
           .benefit-grid,
-          .landing-footer {
+          .footer-main {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
@@ -959,8 +1166,8 @@ export default function LandingPage({ scrollToExplore = false }) {
             transform: none;
           }
 
-          .facilities-track {
-            grid-template-columns: repeat(3, minmax(180px, 1fr));
+          .facility-slide {
+            margin: 0 -28px;
           }
         }
 
@@ -972,8 +1179,7 @@ export default function LandingPage({ scrollToExplore = false }) {
           }
 
           .landing-nav,
-          .landing-links,
-          .landing-footer {
+          .landing-links {
             align-items: flex-start;
             flex-direction: column;
           }
@@ -985,8 +1191,23 @@ export default function LandingPage({ scrollToExplore = false }) {
           .steps-grid,
           .benefit-grid,
           .footer-columns,
-          .landing-footer {
+          .footer-main {
             grid-template-columns: 1fr;
+          }
+
+          .footer-main {
+            padding: 46px 24px;
+          }
+
+          .footer-bottom {
+            align-items: flex-start;
+            flex-direction: column;
+            padding: 20px 24px;
+          }
+
+          .footer-bottom div {
+            flex-wrap: wrap;
+            gap: 14px 22px;
           }
 
           .landing-hero {
@@ -1010,10 +1231,34 @@ export default function LandingPage({ scrollToExplore = false }) {
           .facilities-track {
             display: flex;
             overflow-x: auto;
+            justify-content: flex-start;
+            min-height: 230px;
+            padding: 0 22px 8px;
+            scroll-snap-type: x mandatory;
           }
 
           .facility-slide {
-            min-width: 220px;
+            flex: 0 0 230px;
+            margin: 0 10px 0 0;
+            min-width: 230px;
+            scroll-snap-align: center;
+          }
+
+          .facility-slide.is-active {
+            flex-basis: 260px;
+            transform: none;
+          }
+
+          .facility-nav {
+            display: none;
+          }
+
+          .facilities-title {
+            min-height: 220px;
+          }
+
+          .facilities-title p {
+            margin-top: 32px;
           }
         }
       `}</style>

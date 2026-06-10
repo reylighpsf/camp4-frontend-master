@@ -21,7 +21,6 @@ const getWorkoutMeta = (name = "") => {
     date: structured.date || "",
     title: structured.type || name || "Workout",
     duration: structured.duration || "50 min",
-    calories: structured.calories || "",
   };
 };
 
@@ -68,7 +67,6 @@ export default function MemberDashboard() {
   const { user } = useAuth();
   const [activities, setActivities] = useState([]);
   const [crowd, setCrowd] = useState({ count: 0, status: "Quiet" });
-  const [profile, setProfile] = useState(null);
   const [tapRows, setTapRows] = useState(() => getStoredTapHistory(user?.id));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -81,11 +79,13 @@ export default function MemberDashboard() {
       const [
         activitiesResult,
         crowdResult,
-        profileResult,
+        visitStatusResult,
+        visitHistoryResult,
       ] = await Promise.allSettled([
         api.get("/activities", { params: { page: 1, limit: 100 } }),
         api.get("/visits/crowd"),
-        api.get("/users/me"),
+        api.get("/visits/status"),
+        api.get("/visits/history", { params: { page: 1, limit: 20 } }),
       ]);
 
       if (activitiesResult.status === "fulfilled") {
@@ -100,13 +100,23 @@ export default function MemberDashboard() {
         setCrowd({ count: 0, status: "Quiet" });
       }
 
-      if (profileResult.status === "fulfilled") {
-        setProfile(profileResult.value.data?.data || null);
-      } else {
-        setProfile(null);
+      if (visitHistoryResult.status === "fulfilled") {
+        const rows = (visitHistoryResult.value.data?.data || []).map((visit) => ({
+          tapIn: visit.tap_in_time,
+          tapOut: visit.tap_out_time,
+        }));
+        const status = visitStatusResult.status === "fulfilled" ? visitStatusResult.value.data?.data : null;
+        setTapRows(
+          status?.status === "INSIDE" && status.tapInTime
+            ? [{ tapIn: status.tapInTime, tapOut: null }, ...rows.filter((row) => row.tapIn !== status.tapInTime)]
+            : rows,
+        );
+      } else if (visitStatusResult.status === "fulfilled") {
+        const status = visitStatusResult.value.data?.data || null;
+        setTapRows(status?.status === "INSIDE" ? [{ tapIn: status.tapInTime, tapOut: null }] : []);
       }
 
-      const rejected = [crowdResult, profileResult].find(
+      const rejected = [crowdResult, visitStatusResult].find(
         (result) => result.status === "rejected",
       );
       if (rejected) setError(getErrorMessage(rejected.reason, "Sebagian data dashboard gagal dimuat."));
@@ -114,7 +124,6 @@ export default function MemberDashboard() {
       setError(getErrorMessage(err, "Gagal memuat dashboard."));
       setActivities([]);
       setCrowd({ count: 0, status: "Quiet" });
-      setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -127,14 +136,6 @@ export default function MemberDashboard() {
 
     return () => clearTimeout(timeoutId);
   }, [fetchDashboard]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setTapRows(getStoredTapHistory(user?.id || profile?.id));
-    }, 0);
-
-    return () => clearTimeout(timeoutId);
-  }, [profile?.id, user?.id]);
 
   const dashboardData = useMemo(() => {
     const completedActivities = activities.filter((activity) => activity.is_completed);
@@ -187,11 +188,11 @@ export default function MemberDashboard() {
         .eyebrow { color: #f2f0ff; font-size: 12px; font-weight: 900; margin-bottom: 16px; position: relative; text-transform: uppercase; z-index: 1; }
         .recap-card h2 { color: #fff; font-family: 'Anton', sans-serif; font-size: clamp(30px, 3vw, 44px); font-weight: 400; line-height: 1; margin-bottom: 30px; max-width: 780px; position: relative; z-index: 1; }
         .stats-row { display: grid; gap: 18px; grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 960px; position: relative; z-index: 1; }
-        .stat-card { align-items: center; background: rgba(255,255,255,.26); border-radius: 8px; display: flex; gap: 12px; min-height: 76px; min-width: 0; padding: 14px; }
-        .stat-icon { align-items: center; background: #ff7a00; border-radius: 13px; color: #fff; display: inline-flex; flex: 0 0 auto; height: 48px; justify-content: center; width: 48px; }
-        .stat-icon svg { height: 23px; width: 23px; }
-        .stat-card strong { color: #fff; display: block; font-size: 25px; font-weight: 900; line-height: 1; overflow-wrap: anywhere; }
-        .stat-card span { color: #fff; display: block; font-size: 9px; font-weight: 800; line-height: 1.25; margin-top: 5px; opacity: .95; }
+        .stat-card { align-items: center; background: rgba(255,255,255,.26); border-radius: 8px; display: grid; gap: 14px; grid-template-columns: 58px minmax(0, 1fr); min-height: 86px; min-width: 0; padding: 14px 16px; }
+        .stat-icon { align-items: center; align-self: center; background: #ff7a00; border-radius: 14px; color: #fff; display: inline-flex; height: 58px; justify-content: center; justify-self: center; width: 58px; }
+        .stat-icon svg { display: block; height: 30px; width: 30px; }
+        .stat-card strong { color: #fff; display: block; font-size: 27px; font-weight: 900; line-height: .95; overflow-wrap: anywhere; }
+        .stat-card span:not(.stat-icon) { color: #fff; display: block; font-size: 10px; font-weight: 900; line-height: 1.15; margin-top: 7px; opacity: .95; }
         .recap-meta-row { display: none; }
         .recap-meta-card { background: rgba(255,255,255,.20); border-radius: 8px; min-height: 122px; padding: 18px 20px; }
         .recap-meta-card span { color: #f2f0ff; display: block; font-size: 12px; font-weight: 900; margin-bottom: 9px; text-transform: uppercase; }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { authApi } from "../../../components/auth/authApi";
 import signupGym from "../../../assets/auth/signup-gym.jpg";
@@ -9,46 +9,60 @@ const getErrorMessage = (err, fallback) =>
 
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
+const STEP_REQUEST = "request";
+const STEP_VERIFY = "verify";
+const STEP_RESET = "reset";
+
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "", otp: "", newPassword: "", confirmPassword: "" });
+  const otpRefs = useRef([]);
+  const [step, setStep] = useState(STEP_REQUEST);
+  const [email, setEmail] = useState("");
+  const [otpDigits, setOtpDigits] = useState(Array(6).fill(""));
+  const [passwords, setPasswords] = useState({ newPassword: "", confirmPassword: "" });
   const [fieldErrors, setFieldErrors] = useState({});
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState("");
-  const [otpRequested, setOtpRequested] = useState(false);
+  const [expiresIn, setExpiresIn] = useState(15 * 60);
 
-  const updateField = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }));
-    setFieldErrors((current) => ({ ...current, [field]: "" }));
+  const otp = useMemo(() => otpDigits.join(""), [otpDigits]);
+
+  useEffect(() => {
+    if (step !== STEP_VERIFY) return undefined;
+    const intervalId = setInterval(() => {
+      setExpiresIn((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [step]);
+
+  const clearFeedback = () => {
     setMessage("");
     setError("");
-  };
-
-  const validateEmail = () => {
-    if (!isValidEmail(form.email.trim())) {
-      setFieldErrors({ email: "Email tidak valid" });
-      return false;
-    }
-    return true;
   };
 
   const requestOtp = async (mode = "request") => {
-    if (!validateEmail()) return;
+    clearFeedback();
+    setFieldErrors({});
+
+    if (!isValidEmail(email.trim())) {
+      setFieldErrors({ email: "Email tidak valid" });
+      return;
+    }
 
     setLoading(mode);
-    setMessage("");
-    setError("");
-
     try {
-      const payload = { email: form.email.trim() };
+      const payload = { email: email.trim() };
       const response =
         mode === "resend"
           ? await authApi.resendForgotPassword(payload)
           : await authApi.forgotPassword(payload);
 
-      setOtpRequested(true);
+      setExpiresIn(15 * 60);
+      setOtpDigits(Array(6).fill(""));
+      setStep(STEP_VERIFY);
       setMessage(response.data?.message || "OTP reset password sudah dikirim ke email kamu.");
+      setTimeout(() => otpRefs.current[0]?.focus(), 0);
     } catch (err) {
       setError(getErrorMessage(err, "Gagal mengirim OTP reset password."));
     } finally {
@@ -56,150 +70,221 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const validateReset = () => {
-    const errors = {};
+  const handleOtpChange = (index, value) => {
+    clearFeedback();
+    const digit = value.replace(/\D/g, "").slice(-1);
+    setFieldErrors((current) => ({ ...current, otp: "" }));
+    setOtpDigits((current) => {
+      const next = [...current];
+      next[index] = digit;
+      return next;
+    });
+    if (digit && index < 5) otpRefs.current[index + 1]?.focus();
+  };
 
-    if (!isValidEmail(form.email.trim())) errors.email = "Email tidak valid";
-    if (!/^\d{6}$/.test(form.otp.trim())) errors.otp = "OTP harus 6 digit angka";
-    if (form.newPassword.length < 6) errors.newPassword = "Password minimal 6 karakter";
-    if (form.confirmPassword !== form.newPassword) {
-      errors.confirmPassword = "Konfirmasi password tidak sama";
+  const handleOtpKeyDown = (index, event) => {
+    if (event.key === "Backspace" && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
     }
+  };
 
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
+  const continueToPassword = (event) => {
+    event.preventDefault();
+    clearFeedback();
+    if (!/^\d{6}$/.test(otp)) {
+      setFieldErrors({ otp: "OTP harus 6 digit angka" });
+      return;
+    }
+    setStep(STEP_RESET);
   };
 
   const resetPassword = async (event) => {
     event.preventDefault();
-    if (!validateReset()) return;
+    clearFeedback();
+
+    const errors = {};
+    if (passwords.newPassword.length < 6) errors.newPassword = "Password minimal 6 karakter";
+    if (passwords.confirmPassword !== passwords.newPassword) errors.confirmPassword = "Konfirmasi password tidak sama";
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
 
     setLoading("reset");
-    setMessage("");
-    setError("");
-
     try {
       const response = await authApi.resetPassword({
-        email: form.email.trim(),
-        otp: form.otp.trim(),
-        newPassword: form.newPassword,
+        email: email.trim(),
+        otp,
+        newPassword: passwords.newPassword,
       });
 
       navigate("/sign-in", {
         replace: true,
-        state: {
-          notice: response.data?.message || "Password berhasil direset. Silakan login.",
-        },
+        state: { notice: response.data?.message || "Password berhasil direset. Silakan login." },
       });
     } catch (err) {
       setError(getErrorMessage(err, "Gagal reset password."));
+      setStep(STEP_VERIFY);
     } finally {
       setLoading("");
     }
   };
 
+  const goBack = () => {
+    clearFeedback();
+    setFieldErrors({});
+    if (step === STEP_RESET) {
+      setStep(STEP_VERIFY);
+      return;
+    }
+    if (step === STEP_VERIFY) {
+      setStep(STEP_REQUEST);
+      return;
+    }
+    navigate("/sign-in");
+  };
+
+  const timerText = `${String(Math.floor(expiresIn / 60)).padStart(2, "0")}:${String(expiresIn % 60).padStart(2, "0")}`;
+
   return (
     <>
       <style>{forgotStyles}</style>
       <main className="forgot-page">
+        <button className="forgot-back" onClick={goBack} type="button" aria-label="Back">
+          <span aria-hidden="true">←</span>
+        </button>
+
         <section className="forgot-shell" aria-labelledby="forgot-title">
           <div className="forgot-panel">
-            <img className="forgot-logo" src={vocafitLogo} alt="Vocafit" />
-            <h1 id="forgot-title">Reset Password</h1>
-            <p className="forgot-copy">
-              Masukkan email akun kamu, lalu gunakan OTP dari email untuk membuat password baru.
-            </p>
+            {step === STEP_REQUEST && (
+              <form className="forgot-form forgot-form-request" onSubmit={(event) => { event.preventDefault(); requestOtp("request"); }} noValidate>
+                <img className="forgot-logo" src={vocafitLogo} alt="Vocafit" />
+                <h1 id="forgot-title">Forgot Password?</h1>
+                <p className="forgot-copy">Enter your registered email address to receive a verification code.</p>
 
-            {message && <p className="forgot-alert success">{message}</p>}
-            {error && <p className="forgot-alert error">{error}</p>}
+                {message && <p className="forgot-alert success">{message}</p>}
+                {error && <p className="forgot-alert error">{error}</p>}
 
-            <form className="forgot-form" onSubmit={resetPassword} noValidate>
-              <label className="forgot-field" htmlFor="email">
-                <span>Email</span>
-                <input
-                  id="email"
-                  type="email"
-                  value={form.email}
-                  onChange={(event) => updateField("email", event.target.value)}
-                  className={fieldErrors.email ? "has-error" : ""}
-                  placeholder="johndoe@gmail.com"
-                  autoComplete="email"
-                />
-                {fieldErrors.email && <small>{fieldErrors.email}</small>}
-              </label>
+                <label className="forgot-field" htmlFor="email">
+                  <span>Email Address</span>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      setFieldErrors((current) => ({ ...current, email: "" }));
+                      clearFeedback();
+                    }}
+                    className={fieldErrors.email ? "has-error" : ""}
+                    placeholder="example@mhs.unesa.ac.id"
+                    autoComplete="email"
+                  />
+                  {fieldErrors.email && <small>{fieldErrors.email}</small>}
+                </label>
 
-              <div className="forgot-otp-actions">
-                <button
-                  className="forgot-secondary"
-                  disabled={Boolean(loading)}
-                  onClick={() => requestOtp("request")}
-                  type="button"
-                >
-                  {loading === "request" ? "Mengirim..." : "Kirim OTP"}
+                <button className="forgot-submit" disabled={Boolean(loading)} type="submit">
+                  {loading === "request" ? "Requesting..." : "Request OTP"}
                 </button>
-                <button
-                  className="forgot-secondary"
-                  disabled={Boolean(loading) || !otpRequested}
-                  onClick={() => requestOtp("resend")}
-                  type="button"
-                >
-                  {loading === "resend" ? "Mengirim..." : "Kirim Ulang"}
+
+                <div className="forgot-divider" />
+                <p className="forgot-footer">Remember your password? <Link to="/sign-in">Log In</Link></p>
+              </form>
+            )}
+
+            {step === STEP_VERIFY && (
+              <form className="forgot-form forgot-form-verify" onSubmit={continueToPassword} noValidate>
+                <h1 id="forgot-title">Verify OTP</h1>
+                <p className="forgot-copy">Enter the 6-digit verification code sent to your email address</p>
+
+                {message && <p className="forgot-alert success">{message}</p>}
+                {error && <p className="forgot-alert error">{error}</p>}
+
+                <div className="forgot-otp-group" aria-label="OTP code">
+                  {otpDigits.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(element) => { otpRefs.current[index] = element; }}
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(event) => handleOtpChange(index, event.target.value)}
+                      onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                      className={fieldErrors.otp ? "has-error" : ""}
+                      aria-label={`OTP digit ${index + 1}`}
+                      autoComplete={index === 0 ? "one-time-code" : "off"}
+                    />
+                  ))}
+                </div>
+                {fieldErrors.otp && <small className="forgot-otp-error">{fieldErrors.otp}</small>}
+
+                <p className="forgot-expire">Code expires in: <span>{timerText}</span></p>
+
+                <button className="forgot-secondary" disabled={Boolean(loading)} onClick={() => requestOtp("resend")} type="button">
+                  {loading === "resend" ? "Resending..." : "Resend OTP"}
                 </button>
-              </div>
+                <button className="forgot-submit" disabled={Boolean(loading)} type="submit">Verify OTP</button>
+              </form>
+            )}
 
-              <label className="forgot-field" htmlFor="otp">
-                <span>OTP</span>
-                <input
-                  id="otp"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={form.otp}
-                  onChange={(event) => updateField("otp", event.target.value.replace(/\D/g, ""))}
-                  className={fieldErrors.otp ? "has-error" : ""}
-                  placeholder="6 digit OTP"
-                  autoComplete="one-time-code"
-                />
-                {fieldErrors.otp && <small>{fieldErrors.otp}</small>}
-              </label>
+            {step === STEP_RESET && (
+              <form className="forgot-form forgot-form-reset" onSubmit={resetPassword} noValidate>
+                <h1 id="forgot-title">Create New Password</h1>
+                <p className="forgot-copy">Create a strong password to secure your account</p>
 
-              <label className="forgot-field" htmlFor="newPassword">
-                <span>Password Baru</span>
-                <input
-                  id="newPassword"
-                  type="password"
-                  value={form.newPassword}
-                  onChange={(event) => updateField("newPassword", event.target.value)}
-                  className={fieldErrors.newPassword ? "has-error" : ""}
-                  autoComplete="new-password"
-                />
-                {fieldErrors.newPassword && <small>{fieldErrors.newPassword}</small>}
-              </label>
+                {error && <p className="forgot-alert error">{error}</p>}
 
-              <label className="forgot-field" htmlFor="confirmPassword">
-                <span>Konfirmasi Password</span>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={form.confirmPassword}
-                  onChange={(event) => updateField("confirmPassword", event.target.value)}
-                  className={fieldErrors.confirmPassword ? "has-error" : ""}
-                  autoComplete="new-password"
-                />
-                {fieldErrors.confirmPassword && <small>{fieldErrors.confirmPassword}</small>}
-              </label>
+                <label className="forgot-field" htmlFor="newPassword">
+                  <span>New Password</span>
+                  <input
+                    id="newPassword"
+                    type="password"
+                    value={passwords.newPassword}
+                    onChange={(event) => {
+                      setPasswords((current) => ({ ...current, newPassword: event.target.value }));
+                      setFieldErrors((current) => ({ ...current, newPassword: "" }));
+                      clearFeedback();
+                    }}
+                    className={fieldErrors.newPassword ? "has-error" : ""}
+                    placeholder="Enter your new password"
+                    autoComplete="new-password"
+                  />
+                  {fieldErrors.newPassword && <small>{fieldErrors.newPassword}</small>}
+                </label>
 
-              <button className="forgot-submit" disabled={Boolean(loading)} type="submit">
-                {loading === "reset" ? "Menyimpan..." : "Reset Password"}
-              </button>
-            </form>
+                <label className="forgot-field" htmlFor="confirmPassword">
+                  <span>Confirm Password</span>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    value={passwords.confirmPassword}
+                    onChange={(event) => {
+                      setPasswords((current) => ({ ...current, confirmPassword: event.target.value }));
+                      setFieldErrors((current) => ({ ...current, confirmPassword: "" }));
+                      clearFeedback();
+                    }}
+                    className={fieldErrors.confirmPassword ? "has-error" : ""}
+                    placeholder="Confirm your new password"
+                    autoComplete="new-password"
+                  />
+                  {fieldErrors.confirmPassword && <small>{fieldErrors.confirmPassword}</small>}
+                </label>
 
-            <p className="forgot-footer">
-              Ingat password? <Link to="/sign-in">Sign In</Link>
-            </p>
+                <button className="forgot-submit" disabled={Boolean(loading)} type="submit">
+                  {loading === "reset" ? "Saving..." : "Save Password"}
+                </button>
+              </form>
+            )}
           </div>
 
           <aside className="forgot-visual" aria-label="Gym preview">
             <img src={signupGym} alt="Gym equipment" />
+            <div className="forgot-dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
           </aside>
         </section>
       </main>
@@ -215,69 +300,97 @@ const forgotStyles = `
 
   .forgot-page {
     min-height: 100vh;
-    background: #080173;
+    background: #080478;
     color: #fff;
     display: grid;
     font-family: 'DM Sans', sans-serif;
     place-items: center;
-    padding: 28px;
+    padding: 32px 28px;
+    position: relative;
+  }
+
+  .forgot-back {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: #ffdc7b;
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: 28px;
+    font-weight: 900;
+    height: 40px;
+    justify-content: center;
+    left: 28px;
+    position: fixed;
+    top: 20px;
+    width: 40px;
+    z-index: 2;
   }
 
   .forgot-shell {
-    width: min(100%, 1040px);
-    min-height: 640px;
-    background: rgba(255, 255, 255, .04);
-    border: 1px solid rgba(255, 220, 123, .22);
-    border-radius: 12px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, .18);
+    align-items: stretch;
     display: grid;
-    gap: 48px;
-    grid-template-columns: minmax(320px, .9fr) minmax(360px, 1.1fr);
-    overflow: hidden;
-    padding: 36px 44px;
+    gap: 78px;
+    grid-template-columns: minmax(320px, 360px) minmax(360px, 408px);
+    justify-content: center;
+    min-height: 544px;
+    width: min(100%, 860px);
   }
 
   .forgot-panel {
     align-self: center;
     display: grid;
-    justify-self: center;
     justify-items: center;
-    width: min(100%, 390px);
+    width: 100%;
+  }
+
+  .forgot-form {
+    display: grid;
+    justify-items: center;
+    width: 100%;
+  }
+
+  .forgot-form-request {
+    margin-top: 16px;
+  }
+
+  .forgot-form-verify,
+  .forgot-form-reset {
+    align-self: center;
   }
 
   .forgot-logo {
     display: block;
     height: auto;
-    margin-bottom: 12px;
-    width: 72px;
+    margin-bottom: 8px;
+    width: 84px;
   }
 
   .forgot-panel h1 {
     color: #ffdc7b;
     font-size: 22px;
     font-weight: 900;
-    line-height: 1;
+    line-height: 1.1;
     margin: 0 0 12px;
-  }
-
-  .forgot-copy {
-    color: rgba(255,255,255,.84);
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1.4;
-    margin: 0 0 20px;
     text-align: center;
   }
 
-  .forgot-form {
-    display: grid;
-    gap: 11px;
-    width: 100%;
+  .forgot-copy {
+    color: rgba(255,255,255,.86);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0 0 26px;
+    max-width: 280px;
+    text-align: center;
   }
 
   .forgot-field {
     display: grid;
-    gap: 6px;
+    gap: 5px;
+    margin-bottom: 18px;
+    width: 100%;
   }
 
   .forgot-field span {
@@ -294,97 +407,84 @@ const forgotStyles = `
     font: inherit;
     font-size: 12px;
     font-weight: 700;
-    height: 38px;
+    height: 34px;
     outline: none;
-    padding: 0 13px;
+    padding: 0 10px;
     width: 100%;
   }
 
   .forgot-field input::placeholder {
-    color: rgba(255,255,255,.75);
+    color: rgba(255,255,255,.45);
   }
 
-  .forgot-field input:focus {
+  .forgot-field input:focus,
+  .forgot-otp-group input:focus {
     border-color: #fff;
-    box-shadow: 0 0 0 3px rgba(255, 220, 123, .2);
+    box-shadow: 0 0 0 3px rgba(255, 220, 123, .18);
   }
 
-  .forgot-field input.has-error {
+  .forgot-field input.has-error,
+  .forgot-otp-group input.has-error {
     border-color: #ff6b20;
-    box-shadow: 0 0 0 3px rgba(255, 107, 32, .18);
   }
 
-  .forgot-field small {
+  .forgot-field small,
+  .forgot-otp-error {
     color: #ffb18a;
     font-size: 11px;
     font-weight: 800;
-    min-height: 15px;
   }
 
-  .forgot-otp-actions {
-    display: grid;
-    gap: 10px;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .forgot-secondary,
-  .forgot-submit {
+  .forgot-submit,
+  .forgot-secondary {
     align-items: center;
     border-radius: 999px;
     cursor: pointer;
     display: inline-flex;
     font: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 900;
+    height: 37px;
     justify-content: center;
-    min-height: 40px;
+    width: 100%;
+  }
+
+  .forgot-submit {
+    background: #ffdc7b;
+    border: 0;
+    color: #080478;
   }
 
   .forgot-secondary {
     background: transparent;
     border: 1px solid #ffdc7b;
     color: #ffdc7b;
+    margin-bottom: 9px;
   }
 
-  .forgot-submit {
-    background: #ffdc7b;
-    border: 0;
-    color: #080173;
-    margin: 10px auto 0;
-    min-width: 170px;
+  .forgot-submit:hover:not(:disabled),
+  .forgot-secondary:hover:not(:disabled) {
+    transform: translateY(-1px);
   }
 
-  .forgot-secondary:disabled,
-  .forgot-submit:disabled {
+  .forgot-submit:disabled,
+  .forgot-secondary:disabled {
     cursor: not-allowed;
     opacity: .62;
   }
 
-  .forgot-alert {
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1.35;
-    margin: 0 0 14px;
-    padding: 11px 12px;
+  .forgot-divider {
+    background: rgba(255, 220, 123, .34);
+    height: 1px;
+    margin: 19px 0 17px;
     width: 100%;
-  }
-
-  .forgot-alert.success {
-    background: rgba(36, 200, 112, .18);
-    color: #9dffc8;
-  }
-
-  .forgot-alert.error {
-    background: rgba(255, 107, 32, .18);
-    color: #ffb18a;
   }
 
   .forgot-footer {
     color: #fff;
     font-size: 13px;
-    font-weight: 800;
-    margin: 24px 0 0;
+    font-weight: 900;
+    margin: 0;
     text-align: center;
   }
 
@@ -393,11 +493,65 @@ const forgotStyles = `
     text-decoration: none;
   }
 
+  .forgot-alert {
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.3;
+    margin: -10px 0 14px;
+    padding: 9px 10px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .forgot-alert.success {
+    background: rgba(36, 200, 112, .15);
+    color: #9dffc8;
+  }
+
+  .forgot-alert.error {
+    background: rgba(255, 107, 32, .18);
+    color: #ffb18a;
+  }
+
+  .forgot-otp-group {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(6, 1fr);
+    margin-bottom: 16px;
+    width: 100%;
+  }
+
+  .forgot-otp-group input {
+    background: transparent;
+    border: 2px solid #ffdc7b;
+    border-radius: 6px;
+    color: #fff;
+    font: inherit;
+    font-size: 18px;
+    font-weight: 900;
+    height: 34px;
+    outline: none;
+    text-align: center;
+    width: 100%;
+  }
+
+  .forgot-expire {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    margin: 0 0 18px;
+  }
+
+  .forgot-expire span {
+    color: #ff6b20;
+  }
+
   .forgot-visual {
     align-self: stretch;
-    border-radius: 2px;
-    min-height: 560px;
+    min-height: 544px;
     overflow: hidden;
+    position: relative;
   }
 
   .forgot-visual img {
@@ -408,35 +562,48 @@ const forgotStyles = `
     width: 100%;
   }
 
+  .forgot-dots {
+    bottom: 14px;
+    display: inline-flex;
+    gap: 7px;
+    left: 50%;
+    position: absolute;
+    transform: translateX(-50%);
+  }
+
+  .forgot-dots span {
+    background: rgba(255, 220, 123, .62);
+    border-radius: 999px;
+    height: 3px;
+    width: 18px;
+  }
+
+  .forgot-dots span:first-child {
+    background: #ff6b20;
+    width: 28px;
+  }
+
   @media (max-width: 880px) {
     .forgot-shell {
       gap: 28px;
       grid-template-columns: 1fr;
       min-height: 0;
-      padding: 28px;
+      width: min(100%, 430px);
     }
 
     .forgot-visual {
-      min-height: 240px;
+      min-height: 260px;
       order: -1;
     }
   }
 
   @media (max-width: 520px) {
     .forgot-page {
-      padding: 18px;
+      padding: 70px 18px 24px;
     }
 
-    .forgot-shell {
-      padding: 22px;
-    }
-
-    .forgot-panel {
-      width: 100%;
-    }
-
-    .forgot-otp-actions {
-      grid-template-columns: 1fr;
+    .forgot-otp-group {
+      gap: 7px;
     }
   }
 `;

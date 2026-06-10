@@ -6,13 +6,20 @@ import {
   formatTransactionType,
   paymentStyles,
 } from "./paymentHelpers";
+import { confirmAction } from "../../../../utils/sweetAlert";
 
 export default function PaymentsPage() {
   const payments = usePayments();
 
   const handleConfirm = async (item, status) => {
     const actionText = status === "SUCCESS" ? "menerima" : "menolak";
-    if (!window.confirm(`Yakin ingin ${actionText} pembayaran dari ${item.full_name || "member ini"}?`)) return;
+    const confirmed = await confirmAction({
+      confirmButtonColor: status === "SUCCESS" ? "#08a84f" : "#c73822",
+      confirmButtonText: status === "SUCCESS" ? "Terima" : "Tolak",
+      text: `Pembayaran dari ${item.full_name || "member ini"} akan ${actionText}.`,
+      title: `${status === "SUCCESS" ? "Terima" : "Tolak"} Pembayaran?`,
+    });
+    if (!confirmed) return;
 
     const result = await payments.confirmPayment({ transactionId: item.id, status });
     if (result.ok) {

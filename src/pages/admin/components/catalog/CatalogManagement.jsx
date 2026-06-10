@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../../../components/admin/AdminLayout";
 import api from "../../../../components/auth/authApi";
+import { confirmAction } from "../../../../utils/sweetAlert";
 
 const emptyForm = {
   code: "",
@@ -207,7 +208,13 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
   };
 
   const deleteCatalog = async (item) => {
-    if (!window.confirm(`Hapus catalog ${item.code}?`)) return;
+    const confirmed = await confirmAction({
+      confirmButtonColor: "#c73822",
+      confirmButtonText: "Hapus",
+      text: `Catalog ${item.code} akan dihapus.`,
+      title: "Hapus Catalog?",
+    });
+    if (!confirmed) return;
 
     setActionLoading(`delete-${item.code}`);
     setError("");

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import AdminLayout from "../../../../components/admin/AdminLayout";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
 import useTrainers from "./hooks/useTrainers";
+import { confirmAction } from "../../../../utils/sweetAlert";
 
 const trainerStyles = `
   .trainer-head {
@@ -438,7 +439,13 @@ export default function TrainerPage() {
   };
 
   const handleDelete = async (trainer) => {
-    if (!window.confirm(`Hapus trainer "${trainer.name}"?`)) return;
+    const confirmed = await confirmAction({
+      confirmButtonColor: "#c73822",
+      confirmButtonText: "Hapus",
+      text: `Trainer "${trainer.name}" akan dihapus.`,
+      title: "Hapus Trainer?",
+    });
+    if (!confirmed) return;
     const result = await trainers.deleteTrainer(trainer.id);
     if (result.ok) trainers.fetchTrainers();
   };

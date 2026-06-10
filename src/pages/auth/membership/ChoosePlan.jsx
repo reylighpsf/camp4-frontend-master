@@ -12,7 +12,7 @@ export default function ChoosePlan() {
 
     const fetchCatalogPlans = async () => {
       try {
-        const response = await api.get("/catalogs");
+        const response = await api.get("/catalogs/membership");
         if (isMounted) setPlans(mapCatalogsToMembershipPlans(response.data?.data || []));
       } catch {
         if (isMounted) setPlans(authMembershipPlans);

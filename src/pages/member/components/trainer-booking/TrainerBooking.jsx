@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import api from "../../../../components/auth/authApi";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
+import TrainerScheduleBookingModal from "./TrainerScheduleBooking";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
@@ -17,6 +18,17 @@ const formatPrice = (value) => {
   const amount = Number(String(value).replace(/[^\d]/g, ""));
   if (!amount) return "50+ sessions";
   return `Rp ${amount.toLocaleString("id-ID")} / sesi`;
+};
+
+const getExpertiseList = (trainer) => {
+  const detail = parseTrainerBio(trainer?.bio);
+  const source = trainer?.specialties || detail.specialization || "HIIT, Cardio, Stamina, Fat Burn";
+  const items = String(source)
+    .split(/[,|/]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return items.length > 0 ? items.slice(0, 4) : ["HIIT", "Cardio", "Stamina", "Fat Burn"];
 };
 
 const formatDateTime = (value) => {
@@ -46,9 +58,12 @@ const FilterIcon = () => (
 );
 
 export default function TrainerBookingPage() {
+  const navigate = useNavigate();
   const [trainers, setTrainers] = useState([]);
+  const [trainerCatalogs, setTrainerCatalogs] = useState([]);
   const [packages, setPackages] = useState([]);
   const [selectedTrainer, setSelectedTrainer] = useState(null);
+  const [scheduleTrainer, setScheduleTrainer] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -69,11 +84,20 @@ export default function TrainerBookingPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/trainers");
-      setTrainers(response.data?.data || []);
+      const [trainerResponse, catalogResponse] = await Promise.all([
+        api.get("/trainers"),
+        api.get("/catalogs/trainer"),
+      ]);
+      setTrainers(trainerResponse.data?.data || []);
+      setTrainerCatalogs(
+        (catalogResponse.data?.data || [])
+          .filter((catalog) => catalog.family === "PERSONAL_TRAINER" && catalog.is_active !== false)
+          .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0)),
+      );
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat trainer."));
       setTrainers([]);
+      setTrainerCatalogs([]);
     } finally {
       setLoading(false);
     }
@@ -577,18 +601,150 @@ export default function TrainerBookingPage() {
         }
 
         .trainer-detail-card {
-          background: #fff;
-          border-radius: 12px;
+          background: #ffffff;
+          border-radius: 8px;
+          box-shadow: 0 24px 70px rgba(4, 2, 64, .25);
+          color: #0b0871;
           max-width: 520px;
-          padding: 22px;
+          padding: 0;
+          overflow: hidden;
           width: 100%;
         }
 
-        .trainer-detail-card img {
+        .trainer-detail-head {
+          align-items: center;
+          border-bottom: 1px solid #d5d7ec;
+          display: flex;
+          justify-content: space-between;
+          min-height: 58px;
+          padding: 0 26px;
+        }
+
+        .trainer-detail-head h2 {
+          color: #0b0871;
+          font-size: 14px;
+          font-weight: 900;
+          letter-spacing: 2.5px;
+          margin: 0;
+          text-transform: uppercase;
+        }
+
+        .trainer-detail-close {
+          align-items: center;
+          background: transparent;
+          border: 0;
+          color: #0b0871;
+          cursor: pointer;
+          display: inline-flex;
+          height: 32px;
+          justify-content: center;
+          width: 32px;
+        }
+
+        .trainer-detail-close svg {
+          height: 18px;
+          width: 18px;
+        }
+
+        .trainer-detail-body {
+          display: grid;
+          gap: 26px;
+          padding: 22px 32px 28px;
+        }
+
+        .trainer-profile-summary {
+          align-items: center;
+          background: #d6d8ec;
           border-radius: 10px;
-          height: 220px;
+          display: grid;
+          gap: 22px;
+          grid-template-columns: 96px minmax(0, 1fr);
+          min-height: 136px;
+          padding: 18px;
+        }
+
+        .trainer-profile-summary img {
+          border-radius: 8px;
+          height: 108px;
           object-fit: cover;
-          width: 100%;
+          width: 96px;
+        }
+
+        .trainer-profile-summary h3 {
+          color: #0b0871;
+          font-size: 20px;
+          font-weight: 900;
+          margin: 0 0 6px;
+        }
+
+        .trainer-profile-summary strong {
+          color: #ff6414;
+          display: block;
+          font-size: 13px;
+          font-weight: 900;
+          margin-bottom: 10px;
+          text-transform: uppercase;
+        }
+
+        .trainer-profile-meta {
+          align-items: center;
+          color: #0b0871;
+          display: flex;
+          flex-wrap: wrap;
+          font-size: 12px;
+          font-weight: 700;
+          gap: 10px;
+        }
+
+        .trainer-profile-meta .star {
+          color: #ff6414;
+        }
+
+        .trainer-detail-section h3 {
+          color: #0b0871;
+          font-size: 14px;
+          font-weight: 900;
+          letter-spacing: 2.5px;
+          margin: 0 0 12px;
+          text-transform: uppercase;
+        }
+
+        .trainer-detail-section p {
+          color: #292782;
+          font-size: 14px;
+          font-weight: 600;
+          line-height: 1.32;
+          margin: 0;
+        }
+
+        .trainer-expertise {
+          display: grid;
+          gap: 8px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .trainer-expertise span {
+          align-items: center;
+          background: #ffe0cf;
+          border-radius: 999px;
+          color: #ff6414;
+          display: inline-flex;
+          font-size: 11px;
+          font-weight: 700;
+          justify-content: center;
+          min-height: 26px;
+          padding: 0 12px;
+          text-align: center;
+        }
+
+        .trainer-detail-actions {
+          display: grid;
+          gap: 10px;
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .trainer-detail-actions .trainer-action {
+          height: 40px;
         }
 
         @media (max-width: 1120px) {
@@ -621,6 +777,11 @@ export default function TrainerBookingPage() {
 
           .trainer-photo {
             width: 96px;
+          }
+
+          .trainer-detail-actions,
+          .trainer-expertise {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
@@ -676,7 +837,7 @@ export default function TrainerBookingPage() {
                       <span>{formatPrice(detail.price)}</span>
                     </div>
                     <p className="trainer-desc">
-                      “Let’s burn those calories! Specializing in high-intensity intervals that guarantee sweat and smiles.”
+                      “Build strength and stamina with high-intensity intervals designed for every fitness level.”
                     </p>
                     <div className="trainer-actions">
                       <button
@@ -779,18 +940,78 @@ export default function TrainerBookingPage() {
       {selectedTrainer && (
         <div className="trainer-detail-modal">
           <article className="trainer-detail-card" role="dialog" aria-modal="true">
-            <img src={selectedTrainer.image_url || gymImage} alt="" />
-            <h2>{selectedTrainer.name}</h2>
-            <p>{selectedTrainer.specialties || parseTrainerBio(selectedTrainer.bio).specialization}</p>
-            <p>{selectedTrainer.bio || "Belum ada bio trainer."}</p>
-            <div className="trainer-actions">
-              <button className="trainer-action secondary" onClick={() => setSelectedTrainer(null)} type="button">
-                Tutup
+            <div className="trainer-detail-head">
+              <h2>Trainer Profile</h2>
+              <button className="trainer-detail-close" onClick={() => setSelectedTrainer(null)} type="button" aria-label="Close trainer profile">
+                <CloseIcon />
               </button>
+            </div>
+
+            <div className="trainer-detail-body">
+              <section className="trainer-profile-summary">
+                <img src={selectedTrainer.image_url || gymImage} alt="" />
+                <div>
+                  <h3>{selectedTrainer.name}</h3>
+                  <strong>{parseTrainerBio(selectedTrainer.bio).specialization}</strong>
+                  <div className="trainer-profile-meta">
+                    <span className="star">★ 4.7</span>
+                    <span>50+ sessions</span>
+                  </div>
+                </div>
+              </section>
+
+              <section className="trainer-detail-section">
+                <h3>About</h3>
+                <p>
+                  {selectedTrainer.bio ||
+                    "Trainer membantu member meningkatkan endurance, strength, dan kebugaran melalui program latihan yang sesuai untuk semua level."}
+                </p>
+              </section>
+
+              <section className="trainer-detail-section">
+                <h3>Expertise</h3>
+                <div className="trainer-expertise">
+                  {getExpertiseList(selectedTrainer).map((item) => (
+                    <span key={item}>{item}</span>
+                  ))}
+                </div>
+              </section>
+
+              <div className="trainer-detail-actions">
+                <button className="trainer-action secondary" onClick={() => setSelectedTrainer(null)} type="button">
+                  Close
+                </button>
+                <button
+                  className="trainer-action primary"
+                  onClick={() => {
+                    setScheduleTrainer(selectedTrainer);
+                    setSelectedTrainer(null);
+                  }}
+                  type="button"
+                >
+                  View Schedule & Book Session
+                </button>
+              </div>
             </div>
           </article>
         </div>
       )}
+      {scheduleTrainer && (
+        <TrainerScheduleBookingModal
+          catalogs={trainerCatalogs}
+          onClose={() => setScheduleTrainer(null)}
+          onConfirm={(catalogCode) => navigate(`/member/trainer-checkout?trainerId=${scheduleTrainer.id}&catalog=${catalogCode}`)}
+          trainer={scheduleTrainer}
+        />
+      )}
     </MemberLayout>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }

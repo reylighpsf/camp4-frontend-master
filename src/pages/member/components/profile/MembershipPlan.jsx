@@ -44,23 +44,6 @@ const formatCurrency = (value) =>
     style: "currency",
   }).format(Number(value || 0));
 
-const formatDateTime = (value) => {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
-};
-
-const formatTransactionType = (value) =>
-  String(value || "-")
-    .replaceAll("_", " ")
-    .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-
 const formatTierName = (value) =>
   String(value || "-")
     .replaceAll("_", " ")
@@ -157,10 +140,7 @@ export default function ProfileMembershipPlanPage() {
   const [profile, setProfile] = useState(null);
   const [catalogPlans, setCatalogPlans] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [actionLoadingId, setActionLoadingId] = useState("");
   const [paymentPlan, setPaymentPlan] = useState(null);
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("QRIS");
@@ -169,7 +149,6 @@ export default function ProfileMembershipPlanPage() {
   const [registrationPlanId, setRegistrationPlanId] = useState("");
 
   const fetchTransactions = async () => {
-    setTransactionsLoading(true);
     try {
       const response = await api.get("/transactions/history", {
         params: { page: 1, limit: 20 },
@@ -178,8 +157,6 @@ export default function ProfileMembershipPlanPage() {
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat riwayat transaksi."));
       setTransactions([]);
-    } finally {
-      setTransactionsLoading(false);
     }
   };
 
@@ -189,7 +166,7 @@ export default function ProfileMembershipPlanPage() {
       try {
         const [profileResult, catalogResult] = await Promise.allSettled([
           api.get("/users/me"),
-          api.get("/catalogs"),
+          api.get("/catalogs/membership"),
         ]);
 
         if (profileResult.status === "fulfilled") {
@@ -287,35 +264,6 @@ export default function ProfileMembershipPlanPage() {
     null;
   const memberId = profile?.id ? `VF-${String(profile.id).slice(0, 8).toUpperCase()}` : "VF-2024-1234";
 
-  const viewTransactionDetails = async (transactionId) => {
-    setActionLoadingId(transactionId);
-    setError("");
-    try {
-      const response = await api.get(`/transactions/${transactionId}`);
-      setSelectedTransaction(response.data?.data || null);
-    } catch (err) {
-      setError(getErrorMessage(err, "Gagal memuat detail transaksi."));
-    } finally {
-      setActionLoadingId("");
-    }
-  };
-
-  const cancelTransaction = async (transaction) => {
-    if (!window.confirm(`Batalkan transaksi ${transaction.order_id || transaction.id}?`)) return;
-
-    setActionLoadingId(transaction.id);
-    setError("");
-    try {
-      const response = await api.post(`/transactions/${transaction.id}/cancel`);
-      setSelectedTransaction(response.data?.data || null);
-      await fetchTransactions();
-    } catch (err) {
-      setError(getErrorMessage(err, "Gagal membatalkan transaksi."));
-    } finally {
-      setActionLoadingId("");
-    }
-  };
-
   const createMembershipPayment = async () => {
     if (!paymentPlan) return;
 
@@ -326,7 +274,6 @@ export default function ProfileMembershipPlanPage() {
         paymentMethod,
         transactionType: paymentPlan.catalogCode || getTransactionTypeFromPlanId(paymentPlan.paymentPlanId || paymentPlan.id),
       });
-      const transaction = response.data?.data?.transaction || response.data?.data;
       const paymentUrl = response.data?.data?.paymentUrl;
 
       if (paymentMethod === "QRIS" && paymentUrl) {
@@ -334,7 +281,6 @@ export default function ProfileMembershipPlanPage() {
         return;
       }
 
-      setSelectedTransaction(transaction || null);
       setPaymentPlan(null);
       await fetchTransactions();
     } catch (err) {
@@ -1034,131 +980,6 @@ export default function ProfileMembershipPlanPage() {
           padding: 12px 14px;
         }
 
-        .profile-transaction-panel {
-          background: #ffffff;
-          border-radius: 12px;
-          box-shadow: 0 14px 28px rgba(8, 4, 120, .08);
-          padding: 22px;
-        }
-
-        .profile-transaction-head {
-          align-items: center;
-          display: flex;
-          gap: 14px;
-          justify-content: space-between;
-          margin-bottom: 16px;
-        }
-
-        .profile-transaction-head h2 {
-          color: #0b0871;
-          font-size: 18px;
-          font-weight: 900;
-          margin: 0;
-        }
-
-        .profile-transaction-table-wrap {
-          overflow-x: auto;
-        }
-
-        .profile-transaction-table {
-          border-collapse: collapse;
-          min-width: 760px;
-          width: 100%;
-        }
-
-        .profile-transaction-table th {
-          background: #f0f1f5;
-          color: #30333d;
-          font-size: 11px;
-          padding: 12px;
-          text-align: left;
-          text-transform: uppercase;
-        }
-
-        .profile-transaction-table td {
-          border-bottom: 1px solid #eceef3;
-          color: #0b0871;
-          font-size: 12px;
-          font-weight: 800;
-          padding: 12px;
-        }
-
-        .profile-transaction-badge {
-          border-radius: 999px;
-          display: inline-flex;
-          font-size: 10px;
-          font-weight: 900;
-          padding: 5px 9px;
-          text-transform: uppercase;
-        }
-
-        .profile-transaction-badge.pending {
-          background: #fff4d8;
-          color: #9a5a00;
-        }
-
-        .profile-transaction-badge.success {
-          background: #edfdf3;
-          color: #16794c;
-        }
-
-        .profile-transaction-badge.failed {
-          background: #fff1f0;
-          color: #c73822;
-        }
-
-        .profile-transaction-actions {
-          display: flex;
-          gap: 8px;
-        }
-
-        .profile-transaction-btn {
-          border-radius: 8px;
-          cursor: pointer;
-          font: inherit;
-          font-size: 11px;
-          font-weight: 900;
-          min-height: 32px;
-          padding: 0 10px;
-        }
-
-        .profile-transaction-btn.detail {
-          background: #0b0871;
-          border: 1px solid #0b0871;
-          color: #fff;
-        }
-
-        .profile-transaction-btn.cancel {
-          background: #fff;
-          border: 1px solid #c73822;
-          color: #c73822;
-        }
-
-        .profile-transaction-btn:disabled {
-          cursor: not-allowed;
-          opacity: .62;
-        }
-
-        .profile-transaction-detail {
-          background: #f7f8fb;
-          border-radius: 8px;
-          display: grid;
-          gap: 8px;
-          margin-bottom: 14px;
-          padding: 14px;
-        }
-
-        .profile-transaction-detail strong {
-          color: #0b0871;
-          font-size: 13px;
-        }
-
-        .profile-transaction-detail span {
-          color: #565a91;
-          font-size: 12px;
-          font-weight: 800;
-        }
-
         @media (max-width: 1040px) {
           .profile-plan-hero,
           .profile-plan-stats,
@@ -1280,84 +1101,6 @@ export default function ProfileMembershipPlanPage() {
           </div>
         </section>
 
-        <section className="profile-transaction-panel">
-          <div className="profile-transaction-head">
-            <h2>Payment History</h2>
-            <button className="profile-transaction-btn detail" disabled={transactionsLoading} onClick={fetchTransactions} type="button">
-              {transactionsLoading ? "Loading..." : "Refresh"}
-            </button>
-          </div>
-
-          {selectedTransaction && (
-            <div className="profile-transaction-detail">
-              <strong>{selectedTransaction.order_id || selectedTransaction.id}</strong>
-              <span>{formatTransactionType(selectedTransaction.transaction_type)} - {selectedTransaction.status}</span>
-              <span>{formatCurrency(selectedTransaction.amount)} via {selectedTransaction.payment_method || "-"}</span>
-            </div>
-          )}
-
-          <div className="profile-transaction-table-wrap">
-            <table className="profile-transaction-table">
-              <thead>
-                <tr>
-                  <th>Tipe</th>
-                  <th>Metode</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>Dibuat</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactionsLoading && (
-                  <tr>
-                    <td colSpan="6">Memuat riwayat transaksi...</td>
-                  </tr>
-                )}
-                {!transactionsLoading && transactions.length === 0 && (
-                  <tr>
-                    <td colSpan="6">Belum ada transaksi.</td>
-                  </tr>
-                )}
-                {!transactionsLoading && transactions.map((transaction) => (
-                  <tr key={transaction.id}>
-                    <td>{formatTransactionType(transaction.transaction_type)}</td>
-                    <td>{transaction.payment_method || "-"}</td>
-                    <td>{formatCurrency(transaction.amount)}</td>
-                    <td>
-                      <span className={`profile-transaction-badge ${String(transaction.status || "").toLowerCase()}`}>
-                        {transaction.status || "-"}
-                      </span>
-                    </td>
-                    <td>{formatDateTime(transaction.created_at)}</td>
-                    <td>
-                      <div className="profile-transaction-actions">
-                        <button
-                          className="profile-transaction-btn detail"
-                          disabled={actionLoadingId === transaction.id}
-                          onClick={() => viewTransactionDetails(transaction.id)}
-                          type="button"
-                        >
-                          Detail
-                        </button>
-                        {transaction.status === "PENDING" && (
-                          <button
-                            className="profile-transaction-btn cancel"
-                            disabled={actionLoadingId === transaction.id}
-                            onClick={() => cancelTransaction(transaction)}
-                            type="button"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </section>
 
       {paymentPlan && (

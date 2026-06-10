@@ -57,6 +57,8 @@ const getFailureReason = (status) => {
   return "Payment could not be completed";
 };
 
+const getWaitingPaymentStorageKey = (planId) => `vocafit-waiting-payment-${planId || "default"}`;
+
 export default function PaymentSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -118,6 +120,7 @@ export default function PaymentSuccess() {
   };
 
   const handleCreateNewPayment = () => {
+    sessionStorage.removeItem(getWaitingPaymentStorageKey(selectedPlan.id));
     navigate(`/payment?plan=${selectedPlan.id}`, { replace: true });
   };
 
