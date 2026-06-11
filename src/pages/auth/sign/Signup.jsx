@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { AuthFrame, Toast } from "../AuthFrame";
 import { useAuth } from "../../../components/auth/useAuth";
+import { buildGoogleRegisterPayload } from "./googleAuthPayload";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -120,31 +121,6 @@ export default function Signup() {
     return errors;
   };
 
-  const validateGoogleSignup = () => {
-    const errors = {};
-
-    if (form.fullName.trim().length < 2) {
-      errors.fullName = "Nama minimal 2 karakter";
-    }
-    if (!/^\+628[1-9][0-9]{6,10}$/.test(form.phoneNumber.trim())) {
-      errors.phoneNumber = "Gunakan format +628xxxxxxxx";
-    }
-    if (!form.birthDate) {
-      errors.birthDate = "Tanggal lahir wajib diisi";
-    }
-    if (!form.acceptedTerms) {
-      errors.acceptedTerms = "Kamu perlu menyetujui syarat dan ketentuan";
-    }
-
-    return errors;
-  };
-
-  const createGooglePassword = () => {
-    const randomValues = new Uint32Array(4);
-    window.crypto.getRandomValues(randomValues);
-    return `Google-${Array.from(randomValues).map((value) => value.toString(36)).join("")}`;
-  };
-
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID || !googleButtonRef.current) return undefined;
 
@@ -156,27 +132,11 @@ export default function Signup() {
         return;
       }
 
-      setFieldErrors({});
       setToast("");
-
-      const errors = validateGoogleSignup();
-      if (Object.keys(errors).length > 0) {
-        setFieldErrors(errors);
-        setToast("Lengkapi nama, nomor HP, tanggal lahir, dan persetujuan sebelum daftar dengan Google.");
-        return;
-      }
 
       setGoogleLoading(true);
       try {
-        const formData = new FormData();
-        formData.append("googleToken", response.credential);
-        formData.append("password", createGooglePassword());
-        formData.append("fullName", form.fullName.trim());
-        formData.append("phoneNumber", form.phoneNumber.trim());
-        formData.append("birthDate", form.birthDate);
-        if (form.image) formData.append("image", form.image);
-
-        await signupGoogle(formData);
+        await signupGoogle(buildGoogleRegisterPayload(response.credential));
         navigate("/choose-plan");
       } catch (err) {
         const res = err.response?.data;
@@ -222,7 +182,7 @@ export default function Signup() {
     return () => {
       cancelled = true;
     };
-  }, [form.acceptedTerms, form.birthDate, form.fullName, form.image, form.phoneNumber, navigate, signupGoogle]);
+  }, [navigate, signupGoogle]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

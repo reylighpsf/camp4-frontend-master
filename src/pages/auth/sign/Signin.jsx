@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../../../components/auth/useAuth";
 import signupGym from "../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
+import { buildGoogleRegisterPayload } from "./googleAuthPayload";
 
 const isAdminRole = (role) => role === "pengurus" || role === "admin";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -24,7 +25,7 @@ function Toast({ message, onClose }) {
 }
 
 export default function Signin() {
-  const { signin, signinGoogle } = useAuth();
+  const { signin, signinGoogle, signupGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const googleButtonRef = useRef(null);
@@ -75,6 +76,17 @@ export default function Signin() {
         navigateAfterLogin(user);
       } catch (err) {
         const res = err.response?.data;
+        if (err.response?.status === 404) {
+          try {
+            const user = await signupGoogle(buildGoogleRegisterPayload(response.credential));
+            navigateAfterLogin(user);
+            return;
+          } catch (registerErr) {
+            const registerRes = registerErr.response?.data;
+            setToast(registerRes?.error || registerRes?.message || "Daftar Google gagal. Coba beberapa saat lagi.");
+            return;
+          }
+        }
         setToast(res?.error || res?.message || "Login Google gagal. Coba beberapa saat lagi.");
       } finally {
         setGoogleLoading(false);
@@ -117,7 +129,7 @@ export default function Signin() {
     return () => {
       cancelled = true;
     };
-  }, [location.state, navigate, signinGoogle]);
+  }, [location.state, navigate, signinGoogle, signupGoogle]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;

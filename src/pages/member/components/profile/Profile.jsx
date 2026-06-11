@@ -355,6 +355,7 @@ export default function ProfilePage() {
     return getMembershipPlanName(profile, registrationPlanId);
   }, [profile, registrationPlanId]);
 
+  const isGoogleAccount = Boolean(profile?.is_google_account || profile?.isGoogleAccount);
   const memberId = profile?.id ? `VF${String(profile.id).slice(0, 10).toUpperCase()}` : "VF1234567890";
   const joinDate = formatDate(profile?.created_at);
 
@@ -648,6 +649,19 @@ export default function ProfilePage() {
         .profile-camera svg {
           height: 17px;
           width: 17px;
+        }
+
+        .profile-google-lock {
+          background: #fff8f3;
+          border: 1px solid #ffd2b8;
+          border-radius: 999px;
+          color: #ff6b20;
+          display: inline-flex;
+          font-size: 11px;
+          font-weight: 900;
+          line-height: 1;
+          margin-top: 12px;
+          padding: 8px 12px;
         }
 
         .profile-name {
@@ -1388,10 +1402,15 @@ export default function ProfilePage() {
                     <MemberIcon name="flower" />
                   )}
                 </div>
-                <span className="profile-camera" aria-hidden="true">
-                  <CameraIcon />
-                </span>
+                {!isGoogleAccount && (
+                  <span className="profile-camera" aria-hidden="true">
+                    <CameraIcon />
+                  </span>
+                )}
               </div>
+              {isGoogleAccount && (
+                <span className="profile-google-lock">Google profile photo locked</span>
+              )}
 
               <div>
                 <div className="profile-name">{profile?.full_name || formValues.fullName || "Member"}</div>
