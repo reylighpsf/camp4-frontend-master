@@ -34,39 +34,34 @@ import WorkoutTrackingPage from "../pages/member/components/workout-tracking/Wor
 import UnauthorizedPage from "../pages/Unauthorized";
 import NotFound from "../pages/NotFound";
 
-export const router = createBrowserRouter([
-  // PUBLIC
+const publicOnly = (element) => <PublicAuth>{element}</PublicAuth>;
+
+const privateRole = (allowedRoles, element) => (
+  <PrivateAuth>
+    <AllowRole allowedRoles={allowedRoles}>{element}</AllowRole>
+  </PrivateAuth>
+);
+
+const adminOnly = (element) => privateRole(["pengurus"], element);
+const memberOnly = (element) => privateRole(["member"], element);
+const redirectTo = (to) => <Navigate replace to={to} />;
+
+const publicRoutes = [
   {
     path: "/choose-plan",
-    element: (
-      <PublicAuth>
-        <ChoosePlanPage />
-      </PublicAuth>
-    ),
+    element: publicOnly(<ChoosePlanPage />),
   },
   {
     path: "/sign-in",
-    element: (
-      <PublicAuth>
-        <SigninPage />
-      </PublicAuth>
-    ),
+    element: publicOnly(<SigninPage />),
   },
   {
     path: "/sign-up",
-    element: (
-      <PublicAuth>
-        <SignupPage />
-      </PublicAuth>
-    ),
+    element: publicOnly(<SignupPage />),
   },
   {
     path: "/forgot-password",
-    element: (
-      <PublicAuth>
-        <ForgotPasswordPage />
-      </PublicAuth>
-    ),
+    element: publicOnly(<ForgotPasswordPage />),
   },
   {
     path: "/verify-email",
@@ -104,176 +99,94 @@ export const router = createBrowserRouter([
     path: "/membership",
     element: <MembershipPage />,
   },
+];
 
-  // ROLE BASED
+const adminRoutes = [
   {
     path: "/admin",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus"]}>
-          <AdminPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: adminOnly(<AdminPage />),
   },
   {
     path: "/admin/news-update",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus"]}>
-          <NewsUpdatePage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: adminOnly(<NewsUpdatePage />),
   },
   {
     path: "/admin/payments",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus"]}>
-          <PaymentsPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: adminOnly(<PaymentsPage />),
   },
   {
     path: "/admin/payments/history",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus"]}>
-          <PaymentHistoryPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: adminOnly(<PaymentHistoryPage />),
   },
   {
     path: "/admin/active-member",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus"]}>
-          <ActiveMemberPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: adminOnly(<ActiveMemberPage />),
   },
   {
     path: "/admin/trainer",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus"]}>
-          <TrainerPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: adminOnly(<TrainerPage />),
   },
   {
     path: "/admin/catalogs",
-    element: <Navigate replace to="/admin/catalogs/membership" />,
+    element: redirectTo("/admin/catalogs/membership"),
   },
   {
     path: "/admin/catalogs/membership",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus"]}>
-          <MembershipCatalogPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: adminOnly(<MembershipCatalogPage />),
   },
   {
     path: "/admin/catalogs/trainer",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["pengurus"]}>
-          <TrainerCatalogPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: adminOnly(<TrainerCatalogPage />),
   },
+];
+
+const memberRoutes = [
   {
     path: "/member",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["member"]}>
-          <MemberDashboard />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: memberOnly(<MemberDashboard />),
   },
   {
     path: "/member/check-in",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["member"]}>
-          <CheckInOutPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: memberOnly(<CheckInOutPage />),
   },
   {
     path: "/member/trainer-booking",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["member"]}>
-          <TrainerBookingPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: memberOnly(<TrainerBookingPage />),
   },
   {
     path: "/member/workout-tracking",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["member"]}>
-          <WorkoutTrackingPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: memberOnly(<WorkoutTrackingPage />),
   },
   {
     path: "/member/trainer-checkout",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["member"]}>
-          <TrainerCheckoutPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: memberOnly(<TrainerCheckoutPage />),
   },
   {
     path: "/member/trainer-packages",
-    element: <Navigate replace to="/member/trainer-booking" />,
+    element: redirectTo("/member/trainer-booking"),
   },
   {
     path: "/member/trainer-packages/:packageId",
-    element: <Navigate replace to="/member/trainer-booking" />,
+    element: redirectTo("/member/trainer-booking"),
   },
   {
     path: "/member/profile",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["member"]}>
-          <ProfilePage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: memberOnly(<ProfilePage />),
   },
   {
     path: "/member/profile/membership",
-    element: (
-      <PrivateAuth>
-        <AllowRole allowedRoles={["member"]}>
-          <ProfileMembershipPlanPage />
-        </AllowRole>
-      </PrivateAuth>
-    ),
+    element: memberOnly(<ProfileMembershipPlanPage />),
   },
+];
 
+export const router = createBrowserRouter([
+  ...publicRoutes,
+  ...adminRoutes,
+  ...memberRoutes,
   {
     path: "/unauthorized",
     element: <UnauthorizedPage />,
   },
-
   {
     path: "*",
     element: <NotFound />,

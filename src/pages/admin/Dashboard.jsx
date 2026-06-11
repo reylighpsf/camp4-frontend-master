@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { useAuth } from "../../components/auth/useAuth";
+import { useAuth } from "../../components/auth/hooks/useAuth";
 import gymImage from "../../assets/auth/signup-gym.jpg";
 import AdminSidebar, { Icon } from "../../components/admin/AdminSidebar";
 import useAdminDashboard from "./hooks/useAdminDashboard";
@@ -27,7 +27,6 @@ export default function AdminPage() {
     trainers,
     payments,
     activities,
-    activeVisitors,
     transactionsChart,
     loading,
     error,
@@ -587,25 +586,6 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
-              <table className="payment-table" aria-label="Active visitor names">
-                <thead>
-                  <tr>
-                    <th>Nama Visitors</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(activeVisitors || []).length === 0 && (
-                    <tr>
-                      <td>Belum ada data nama visitor aktif.</td>
-                    </tr>
-                  )}
-                  {(activeVisitors || []).map((visitor) => (
-                    <tr key={visitor.name}>
-                      <td>{visitor.name}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </article>
 
             <section className="bottom-grid">

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
-import api from "../../../components/auth/authApi";
-import { useAuth } from "../../../components/auth/useAuth";
+import api from "../../../components/auth/hooks/authApi";
+import { useAuth } from "../../../components/auth/hooks/useAuth";
 import { AuthFrame } from "../AuthFrame";
 import { getAuthMembershipPlan } from "../membership/hooks/authPlans";
 

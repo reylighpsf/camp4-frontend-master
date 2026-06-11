@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import MemberIcon from "../../../../components/member/MemberIcon";
-import api from "../../../../components/auth/authApi";
-import { useAuth } from "../../../../components/auth/useAuth";
+import api from "../../../../components/auth/hooks/authApi";
+import { useAuth } from "../../../../components/auth/hooks/useAuth";
 import getSocket from "../../../../components/socket/socketClient";
 
 const getErrorMessage = (err, fallback) =>

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
-import api from "../../../../components/auth/authApi";
-import { useAuth } from "../../../../components/auth/useAuth";
+import api from "../../../../components/auth/hooks/authApi";
+import { useAuth } from "../../../../components/auth/hooks/useAuth";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
 import TrainerScheduleBookingModal from "./TrainerScheduleBooking";
 import { getUserTierCode } from "../../../auth/membership/hooks/authPlans";

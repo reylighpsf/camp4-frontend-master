@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { AuthFrame } from "../AuthFrame";
-import { authApi } from "../../../components/auth/authApi";
+import { authApi } from "../../../components/auth/hooks/authApi";
 
 const verificationRequests = new Map();
 
@@ -34,7 +34,7 @@ export default function VerifyEmailResult() {
 
       const timeoutId = setTimeout(() => {
         const savedEmail =
-          emailFromQuery ||
+          emailFromQuery || 
           localStorage.getItem("vocafit-registration-email") ||
           "";
         const hasRegistrationContext = Boolean(savedEmail || localStorage.getItem("vocafit-selected-plan"));

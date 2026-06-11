@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import MemberIcon from "../../../../components/member/MemberIcon";
-import api from "../../../../components/auth/authApi";
+import api from "../../../../components/auth/hooks/authApi";
 import {
   authMembershipPlans,
   getCatalogPrice,

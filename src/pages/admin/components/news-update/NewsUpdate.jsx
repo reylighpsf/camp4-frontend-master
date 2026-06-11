@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import AdminSidebar, { Icon } from "../../../../components/admin/AdminSidebar";
-import api from "../../../../components/auth/authApi";
-import { useAuth } from "../../../../components/auth/useAuth";
+import api from "../../../../components/auth/hooks/authApi";
+import { useAuth } from "../../../../components/auth/hooks/useAuth";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
 import useNewsActions from "./hooks/useNewsActions";
 import useNewsForm from "./hooks/useNewsForm";

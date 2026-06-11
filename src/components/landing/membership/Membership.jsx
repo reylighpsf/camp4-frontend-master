@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import gymImage from "../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
-import api from "../../auth/authApi";
+import api from "../../auth/hooks/authApi";
 import { authMembershipPlans, mapCatalogsToMembershipPlans } from "../../../pages/auth/membership/hooks/authPlans";
 import MembershipPlanCards from "./MembershipPlanCards";
 

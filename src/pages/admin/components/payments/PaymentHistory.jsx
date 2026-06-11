@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "../../../../components/admin/AdminLayout";
-import api from "../../../../components/auth/authApi";
+import api from "../../../../components/auth/hooks/authApi";
 import {
   formatCurrency,
   formatDateTime,
   formatTransactionType,
   enrichTransactionMembers,
   paymentStyles,
-} from "./paymentHelpers";
+} from "./hooks/paymentHelpers";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;

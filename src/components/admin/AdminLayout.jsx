@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { useAuth } from "../auth/useAuth";
+import { useAuth } from "../auth/hooks/useAuth";
 import AdminSidebar from "./AdminSidebar";
 
 export default function AdminLayout({ title, subtitle, children }) {

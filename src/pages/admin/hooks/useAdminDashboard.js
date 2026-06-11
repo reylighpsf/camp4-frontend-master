@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import api from "../../../components/auth/authApi";
+import api from "../../../components/auth/hooks/authApi";
 
 const emptyDashboard = {
   statCards: [
@@ -11,7 +11,6 @@ const emptyDashboard = {
   trainers: [],
   payments: [],
   activities: [],
-  activeVisitors: [],
   transactionsChart: [],
 };
 
@@ -133,7 +132,6 @@ export default function useAdminDashboard() {
         trainers: normalizeTrainers(payload),
         payments: normalizePayments(payload),
         activities: normalizeActivities(payload),
-        activeVisitors: [],
         transactionsChart: normalizeTransactionsChart(payload),
       });
     } catch (err) {

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
-import api from "../../../../components/auth/authApi";
-import { useAuth } from "../../../../components/auth/useAuth";
+import api from "../../../../components/auth/hooks/authApi";
+import { useAuth } from "../../../../components/auth/hooks/useAuth";
 import { getCatalogPrice, getUserTierCode } from "../../../auth/membership/hooks/authPlans";
 
 const formatCurrency = (value) =>

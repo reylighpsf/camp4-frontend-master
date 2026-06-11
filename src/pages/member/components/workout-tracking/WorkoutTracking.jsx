@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import MemberLayout from "../../../../components/member/MemberLayout";
-import api from "../../../../components/auth/authApi";
+import api from "../../../../components/auth/hooks/authApi";
 import { confirmAction } from "../../../../utils/sweetAlert";
 
 const getErrorMessage = (err, fallback) =>

@@ -5,7 +5,7 @@ import {
   formatDateTime,
   formatTransactionType,
   paymentStyles,
-} from "./paymentHelpers";
+} from "./hooks/paymentHelpers";
 import { confirmAction } from "../../../../utils/sweetAlert";
 
 export default function PaymentsPage() {

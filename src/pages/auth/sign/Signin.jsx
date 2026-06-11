@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { useAuth } from "../../../components/auth/useAuth";
+import { useAuth } from "../../../components/auth/hooks/useAuth";
 import signupGym from "../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
-import { buildGoogleRegisterPayload } from "./googleAuthPayload";
+import { buildGoogleRegisterPayload } from "./hooks/googleAuthPayload";
 
 const isAdminRole = (role) => role === "pengurus" || role === "admin";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;

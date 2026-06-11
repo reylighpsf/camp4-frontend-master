@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../../../components/admin/AdminLayout";
-import api from "../../../../components/auth/authApi";
+import api from "../../../../components/auth/hooks/authApi";
 import { confirmAction } from "../../../../utils/sweetAlert";
 
 const emptyForm = {

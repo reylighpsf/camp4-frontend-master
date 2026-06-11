@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { AuthFrame } from "../AuthFrame";
 import Swal from "sweetalert2";
-import { authApi } from "../../../components/auth/authApi";
+import { authApi } from "../../../components/auth/hooks/authApi";
 
 const RESEND_COOLDOWN_MS = 2 * 60 * 1000;
 

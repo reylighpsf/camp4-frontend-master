@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router";
-import { useAuth } from "./useAuth";
+import { useAuth } from "./hooks/useAuth";
 
 const isAdminRole = (role) => role === "pengurus" || role === "admin";
 

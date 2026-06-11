@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
-import { useAuth } from "../auth/useAuth";
-import api from "../auth/authApi";
+import { useAuth } from "../auth/hooks/useAuth";
+import api from "../auth/hooks/authApi";
 import vocafitLogo from "../../assets/auth/vocafit-logo.png";
 import MemberIcon from "./MemberIcon";
-import memberMenuItems from "./memberMenuItems";
+import memberMenuItems from "./hooks/memberMenuItems";
 
 const formatNotificationTime = (value) => {
   if (!value) return "-";

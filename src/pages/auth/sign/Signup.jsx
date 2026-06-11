@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { AuthFrame, Toast } from "../AuthFrame";
-import { useAuth } from "../../../components/auth/useAuth";
-import { buildGoogleRegisterPayload } from "./googleAuthPayload";
+import { useAuth } from "../../../components/auth/hooks/useAuth";
+import { buildGoogleRegisterPayload } from "./hooks/googleAuthPayload";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 

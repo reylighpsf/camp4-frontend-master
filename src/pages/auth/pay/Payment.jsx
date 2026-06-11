@@ -8,7 +8,7 @@ import {
   getUserTierCode,
   mapCatalogsToMembershipPlans,
 } from "../membership/hooks/authPlans";
-import api from "../../../components/auth/authApi";
+import api from "../../../components/auth/hooks/authApi";
 
 const paymentMethods = [
   { id: "qris", paymentMethod: "QRIS", title: "QRIS / VA Bank", subtitle: "Bayar lewat QRIS atau virtual account bank", icon: "bank" },
