@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../components/auth/useAuth";
 import gymImage from "../../assets/auth/signup-gym.jpg";
@@ -22,8 +22,46 @@ const getScanNotification = (payload) => {
 export default function AdminPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const { statCards, trainers, payments, activities, activeVisitors } = useAdminDashboard();
+  const {
+    statCards,
+    trainers,
+    payments,
+    activities,
+    activeVisitors,
+    transactionsChart,
+    loading,
+    error,
+  } = useAdminDashboard();
   const [scanNotifications, setScanNotifications] = useState([]);
+  const chart = useMemo(() => {
+    const points = (transactionsChart || []).slice(-6);
+    if (points.length === 0) {
+      return {
+        labels: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun"],
+        path: "M82 138 L180 126 L278 112 L376 138 L474 98 L572 76",
+        circles: [[82, 138], [180, 126], [278, 112], [376, 138], [474, 98], [572, 76]],
+      };
+    }
+
+    const maxValue = Math.max(...points.map((point) => point.totalAmount), 1);
+    const step = points.length > 1 ? 490 / (points.length - 1) : 0;
+    const circles = points.map((point, index) => {
+      const x = points.length === 1 ? 327 : 82 + index * step;
+      const y = 174 - (point.totalAmount / maxValue) * 156;
+      return [x, y];
+    });
+
+    return {
+      labels: points.map((point) => {
+        const date = new Date(point.date);
+        return Number.isNaN(date.getTime())
+          ? ""
+          : date.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+      }),
+      path: circles.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x} ${y}`).join(" "),
+      circles,
+    };
+  }, [transactionsChart]);
 
   const handleLogout = async () => {
     await logout();
@@ -347,6 +385,16 @@ export default function AdminPage() {
           padding: 18px 0 4px;
         }
 
+        .dashboard-alert {
+          background: #fff1f0;
+          border-radius: 8px;
+          color: #c73822;
+          font-size: 13px;
+          font-weight: 800;
+          grid-column: 1 / -1;
+          padding: 12px 14px;
+        }
+
         .scan-toast-stack {
           display: grid;
           gap: 10px;
@@ -455,6 +503,7 @@ export default function AdminPage() {
           </header>
 
           <div className="content">
+            {error && <div className="dashboard-alert">{error}</div>}
             <section className="stats" aria-label="Ringkasan dashboard">
               {statCards.map((card) => (
                 <article className="stat-card" key={card.label}>
@@ -478,7 +527,7 @@ export default function AdminPage() {
                     )}
                   </Icon>
                   <span className="stat-label">{card.label}</span>
-                  <strong className="stat-value">{card.value}</strong>
+                  <strong className="stat-value">{loading ? "..." : card.value}</strong>
                   <span className="stat-caption">{card.caption}</span>
                 </article>
               ))}
@@ -488,7 +537,7 @@ export default function AdminPage() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">Performa Platform</h2>
-                  <span className="panel-subtitle">Januari - Juni 2026</span>
+                  <span className="panel-subtitle">Transaksi sukses 30 hari terakhir</span>
                 </div>
               </div>
               <svg className="chart" viewBox="0 0 640 202" role="img" aria-label="Grafik performa platform">
@@ -498,23 +547,18 @@ export default function AdminPage() {
                 {[0, 1, 2, 3, 4, 5].map((line) => (
                   <line key={line} x1={82 + line * 98} y1="18" x2={82 + line * 98} y2="174" stroke="#d7d8df" strokeDasharray="3 3" />
                 ))}
-                <path d="M82 138 L180 126 L278 112 L376 138 L474 98 L572 76" fill="none" stroke="#080478" strokeWidth="2" />
-                <path d="M82 104 L180 88 L278 48 L376 72 L474 31 L572 16" fill="none" stroke="#ff7314" strokeWidth="2" />
-                {[82,180,278,376,474,572].map((x, index) => (
-                  <circle key={`b-${x}`} cx={x} cy={[138,126,112,138,98,76][index]} r="3" fill="#080478" />
+                <path d={chart.path} fill="none" stroke="#ff7314" strokeWidth="2" />
+                {chart.circles.map(([x, y], index) => (
+                  <circle key={`${x}-${index}`} cx={x} cy={y} r="3" fill="#ff7314" />
                 ))}
-                {[82,180,278,376,474,572].map((x, index) => (
-                  <circle key={`o-${x}`} cx={x} cy={[104,88,48,72,31,16][index]} r="3" fill="#ff7314" />
-                ))}
-                {["100", "75", "50", "25", "0"].map((label, index) => (
+                {["100%", "75%", "50%", "25%", "0"].map((label, index) => (
                   <text key={label} x="12" y={24 + index * 38} fontSize="11" fill="#4f505c">{label}</text>
                 ))}
-                {["Jan", "Feb", "Mar", "Apr", "Mei", "Jun"].map((label, index) => (
-                  <text key={label} x={72 + index * 98} y="196" fontSize="11" fill="#4f505c">{label}</text>
+                {chart.labels.map((label, index) => (
+                  <text key={`${label}-${index}`} x={72 + index * 98} y="196" fontSize="11" fill="#4f505c">{label}</text>
                 ))}
               </svg>
               <div className="chart-legend">
-                <span className="legend-item"><span className="legend-line" /> Pertumbuhan Member</span>
                 <span className="legend-item"><span className="legend-line orange" /> Pendapatan (Rp)</span>
               </div>
             </article>
@@ -569,11 +613,11 @@ export default function AdminPage() {
                 <h2 className="panel-title">Trainer Terpopuler Hari ini</h2>
                 <div className="trainer-list">
                   {trainers.length === 0 && <p className="empty-state">Belum ada trainer.</p>}
-                  {trainers.map(([name, members], index) => (
-                    <div className="trainer-row" key={name}>
+                  {trainers.map((trainer, index) => (
+                    <div className="trainer-row" key={trainer.name}>
                       <span className="rank">{index + 1}.</span>
-                      <img className="trainer-photo" src={gymImage} alt="" />
-                      <span><span className="trainer-name">{name}</span>{members}</span>
+                      <img className="trainer-photo" src={trainer.imageUrl || gymImage} alt="" />
+                      <span><span className="trainer-name">{trainer.name}</span>{trainer.meta}</span>
                     </div>
                   ))}
                 </div>

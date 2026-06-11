@@ -5,13 +5,14 @@ import {
   authMembershipPlans,
   getAuthMembershipPlan,
   getTransactionTypeFromPlanId,
+  getUserTierCode,
   mapCatalogsToMembershipPlans,
 } from "../membership/hooks/authPlans";
 import api from "../../../components/auth/authApi";
 
 const paymentMethods = [
-  { id: "qris", paymentMethod: "QRIS", title: "QRIS", subtitle: "Scan QR to pay" },
-  { id: "cash", paymentMethod: "CASH", title: "Cash", subtitle: "Pay to gym staff" },
+  { id: "qris", paymentMethod: "QRIS", title: "QRIS / VA Bank", subtitle: "Bayar lewat QRIS atau virtual account bank", icon: "bank" },
+  { id: "cash", paymentMethod: "CASH", title: "Cash", subtitle: "Bayar langsung ke staff gym", icon: "cash" },
 ];
 
 const parsePrice = (price) => Number(String(price).replace(/[^\d]/g, "")) || 0;
@@ -21,10 +22,21 @@ const formatCurrency = (value) =>
 
 const formatCountdown = (milliseconds) => {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
+  if (days > 0 || hours > 0) {
+    return `${days > 0 ? `${days}d ` : ""}${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 };
+
+const getPaymentDurationText = (paymentMethod) =>
+  paymentMethod === "CASH" ? "1 hari" : "30 menit";
+
+const getInitialRemainingMs = (paymentMethod) =>
+  paymentMethod === "CASH" ? 24 * 60 * 60 * 1000 : 30 * 60 * 1000;
 
 const formatDateTime = (value) => {
   if (!value) return "-";
@@ -48,6 +60,10 @@ const getTransactionPayload = (responseData) => {
 
 const getWaitingPaymentStorageKey = (planId) => `vocafit-waiting-payment-${planId || "default"}`;
 
+const openPaymentInNewTab = (paymentUrl) => {
+  window.open(paymentUrl, "_blank", "noopener,noreferrer");
+};
+
 const buildWaitingPayment = ({ paymentMethod = "QRIS", paymentUrl, planId, total, transaction }) => ({
   email: transaction?.email || localStorage.getItem("vocafit-registration-email") || "",
   expireAt: transaction?.expire_at || transaction?.expireAt || "",
@@ -70,7 +86,7 @@ export default function Payment() {
   const [cashPending, setCashPending] = useState(false);
   const [plans, setPlans] = useState(authMembershipPlans);
   const [waitingPayment, setWaitingPayment] = useState(null);
-  const [remainingMs, setRemainingMs] = useState(30 * 60 * 1000);
+  const [remainingMs, setRemainingMs] = useState(getInitialRemainingMs("QRIS"));
   const planId =
     searchParams.get("plan") ||
     localStorage.getItem("vocafit-selected-plan") ||
@@ -89,8 +105,14 @@ export default function Payment() {
 
     const fetchCatalogPlans = async () => {
       try {
-        const response = await api.get("/catalogs/membership");
-        if (isMounted) setPlans(mapCatalogsToMembershipPlans(response.data?.data || []));
+        const [catalogResponse, profileResponse] = await Promise.all([
+          api.get("/catalogs/membership"),
+          api.get("/users/me").catch(() => null),
+        ]);
+        const nextProfile = profileResponse?.data?.data || null;
+        if (isMounted) {
+          setPlans(mapCatalogsToMembershipPlans(catalogResponse.data?.data || [], getUserTierCode(nextProfile)));
+        }
       } catch {
         if (isMounted) setPlans(authMembershipPlans);
       }
@@ -252,13 +274,13 @@ export default function Payment() {
 
   const openPaymentLink = () => {
     if (!waitingPayment?.paymentUrl) return;
-    window.location.href = waitingPayment.paymentUrl;
+    openPaymentInNewTab(waitingPayment.paymentUrl);
   };
 
   const createNewPayment = () => {
     sessionStorage.removeItem(waitingPaymentStorageKey);
     setWaitingPayment(null);
-    setRemainingMs(30 * 60 * 1000);
+    setRemainingMs(getInitialRemainingMs(selectedMethod.paymentMethod));
     setMessage("");
     setError("");
     setCashPending(false);
@@ -279,7 +301,7 @@ export default function Payment() {
       await api.post(`/transactions/${transactionId}/cancel`);
       sessionStorage.removeItem(waitingPaymentStorageKey);
       setWaitingPayment(null);
-      setRemainingMs(30 * 60 * 1000);
+      setRemainingMs(getInitialRemainingMs(waitingPayment.paymentMethod));
       setMessage("Payment berhasil dibatalkan. Kamu bisa membuat payment baru.");
     } catch (err) {
       const status = err.response?.status;
@@ -291,7 +313,7 @@ export default function Payment() {
       if (status === 404 || cancelError === "Transaction not found") {
         sessionStorage.removeItem(waitingPaymentStorageKey);
         setWaitingPayment(null);
-        setRemainingMs(30 * 60 * 1000);
+        setRemainingMs(getInitialRemainingMs(waitingPayment.paymentMethod));
         setMessage("Payment lama sudah tidak ditemukan di backend. Silakan buat payment baru.");
         return;
       }
@@ -324,7 +346,7 @@ export default function Payment() {
 
           <div className="payment-timer-box">
             <strong>Payment Method: {waitingPayment.paymentMethod}</strong>
-            <span>Expires in 30 minutes</span>
+            <span>Expires in {getPaymentDurationText(waitingPayment.paymentMethod)}</span>
             <b>{formatCountdown(remainingMs)}</b>
             <small>remaining</small>
           </div>
@@ -394,24 +416,23 @@ export default function Payment() {
               type="button"
             >
               <span className="payment-method-icon" aria-hidden="true">
-                <QrIcon />
+                {method.icon === "bank" ? <BankIcon /> : <CashIcon />}
               </span>
-              <span>
+              <span className="payment-method-copy">
                 <strong>{method.title}</strong>
                 <small>{method.subtitle}</small>
+              </span>
+              <span className="payment-method-check" aria-hidden="true">
               </span>
             </button>
           ))}
         </div>
 
-        <div className="payment-qr-box" aria-label="QR payment preview">
-          <QrIcon />
-          <span>QR Code will appear here</span>
-        </div>
-
         <p className="payment-amount">
           Amount to pay: <strong>{formatCurrency(total)}</strong>
-          <small>Complete payment within 15 minutes</small>
+          <small>
+            Complete payment within {getPaymentDurationText(selectedMethod.paymentMethod)}
+          </small>
         </p>
 
         <p className="payment-note">
@@ -462,11 +483,21 @@ function PaymentSummary({ plan, total }) {
   );
 }
 
-function QrIcon() {
+function BankIcon() {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9zM14 14h1v1h-1z" fill="currentColor" />
+      <path d="M4 10h16M6 10v8M10 10v8M14 10v8M18 10v8M4 18h16M3 21h18" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 3 4 7h16l-8-4Z" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CashIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.9" />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.9" />
+      <path d="M6.5 9.5v.01M17.5 14.5v.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
     </svg>
   );
 }
@@ -533,9 +564,9 @@ const paymentStyles = `
 
   .payment-methods {
     display: grid;
-    gap: 12px 32px;
+    gap: 14px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-bottom: 26px;
+    margin-bottom: 22px;
   }
 
   .payment-alert {
@@ -558,23 +589,31 @@ const paymentStyles = `
   }
 
   .payment-method {
-    min-height: 54px;
-    border: 1px solid #9da0ce;
+    min-height: 92px;
+    position: relative;
+    border: 1px solid #d9dcef;
     border-radius: 8px;
-    background: #fff;
+    background: #f8f9fd;
     color: #171267;
     cursor: pointer;
-    display: flex;
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr) 24px;
     align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
+    gap: 14px;
+    padding: 16px;
     text-align: left;
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease, transform .18s ease;
   }
 
   .payment-method.is-active,
   .payment-method:hover {
-    border-color: #171267;
-    box-shadow: 0 8px 18px rgba(23, 18, 103, 0.1);
+    background: #fff;
+    border-color: #ff6b20;
+    box-shadow: 0 12px 24px rgba(23, 18, 103, 0.12);
+  }
+
+  .payment-method:hover {
+    transform: translateY(-1px);
   }
 
   .payment-method:disabled {
@@ -583,8 +622,8 @@ const paymentStyles = `
   }
 
   .payment-method-icon {
-    width: 38px;
-    height: 38px;
+    width: 46px;
+    height: 46px;
     border-radius: 8px;
     background: #171267;
     color: #fff;
@@ -594,52 +633,69 @@ const paymentStyles = `
     flex: 0 0 auto;
   }
 
+  .payment-method.is-active .payment-method-icon {
+    background: #ff6b20;
+  }
+
+  .payment-method-copy {
+    min-width: 0;
+  }
+
   .payment-method strong,
   .payment-method small {
     display: block;
   }
 
   .payment-method strong {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 900;
+    line-height: 1.2;
+    margin-bottom: 4px;
   }
 
   .payment-method small {
-    color: #171267;
-    font-size: 11px;
+    color: #5d6594;
+    font-size: 12px;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.3;
   }
 
-  .payment-qr-box {
-    width: 190px;
-    height: 190px;
-    margin: 0 auto 18px;
-    border: 1px solid #c9cad8;
-    border-radius: 5px;
-    color: #b8b8b8;
-    display: grid;
-    gap: 12px;
-    align-content: center;
-    justify-items: center;
+  .payment-method-check {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #cfd3e6;
+    border-radius: 50%;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 900;
   }
 
-  .payment-qr-box svg {
-    width: 64px;
-    height: 64px;
+  .payment-method.is-active .payment-method-check {
+    background: #ff6b20;
+    border-color: #ff6b20;
   }
 
-  .payment-qr-box span {
-    color: #aaa;
-    font-size: 10px;
-    font-weight: 800;
+  .payment-method.is-active .payment-method-check::after {
+    width: 8px;
+    height: 5px;
+    border-bottom: 2px solid #fff;
+    border-left: 2px solid #fff;
+    content: "";
+    transform: rotate(-45deg) translate(1px, -1px);
   }
 
   .payment-amount {
     margin: 0 0 18px;
+    border: 1px solid #e5e7f2;
+    border-radius: 8px;
+    background: #f8f9fd;
     color: #171267;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 900;
+    padding: 14px;
     text-align: center;
   }
 
@@ -650,9 +706,9 @@ const paymentStyles = `
   .payment-amount small {
     display: block;
     color: #ff6b20;
-    font-size: 10px;
-    font-weight: 700;
-    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 800;
+    margin-top: 4px;
   }
 
   .payment-note {
@@ -942,9 +998,15 @@ const paymentStyles = `
       font-size: 21px;
     }
 
-    .payment-qr-box {
-      width: 160px;
-      height: 160px;
+    .payment-method {
+      grid-template-columns: 42px minmax(0, 1fr) 24px;
+      min-height: 86px;
+      padding: 14px;
+    }
+
+    .payment-method-icon {
+      height: 42px;
+      width: 42px;
     }
   }
 `;

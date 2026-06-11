@@ -67,7 +67,7 @@ export default function MembershipPlanCards({ compact = false, plans = membershi
         ))}
       </ul>
       <Link to="/sign-up" onClick={(event) => event.stopPropagation()}>
-        {plan.highlight ? "View Plan" : "Choose This Plan"}
+        Choose This Plan
       </Link>
     </article>
   ));

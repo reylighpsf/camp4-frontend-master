@@ -8,11 +8,9 @@ const buildTrainerPayload = ({ values, image }) => {
   const payload = new FormData();
   payload.append("name", values.name.trim());
   payload.append("email", values.email.trim());
-  payload.append(
-    "bio",
-    `Spesialis: ${values.specialization.trim()}\nHarga per sesi: ${values.price.trim()}`
-  );
-  payload.append("specialties", values.specialization.trim());
+  payload.append("phoneNumber", values.phoneNumber.trim());
+  payload.append("bio", values.bio.trim());
+  payload.append("specialties", values.specialties.trim());
   if (image) payload.append("image", image);
   return payload;
 };

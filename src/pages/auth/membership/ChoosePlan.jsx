@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import api from "../../../components/auth/authApi";
+import { useAuth } from "../../../components/auth/useAuth";
 import { AuthFrame, MembershipPlanCards } from "../AuthFrame";
-import { authMembershipPlans, mapCatalogsToMembershipPlans } from "./hooks/authPlans";
+import { authMembershipPlans, getUserTierCode, mapCatalogsToMembershipPlans } from "./hooks/authPlans";
 
 export default function ChoosePlan() {
+  const { user } = useAuth();
   const [plans, setPlans] = useState(authMembershipPlans);
 
   useEffect(() => {
@@ -13,7 +15,7 @@ export default function ChoosePlan() {
     const fetchCatalogPlans = async () => {
       try {
         const response = await api.get("/catalogs/membership");
-        if (isMounted) setPlans(mapCatalogsToMembershipPlans(response.data?.data || []));
+        if (isMounted) setPlans(mapCatalogsToMembershipPlans(response.data?.data || [], getUserTierCode(user)));
       } catch {
         if (isMounted) setPlans(authMembershipPlans);
       }
@@ -23,7 +25,7 @@ export default function ChoosePlan() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user]);
 
   return (
     <AuthFrame currentStep={3} aside={null} contentClassName="auth-plan-page">

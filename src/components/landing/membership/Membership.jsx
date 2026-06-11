@@ -286,11 +286,11 @@ export default function MembershipPage() {
         }
 
         .membership-plan.is-featured {
-          background: #101010;
-          border-color: #ff7a00;
-          box-shadow: 0 22px 48px rgba(0,0,0,.28);
-          color: #fff;
-          transform: translateY(-16px);
+          background: #fff;
+          border-color: transparent;
+          box-shadow: 0 16px 34px rgba(0,0,0,.16);
+          color: #0a1185;
+          transform: none;
         }
 
         .membership-plan:hover {
@@ -299,7 +299,7 @@ export default function MembershipPage() {
         }
 
         .membership-plan.is-featured:hover {
-          transform: translateY(-22px);
+          transform: translateY(-6px);
         }
 
         .membership-plan:active {
@@ -307,7 +307,7 @@ export default function MembershipPage() {
         }
 
         .membership-plan.is-featured:active {
-          transform: translateY(-14px) scale(.992);
+          transform: translateY(-2px) scale(.992);
         }
 
         .plan-kicker {
@@ -342,7 +342,7 @@ export default function MembershipPage() {
         }
 
         .membership-plan.is-featured .membership-price-list {
-          border-color: rgba(255, 255, 255, .18);
+          border-color: rgba(10, 17, 133, .12);
         }
 
         .membership-price-row {
@@ -356,7 +356,7 @@ export default function MembershipPage() {
         }
 
         .membership-plan.is-featured .membership-price-row {
-          background: rgba(255, 255, 255, .08);
+          background: rgba(10, 17, 133, .04);
         }
 
         .membership-price-row + .membership-price-row {
@@ -364,7 +364,7 @@ export default function MembershipPage() {
         }
 
         .membership-plan.is-featured .membership-price-row + .membership-price-row {
-          border-top-color: rgba(255, 255, 255, .14);
+          border-top-color: rgba(10, 17, 133, .1);
         }
 
         .membership-price-row span {

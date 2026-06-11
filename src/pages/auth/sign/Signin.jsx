@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../../../components/auth/useAuth";
 import signupGym from "../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
 
 const isAdminRole = (role) => role === "pengurus" || role === "admin";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 function Toast({ message, onClose }) {
   useEffect(() => {
@@ -23,13 +24,15 @@ function Toast({ message, onClose }) {
 }
 
 export default function Signin() {
-  const { signin } = useAuth();
+  const { signin, signinGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const googleButtonRef = useRef(null);
   const [form, setForm] = useState({ email: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState({});
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -42,6 +45,79 @@ export default function Signin() {
 
     return () => clearTimeout(timeoutId);
   }, [location.state]);
+
+  const navigateAfterLogin = (user) => {
+    const returnTo = location.state?.returnTo;
+    navigate(
+      returnTo && !isAdminRole(user?.role)
+        ? returnTo
+        : isAdminRole(user?.role)
+          ? "/admin"
+          : "/member",
+    );
+  };
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || !googleButtonRef.current) return undefined;
+
+    let cancelled = false;
+
+    const handleGoogleCredential = async (response) => {
+      if (!response?.credential) {
+        setToast("Login Google gagal. Credential tidak diterima.");
+        return;
+      }
+
+      setGoogleLoading(true);
+      setToast("");
+      try {
+        const user = await signinGoogle(response.credential);
+        navigateAfterLogin(user);
+      } catch (err) {
+        const res = err.response?.data;
+        setToast(res?.error || res?.message || "Login Google gagal. Coba beberapa saat lagi.");
+      } finally {
+        setGoogleLoading(false);
+      }
+    };
+
+    const renderGoogleButton = () => {
+      if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential,
+      });
+      googleButtonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        shape: "pill",
+        size: "large",
+        text: "signin_with",
+        theme: "outline",
+        width: 260,
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      renderGoogleButton();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = renderGoogleButton;
+    script.onerror = () => {
+      if (!cancelled) setToast("Gagal memuat login Google.");
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.state, navigate, signinGoogle]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -73,14 +149,7 @@ export default function Signin() {
     setLoading(true);
     try {
       const user = await signin(form);
-      const returnTo = location.state?.returnTo;
-      navigate(
-        returnTo && !isAdminRole(user?.role)
-          ? returnTo
-          : isAdminRole(user?.role)
-            ? "/admin"
-            : "/member",
-      );
+      navigateAfterLogin(user);
     } catch (err) {
       const res = err.response?.data;
       if (Array.isArray(res)) {
@@ -159,6 +228,18 @@ export default function Signin() {
               </button>
             </form>
 
+            {GOOGLE_CLIENT_ID ? (
+              <>
+                <div className="signin-divider"><span>atau</span></div>
+                <div className={`signin-google ${googleLoading ? "is-loading" : ""}`}>
+                  <div ref={googleButtonRef} />
+                  {googleLoading && <span className="signin-google-loading">Memproses Google...</span>}
+                </div>
+              </>
+            ) : (
+              null
+            )}
+
             <p className="signin-footer">
               New to Vocafit? <Link to="/sign-up">Join Us</Link>
             </p>
@@ -206,7 +287,7 @@ const signinStyles = `
 
   .signin-page {
     min-height: 100vh;
-    background: #fff;
+    background: #cfd1e4;
     font-family: 'DM Sans', sans-serif;
     display: grid;
     place-items: center;
@@ -367,6 +448,46 @@ const signinStyles = `
   .signin-submit:disabled {
     cursor: not-allowed;
     opacity: .68;
+  }
+
+  .signin-divider {
+    align-items: center;
+    color: rgba(255, 255, 255, .72);
+    display: grid;
+    font-size: 12px;
+    font-weight: 900;
+    gap: 10px;
+    grid-template-columns: 1fr auto 1fr;
+    margin: 18px 0 14px;
+    width: 100%;
+  }
+
+  .signin-divider::before,
+  .signin-divider::after {
+    background: rgba(255, 220, 123, .36);
+    content: "";
+    height: 1px;
+  }
+
+  .signin-google {
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .signin-google.is-loading {
+    opacity: .72;
+    pointer-events: none;
+  }
+
+  .signin-google-loading {
+    color: #ffdc7b;
+    font-size: 12px;
+    font-weight: 900;
+    margin: 0;
+    text-align: center;
   }
 
   .signin-footer {

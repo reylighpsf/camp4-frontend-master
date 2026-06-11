@@ -12,6 +12,7 @@ const emptyDashboard = {
   payments: [],
   activities: [],
   activeVisitors: [],
+  transactionsChart: [],
 };
 
 const getPayload = (response) => response?.data?.data || response?.data || {};
@@ -21,63 +22,97 @@ const formatCurrency = (value) => Number(value || 0).toLocaleString("id-ID");
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
 
-const normalizeSummary = ({ users = [], trainers = [], news = [] } = {}) => [
+const formatDateTime = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const activityLabels = {
+  transaction: "Pembayaran berhasil",
+  "tap-in": "Member tap in",
+  "tap-out": "Member tap out",
+  registration: "Member baru terdaftar",
+};
+
+const normalizeSummary = (counts = {}) => [
   {
     label: "Total Pengguna",
-    value: formatNumber(users.length),
+    value: formatNumber(counts.total_users),
     caption: "TERDAFTAR",
     icon: "users",
   },
   {
     label: "Total Berita",
-    value: formatNumber(news.length),
+    value: formatNumber(counts.total_news),
     caption: "DIPUBLIKASIKAN",
     icon: "news",
   },
   {
     label: "Total Member",
-    value: formatNumber(users.filter((user) => user.role === "member").length),
-    caption: "TERDAFTAR",
+    value: formatNumber(counts.active_members_with_membership),
+    caption: "MEMBERSHIP AKTIF",
     icon: "members",
   },
   {
     label: "Total Trainer",
-    value: formatNumber(trainers.length),
+    value: formatNumber(counts.total_trainers),
     caption: "AKTIF",
     icon: "trainer",
   },
 ];
 
 const normalizeTrainers = (payload) => {
-  const trainers = Array.isArray(payload) ? payload : payload.trainers || payload.top_trainers || [];
+  const trainers = Array.isArray(payload) ? payload : payload.top_trainers || [];
   return trainers.slice(0, 3).map((trainer) => {
     const name = trainer.name || trainer.full_name || trainer.trainer_name || "Trainer";
-    const memberCount = trainer.member_count ?? trainer.members_count ?? trainer.total_members ?? 0;
-    return [name, `${memberCount} member`];
+    const bookingCount = trainer.total_booking ?? trainer.member_count ?? trainer.members_count ?? 0;
+    return {
+      name,
+      imageUrl: trainer.image_url || "",
+      meta: `${bookingCount} booking`,
+    };
   });
 };
 
 const normalizePayments = (payload) => {
-  const payments = Array.isArray(payload) ? payload : payload.payments || payload.transactions || [];
+  const payments = Array.isArray(payload) ? payload : payload.latest_transactions || [];
   return payments.slice(0, 5).map((payment) => {
     const name = payment.name || payment.member_name || payment.user?.name || "-";
     const role = payment.role || payment.user?.role || "Member";
-    const status = payment.status || payment.payment_status || "-";
+    const status = payment.status || payment.payment_status || "SUCCESS";
     const amount = payment.amount || payment.total || payment.price || 0;
     return [name, role, status, formatCurrency(amount)];
   });
 };
 
 const normalizeActivities = (payload) => {
-  const activities = Array.isArray(payload) ? payload : payload.activities || payload.recent_activities || [];
+  const activities = Array.isArray(payload) ? payload : payload.latest_activities || [];
   const colors = ["#ffd76a", "#a7f36f", "#ffbd4a", "#ffd76a"];
 
   return activities.slice(0, 4).map((activity, index) => {
-    const text = activity.text || activity.message || activity.description || "-";
-    const time = activity.time || activity.created_at_text || activity.relative_time || activity.created_at || "";
+    const label = activityLabels[activity.type] || activity.text || activity.message || "Aktivitas";
+    const name = activity.name ? ` - ${activity.name}` : "";
+    const amount = activity.amount ? ` (Rp${formatCurrency(activity.amount)})` : "";
+    const text = activity.description || `${label}${name}${amount}`;
+    const time = formatDateTime(activity.time || activity.created_at);
     const color = activity.color || colors[index % colors.length];
     return [text, time, color];
   });
+};
+
+const normalizeTransactionsChart = (payload) => {
+  const chart = Array.isArray(payload) ? payload : payload.transactions_chart || [];
+  return chart.map((item) => ({
+    date: item.date,
+    totalAmount: Number(item.total_amount || item.totalAmount || 0),
+  }));
 };
 
 export default function useAdminDashboard() {
@@ -90,73 +125,17 @@ export default function useAdminDashboard() {
     setError("");
 
     try {
-      const [
-        usersResult,
-        trainersResult,
-        paymentsResult,
-        newsResult,
-        crowdResult,
-      ] = await Promise.allSettled([
-        api.get("/admin/users", { params: { page: 1, limit: 100 } }),
-        api.get("/trainers"),
-        api.get("/transactions/cash/pending"),
-        api.get("/news"),
-        api.get("/visits/crowd"),
-      ]);
+      const response = await api.get("/admin/metrics");
+      const payload = getPayload(response);
 
-      const nextDashboard = { ...emptyDashboard };
-      const users = usersResult.status === "fulfilled" ? getPayload(usersResult.value) : [];
-      const trainersPayload = trainersResult.status === "fulfilled" ? getPayload(trainersResult.value) : [];
-      const news = newsResult.status === "fulfilled" ? getPayload(newsResult.value) : [];
-
-      nextDashboard.statCards = normalizeSummary({
-        users: Array.isArray(users) ? users : [],
-        trainers: Array.isArray(trainersPayload) ? trainersPayload : [],
-        news: Array.isArray(news) ? news : [],
+      setDashboard({
+        statCards: normalizeSummary(payload.counts),
+        trainers: normalizeTrainers(payload),
+        payments: normalizePayments(payload),
+        activities: normalizeActivities(payload),
+        activeVisitors: [],
+        transactionsChart: normalizeTransactionsChart(payload),
       });
-
-      if (trainersResult.status === "fulfilled") {
-        const trainers = normalizeTrainers(getPayload(trainersResult.value));
-        nextDashboard.trainers = trainers;
-      }
-
-      if (paymentsResult.status === "fulfilled") {
-        const payments = normalizePayments(getPayload(paymentsResult.value));
-        nextDashboard.payments = payments;
-      }
-
-      if (crowdResult.status === "fulfilled") {
-        const crowd = getPayload(crowdResult.value);
-        nextDashboard.activities = normalizeActivities([
-          {
-            text: `${crowd.count ?? 0} visitors`,
-            time: "",
-            color: "#ffd76a",
-          },
-        ]);
-        const visitors = crowd.visitors || crowd.activeVisitors || crowd.active_visitors || [];
-        nextDashboard.activeVisitors = Array.isArray(visitors)
-          ? visitors.map((visitor) => ({
-              name: visitor.full_name || visitor.name || visitor.email || "Visitor",
-            }))
-          : [];
-      }
-
-      const rejected = [
-        usersResult,
-        trainersResult,
-        paymentsResult,
-        newsResult,
-        crowdResult,
-      ].find(
-        (result) => result.status === "rejected",
-      );
-
-      if (rejected) {
-        setError(getErrorMessage(rejected.reason, "Sebagian data dashboard gagal dimuat."));
-      }
-
-      setDashboard(nextDashboard);
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat dashboard admin."));
       setDashboard(emptyDashboard);

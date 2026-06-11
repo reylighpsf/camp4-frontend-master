@@ -41,6 +41,11 @@ const familyLabels = {
   },
 };
 
+const catalogListEndpoints = {
+  MEMBERSHIP: "/catalogs/membership",
+  PERSONAL_TRAINER: "/catalogs/trainer",
+};
+
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
 
@@ -48,6 +53,14 @@ const toNullableNumber = (value) => {
   if (value === "" || value === null || value === undefined) return null;
   return Number(value);
 };
+
+const buildPricesPayload = (prices = []) =>
+  prices
+    .filter((item) => item.price !== "" && item.price !== null && item.price !== undefined)
+    .map((item) => ({
+      tierCode: item.tierCode,
+      price: Number(item.price),
+    }));
 
 const buildCreatePayload = (values) => ({
   code: values.code.trim().toUpperCase(),
@@ -58,6 +71,7 @@ const buildCreatePayload = (values) => ({
   sessionCount: toNullableNumber(values.sessionCount),
   durationDays: toNullableNumber(values.durationDays),
   isActive: values.isActive,
+  prices: buildPricesPayload(values.prices),
 });
 
 const buildUpdatePayload = (values) => ({
@@ -68,6 +82,7 @@ const buildUpdatePayload = (values) => ({
   sessionCount: toNullableNumber(values.sessionCount),
   durationDays: toNullableNumber(values.durationDays),
   isActive: values.isActive,
+  prices: buildPricesPayload(values.prices),
 });
 
 const formatCurrency = (value) =>
@@ -120,7 +135,7 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/catalogs");
+      const response = await api.get(catalogListEndpoints[family] || "/catalogs/membership");
       setCatalogs(response.data?.data || []);
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat catalog."));
@@ -128,7 +143,7 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [family]);
 
   useEffect(() => {
     const timeoutId = setTimeout(fetchCatalogs, 0);
@@ -137,6 +152,17 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
+    setError("");
+    setMessage("");
+  };
+
+  const updatePrice = (tierCode, value) => {
+    setForm((current) => ({
+      ...current,
+      prices: current.prices.map((price) =>
+        price.tierCode === tierCode ? { ...price, price: value } : price,
+      ),
+    }));
     setError("");
     setMessage("");
   };
@@ -175,6 +201,11 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
   const validateForm = () => {
     if (form.code.trim().length < 2) return "Code minimal 2 karakter.";
     if (form.name.trim().length < 2) return "Name minimal 2 karakter.";
+    const prices = buildPricesPayload(form.prices);
+    if (prices.length === 0) return "Minimal satu harga tier wajib diisi.";
+    if (prices.some((item) => Number.isNaN(item.price) || item.price < 0)) {
+      return "Harga tier harus berupa angka 0 atau lebih.";
+    }
     return "";
   };
 
@@ -390,9 +421,11 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
                     <label className="catalog-field" key={price.tierCode}>
                       {price.tierName || price.tierCode}
                       <input
+                        min="0"
+                        onChange={(event) => updatePrice(price.tierCode, event.target.value)}
+                        placeholder="0"
                         type="number"
                         value={price.price}
-                        readOnly
                       />
                     </label>
                   ))}

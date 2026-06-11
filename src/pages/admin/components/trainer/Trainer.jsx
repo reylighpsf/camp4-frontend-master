@@ -74,7 +74,7 @@ const trainerStyles = `
 
   .trainer-table {
     border-collapse: collapse;
-    min-width: 760px;
+    min-width: 1120px;
     width: 100%;
   }
 
@@ -125,7 +125,13 @@ const trainerStyles = `
   }
 
   .trainer-bio {
-    max-width: 260px;
+    max-width: 280px;
+    white-space: normal;
+  }
+
+  .trainer-cell-muted {
+    color: #6b7280;
+    font-size: 12px;
   }
 
   .trainer-status {
@@ -195,6 +201,8 @@ const trainerStyles = `
     background: #fff;
     border-radius: 14px;
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+    color: #05050c;
+    font-family: 'DM Sans', Arial, sans-serif;
     max-height: calc(100vh - 56px);
     overflow: auto;
     padding: 24px;
@@ -209,12 +217,18 @@ const trainerStyles = `
   }
 
   .trainer-modal-head h2 {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.15;
     margin: 0 0 6px;
   }
 
   .trainer-close-btn {
     border: 0;
     border-radius: 50%;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
     cursor: pointer;
     height: 36px;
     width: 36px;
@@ -235,7 +249,8 @@ const trainerStyles = `
   .trainer-field span,
   .trainer-media-title {
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 900;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -252,6 +267,38 @@ const trainerStyles = `
     width: 100%;
   }
 
+  .trainer-textarea {
+    height: 104px;
+    padding-bottom: 14px;
+    padding-top: 14px;
+    resize: vertical;
+  }
+
+  .trainer-phone-shell {
+    align-items: center;
+    background: #f4f5f8;
+    border-radius: 8px;
+    box-shadow: 0 4px 5px rgba(17, 18, 26, 0.18);
+    display: flex;
+    height: 52px;
+    overflow: hidden;
+  }
+
+  .trainer-phone-prefix {
+    color: #11131d;
+    flex: 0 0 auto;
+    font-size: 13px;
+    font-weight: 900;
+    padding-left: 16px;
+  }
+
+  .trainer-phone-shell .trainer-input {
+    background: transparent;
+    box-shadow: none;
+    height: 100%;
+    padding-left: 5px;
+  }
+
   .trainer-upload-box {
     align-items: center;
     background: #fff4d8;
@@ -263,6 +310,18 @@ const trainerStyles = `
     justify-content: center;
     position: relative;
     text-align: center;
+  }
+
+  .trainer-upload-box strong {
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .trainer-upload-box span {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.35;
   }
 
   .trainer-upload-box input {
@@ -330,29 +389,33 @@ const trainerStyles = `
 const emptyForm = {
   name: "",
   email: "",
-  specialization: "",
-  price: "",
+  phoneNumber: "",
+  bio: "",
+  specialties: "",
+};
+
+const getPhoneInputDigits = (phoneNumber = "") =>
+  phoneNumber.replace(/^\+62/, "").replace(/^0/, "");
+
+const normalizeIndonesianPhone = (value) => {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("62")) digits = digits.slice(2);
+  if (digits.startsWith("0")) digits = digits.slice(1);
+  return digits ? `+62${digits}` : "";
 };
 
 const validateForm = (values) => {
   const errors = {};
   if (values.name.trim().length < 2) errors.name = "Nama trainer minimal 2 karakter.";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) errors.email = "Email trainer tidak valid.";
-  if (values.specialization.trim().length < 3) errors.specialization = "Spesialis latihan wajib diisi.";
-  if (!values.price.trim()) errors.price = "Harga per sesi wajib diisi.";
+  if (!/^\+628[1-9][0-9]{6,9}$/.test(values.phoneNumber.trim())) {
+    errors.phoneNumber = "No. HP harus format +628xxxxxxxx.";
+  }
+  if (values.bio.trim().length < 10) errors.bio = "Bio minimal 10 karakter.";
+  if (values.bio.trim().length > 200) errors.bio = "Bio maksimal 200 karakter.";
+  if (values.specialties.trim().length < 5) errors.specialties = "Spesialisasi minimal 5 karakter.";
+  if (values.specialties.trim().length > 100) errors.specialties = "Spesialisasi maksimal 100 karakter.";
   return errors;
-};
-
-const parseTrainerBio = (bio = "") => {
-  const specialization = bio.match(/Spesialis:\s*(.+)/i)?.[1]?.trim() || bio || "-";
-  const price = bio.match(/Harga per sesi:\s*(.+)/i)?.[1]?.trim() || "-";
-  return { specialization, price };
-};
-
-const formatTrainerPrice = (value) => {
-  const amount = Number(String(value).replace(/[^\d]/g, ""));
-  if (!amount) return value || "-";
-  return `Rp. ${amount.toLocaleString("id-ID")}`;
 };
 
 export default function TrainerPage() {
@@ -372,6 +435,12 @@ export default function TrainerPage() {
   const displayedPreviewUrl = image ? previewUrl : editingTrainer?.image_url || gymImage;
 
   const updateField = (field, value) => {
+    if (field === "phoneNumber") {
+      setValues((current) => ({ ...current, phoneNumber: normalizeIndonesianPhone(value) }));
+      setErrors((current) => ({ ...current, phoneNumber: "" }));
+      return;
+    }
+
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: "" }));
   };
@@ -388,12 +457,12 @@ export default function TrainerPage() {
     const file = event.target.files?.[0];
     setImageError("");
     if (!file) return;
-    if (!["image/jpeg", "image/png"].includes(file.type)) {
-      setImageError("Foto harus JPG atau PNG.");
+    if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+      setImageError("Foto harus JPG, PNG, atau WebP.");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setImageError("Ukuran foto maksimal 2MB.");
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("Ukuran foto maksimal 5MB.");
       return;
     }
     setImage(file);
@@ -405,13 +474,13 @@ export default function TrainerPage() {
   };
 
   const handleOpenEditForm = (trainer) => {
-    const detail = parseTrainerBio(trainer.bio);
     setEditingTrainer(trainer);
     setValues({
       name: trainer.name || "",
       email: trainer.email || "",
-      specialization: trainer.specialties || detail.specialization || "",
-      price: detail.price === "-" ? "" : detail.price,
+      phoneNumber: trainer.phone_number || trainer.phoneNumber || "",
+      bio: trainer.bio || "",
+      specialties: trainer.specialties || "",
     });
     setErrors({});
     setImage(null);
@@ -458,7 +527,7 @@ export default function TrainerPage() {
         <div className="trainer-head">
           <div>
             <h2>Daftar Trainer</h2>
-            <p>Tambah trainer, spesialis latihan, harga sesi, dan foto profil.</p>
+            <p>Tambah trainer, kontak, bio, spesialisasi, dan foto profil.</p>
           </div>
           <button className="trainer-add-btn" onClick={handleOpenForm} type="button">
             Tambah Trainer
@@ -473,60 +542,60 @@ export default function TrainerPage() {
                 <tr>
                   <th>Foto</th>
                   <th>Nama</th>
+                  <th>Email</th>
+                  <th>No. HP</th>
+                  <th>Bio</th>
                   <th>Spesialisasi</th>
-                  <th>Harga / Sesi</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {trainers.listLoading && (
                   <tr>
-                    <td className="trainer-status" colSpan="5">Memuat data trainer...</td>
+                    <td className="trainer-status" colSpan="7">Memuat data trainer...</td>
                   </tr>
                 )}
                 {!trainers.listLoading && trainers.listError && (
                   <tr>
-                    <td className="trainer-status error" colSpan="5">{trainers.listError}</td>
+                    <td className="trainer-status error" colSpan="7">{trainers.listError}</td>
                   </tr>
                 )}
                 {!trainers.listLoading && !trainers.listError && trainers.trainers.length === 0 && (
                   <tr>
-                    <td className="trainer-status" colSpan="5">Belum ada trainer.</td>
+                    <td className="trainer-status" colSpan="7">Belum ada trainer.</td>
                   </tr>
                 )}
-                {!trainers.listLoading && !trainers.listError && trainers.trainers.map((item) => {
-                  const detail = parseTrainerBio(item.bio);
-
-                  return (
-                    <tr key={item.id}>
-                      <td>
-                        <img className="trainer-thumb" src={item.image_url || gymImage} alt="" />
-                      </td>
-                      <td>{item.name}</td>
-                      <td>{detail.specialization}</td>
-                      <td>{formatTrainerPrice(detail.price)}</td>
-                      <td>
-                        <div className="trainer-row-actions">
-                          <button
-                            className="trainer-row-action edit"
-                            onClick={() => handleOpenEditForm(item)}
-                            type="button"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="trainer-row-action delete"
-                            disabled={trainers.deleteLoadingId === item.id}
-                            onClick={() => handleDelete(item)}
-                            type="button"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {!trainers.listLoading && !trainers.listError && trainers.trainers.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <img className="trainer-thumb" src={item.image_url || gymImage} alt="" />
+                    </td>
+                    <td>{item.name}</td>
+                    <td className="trainer-cell-muted">{item.email || "-"}</td>
+                    <td>{item.phone_number || item.phoneNumber || "-"}</td>
+                    <td className="trainer-bio">{item.bio || "-"}</td>
+                    <td>{item.specialties || "-"}</td>
+                    <td>
+                      <div className="trainer-row-actions">
+                        <button
+                          className="trainer-row-action edit"
+                          onClick={() => handleOpenEditForm(item)}
+                          type="button"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="trainer-row-action delete"
+                          disabled={trainers.deleteLoadingId === item.id}
+                          onClick={() => handleDelete(item)}
+                          type="button"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -570,34 +639,48 @@ export default function TrainerPage() {
                 {errors.email && <p className="trainer-field-error">{errors.email}</p>}
 
                 <label className="trainer-field">
-                  <span>Spesialis Latihan</span>
+                  <span>No. HP</span>
+                  <span className="trainer-phone-shell">
+                    <span className="trainer-phone-prefix">+62</span>
+                    <input
+                      className="trainer-input"
+                      placeholder="8123456789"
+                      value={getPhoneInputDigits(values.phoneNumber)}
+                      onChange={(event) => updateField("phoneNumber", event.target.value)}
+                    />
+                  </span>
+                </label>
+                {errors.phoneNumber && <p className="trainer-field-error">{errors.phoneNumber}</p>}
+
+                <label className="trainer-field">
+                  <span>Bio</span>
+                  <textarea
+                    className="trainer-input trainer-textarea"
+                    placeholder="Coach berpengalaman untuk program strength dan conditioning."
+                    value={values.bio}
+                    onChange={(event) => updateField("bio", event.target.value)}
+                  />
+                </label>
+                {errors.bio && <p className="trainer-field-error">{errors.bio}</p>}
+
+                <label className="trainer-field">
+                  <span>Spesialisasi</span>
                   <input
                     className="trainer-input"
                     placeholder="Strength training, fat loss, boxing"
-                    value={values.specialization}
-                    onChange={(event) => updateField("specialization", event.target.value)}
+                    value={values.specialties}
+                    onChange={(event) => updateField("specialties", event.target.value)}
                   />
                 </label>
-                {errors.specialization && <p className="trainer-field-error">{errors.specialization}</p>}
-
-                <label className="trainer-field">
-                  <span>Harga Per Sesi</span>
-                  <input
-                    className="trainer-input"
-                    placeholder="150000"
-                    value={values.price}
-                    onChange={(event) => updateField("price", event.target.value)}
-                  />
-                </label>
-                {errors.price && <p className="trainer-field-error">{errors.price}</p>}
+                {errors.specialties && <p className="trainer-field-error">{errors.specialties}</p>}
               </div>
 
               <div>
                 <p className="trainer-media-title">Foto Trainer</p>
                 <label className="trainer-upload-box">
-                  <input accept="image/png,image/jpeg" onChange={handleImageChange} type="file" />
+                  <input accept="image/png,image/jpeg,image/webp" onChange={handleImageChange} type="file" />
                   <strong>Klik untuk upload foto</strong>
-                  <span>{editingTrainer ? "Kosongkan jika tidak diganti" : "PNG / JPG max 2MB"}</span>
+                  <span>{editingTrainer ? "Kosongkan jika tidak diganti" : "PNG / JPG / WebP max 5MB"}</span>
                 </label>
                 {imageError && <p className="trainer-field-error">{imageError}</p>}
 

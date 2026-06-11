@@ -3,17 +3,29 @@ import { Link, useNavigate } from "react-router";
 import { AuthFrame, Toast } from "../AuthFrame";
 import { useAuth } from "../../../components/auth/useAuth";
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+const getPhoneInputDigits = (phoneNumber) =>
+  phoneNumber.replace(/^\+62/, "").replace(/^0/, "");
+
+const normalizeIndonesianPhone = (value) => {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("62")) digits = digits.slice(2);
+  if (digits.startsWith("0")) digits = digits.slice(1);
+  return digits ? `+62${digits}` : "";
+};
+
 export default function Signup() {
-  const { signup } = useAuth();
+  const { signup, signupGoogle } = useAuth();
   const navigate = useNavigate();
   const imageInputRef = useRef(null);
+  const googleButtonRef = useRef(null);
 
   const [form, setForm] = useState({
     fullName: "",
     email: "",
     phoneNumber: "",
     birthDate: "",
-    address: "",
     password: "",
     confirmPassword: "",
     acceptedTerms: false,
@@ -22,6 +34,7 @@ export default function Signup() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
 
   useEffect(() => {
@@ -63,6 +76,15 @@ export default function Signup() {
       return;
     }
 
+    if (name === "phoneNumber") {
+      setForm((prev) => ({
+        ...prev,
+        phoneNumber: normalizeIndonesianPhone(value),
+      }));
+      setFieldErrors((prev) => ({ ...prev, phoneNumber: "" }));
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -84,9 +106,6 @@ export default function Signup() {
     if (!form.birthDate) {
       errors.birthDate = "Tanggal lahir wajib diisi";
     }
-    if (form.address.trim().length < 5) {
-      errors.address = "Alamat minimal 5 karakter";
-    }
     if (form.password.length < 6) {
       errors.password = "Password minimal 6 karakter";
     }
@@ -100,6 +119,110 @@ export default function Signup() {
 
     return errors;
   };
+
+  const validateGoogleSignup = () => {
+    const errors = {};
+
+    if (form.fullName.trim().length < 2) {
+      errors.fullName = "Nama minimal 2 karakter";
+    }
+    if (!/^\+628[1-9][0-9]{6,10}$/.test(form.phoneNumber.trim())) {
+      errors.phoneNumber = "Gunakan format +628xxxxxxxx";
+    }
+    if (!form.birthDate) {
+      errors.birthDate = "Tanggal lahir wajib diisi";
+    }
+    if (!form.acceptedTerms) {
+      errors.acceptedTerms = "Kamu perlu menyetujui syarat dan ketentuan";
+    }
+
+    return errors;
+  };
+
+  const createGooglePassword = () => {
+    const randomValues = new Uint32Array(4);
+    window.crypto.getRandomValues(randomValues);
+    return `Google-${Array.from(randomValues).map((value) => value.toString(36)).join("")}`;
+  };
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || !googleButtonRef.current) return undefined;
+
+    let cancelled = false;
+
+    const handleGoogleCredential = async (response) => {
+      if (!response?.credential) {
+        setToast("Registrasi Google gagal. Credential tidak diterima.");
+        return;
+      }
+
+      setFieldErrors({});
+      setToast("");
+
+      const errors = validateGoogleSignup();
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        setToast("Lengkapi nama, nomor HP, tanggal lahir, dan persetujuan sebelum daftar dengan Google.");
+        return;
+      }
+
+      setGoogleLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append("googleToken", response.credential);
+        formData.append("password", createGooglePassword());
+        formData.append("fullName", form.fullName.trim());
+        formData.append("phoneNumber", form.phoneNumber.trim());
+        formData.append("birthDate", form.birthDate);
+        if (form.image) formData.append("image", form.image);
+
+        await signupGoogle(formData);
+        navigate("/choose-plan");
+      } catch (err) {
+        const res = err.response?.data;
+        setToast(res?.error || res?.message || "Registrasi Google gagal. Coba beberapa saat lagi.");
+      } finally {
+        setGoogleLoading(false);
+      }
+    };
+
+    const renderGoogleButton = () => {
+      if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential,
+      });
+      googleButtonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        shape: "pill",
+        size: "large",
+        text: "signup_with",
+        theme: "outline",
+        width: 260,
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      renderGoogleButton();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = renderGoogleButton;
+    script.onerror = () => {
+      if (!cancelled) setToast("Gagal memuat registrasi Google.");
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [form.acceptedTerms, form.birthDate, form.fullName, form.image, form.phoneNumber, navigate, signupGoogle]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -120,7 +243,6 @@ export default function Signup() {
       formData.append("email", normalizedEmail);
       formData.append("phoneNumber", form.phoneNumber.trim());
       formData.append("birthDate", form.birthDate);
-      formData.append("address", form.address.trim());
       formData.append("password", form.password);
       formData.append("image", form.image);
 
@@ -145,6 +267,7 @@ export default function Signup() {
 
   return (
     <>
+      <style>{signupGoogleStyles}</style>
       {toast && <Toast message={toast} onClose={() => setToast("")} />}
 
       <AuthFrame
@@ -214,16 +337,19 @@ export default function Signup() {
 
             <div className="auth-field">
               <label htmlFor="phoneNumber">Phone Number</label>
-              <input
-                id="phoneNumber"
-                name="phoneNumber"
-                type="tel"
-                value={form.phoneNumber}
-                onChange={handleChange}
-                className={fieldErrors.phoneNumber ? "has-error" : ""}
-                placeholder="+628123456789"
-                autoComplete="tel"
-              />
+              <span className="auth-phone-shell">
+                <span className="auth-phone-prefix">+62</span>
+                <input
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  type="tel"
+                  value={getPhoneInputDigits(form.phoneNumber)}
+                  onChange={handleChange}
+                  className={fieldErrors.phoneNumber ? "has-error" : ""}
+                  placeholder="8123456789"
+                  autoComplete="tel"
+                />
+              </span>
               {fieldErrors.phoneNumber && (
                 <p className="auth-error">{fieldErrors.phoneNumber}</p>
               )}
@@ -241,23 +367,6 @@ export default function Signup() {
               />
               {fieldErrors.birthDate && (
                 <p className="auth-error">{fieldErrors.birthDate}</p>
-              )}
-            </div>
-
-            <div className="auth-field">
-              <label htmlFor="address">Address</label>
-              <input
-                id="address"
-                name="address"
-                type="text"
-                value={form.address}
-                onChange={handleChange}
-                className={fieldErrors.address ? "has-error" : ""}
-                placeholder="Alamat tempat tinggal"
-                autoComplete="street-address"
-              />
-              {fieldErrors.address && (
-                <p className="auth-error">{fieldErrors.address}</p>
               )}
             </div>
 
@@ -320,6 +429,18 @@ export default function Signup() {
               "Continue To Verify Email"
             )}
           </button>
+
+          {GOOGLE_CLIENT_ID ? (
+            <>
+              <div className="signup-divider"><span>atau</span></div>
+              <div className={`signup-google ${googleLoading ? "is-loading" : ""}`}>
+                <div ref={googleButtonRef} />
+                {googleLoading && <span className="signup-google-loading">Memproses Google...</span>}
+              </div>
+            </>
+          ) : (
+            null
+          )}
         </form>
 
         <p className="auth-footer">
@@ -329,3 +450,45 @@ export default function Signup() {
     </>
   );
 }
+
+const signupGoogleStyles = `
+  .signup-divider {
+    align-items: center;
+    color: #66709d;
+    display: grid;
+    font-size: 12px;
+    font-weight: 800;
+    gap: 10px;
+    grid-template-columns: 1fr auto 1fr;
+    margin: 18px 0 14px;
+    width: 100%;
+  }
+
+  .signup-divider::before,
+  .signup-divider::after {
+    background: #e6e8f1;
+    content: "";
+    height: 1px;
+  }
+
+  .signup-google {
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .signup-google.is-loading {
+    opacity: .72;
+    pointer-events: none;
+  }
+
+  .signup-google-loading {
+    color: #171267;
+    font-size: 12px;
+    font-weight: 800;
+    margin: 0;
+    text-align: center;
+  }
+`;

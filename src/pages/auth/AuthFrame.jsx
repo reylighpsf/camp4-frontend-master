@@ -363,6 +363,52 @@ const authStyles = `
     box-shadow: 0 0 0 3px rgba(255, 107, 32, 0.12);
   }
 
+  .auth-phone-shell {
+    align-items: center;
+    background: #f3f4f8;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    display: flex;
+    height: 38px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+
+  .auth-phone-prefix {
+    align-items: center;
+    align-self: stretch;
+    color: #171267;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 0 0 0 13px;
+  }
+
+  .auth-phone-shell input {
+    background: transparent;
+    border: 0;
+    height: 100%;
+    padding-left: 4px;
+  }
+
+  .auth-phone-shell:focus-within {
+    background: #fff;
+    border-color: #171267;
+    box-shadow: 0 0 0 3px rgba(23, 18, 103, 0.1);
+  }
+
+  .auth-phone-shell:has(input.has-error) {
+    border-color: #ff6b20;
+    box-shadow: 0 0 0 3px rgba(255, 107, 32, 0.12);
+  }
+
+  .auth-phone-shell input.has-error,
+  .auth-phone-shell input:focus {
+    border-color: transparent;
+    box-shadow: none;
+  }
+
   .auth-error {
     min-height: 16px;
     margin: 4px 0 0;

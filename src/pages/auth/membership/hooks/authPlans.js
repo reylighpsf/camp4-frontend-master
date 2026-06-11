@@ -49,14 +49,27 @@ export const getAuthMembershipPlan = (planId) =>
 export const formatCatalogPrice = (value) =>
   `Rp ${Number(value || 0).toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;
 
-export const getCatalogPrice = (catalog) => {
-  const prices = Array.isArray(catalog?.prices) ? catalog.prices : [];
-  const vocationalPrice =
-    prices.find((price) => price.tier_code === "MAHASISWA_VOKASI") ||
-    prices.find((price) => price.tier_code === "UMUM") ||
-    prices[0];
+export const getUserTierCode = (user) =>
+  user?.membership_price_code ||
+  user?.membershipPriceCode ||
+  user?.account_tier_code ||
+  user?.accountTierCode ||
+  "";
 
-  return vocationalPrice?.price || 0;
+export const getCatalogPriceItem = (catalog, tierCode) => {
+  const prices = Array.isArray(catalog?.prices) ? catalog.prices : [];
+  const normalizedTierCode = String(tierCode || "").toUpperCase();
+
+  return (
+    prices.find((price) => String(price.tier_code || price.tierCode || "").toUpperCase() === normalizedTierCode) ||
+    prices.find((price) => String(price.tier_code || price.tierCode || "").toUpperCase() === "UMUM") ||
+    prices[0]
+  );
+};
+
+export const getCatalogPrice = (catalog, tierCode) => {
+  const priceItem = getCatalogPriceItem(catalog, tierCode);
+  return priceItem?.price || 0;
 };
 
 export const getPlanIdFromCatalogCode = (code) => {
@@ -72,7 +85,7 @@ export const getTransactionTypeFromPlanId = (planId) => {
   return String(planId || "").toUpperCase();
 };
 
-export const mapCatalogToMembershipPlan = (catalog) => ({
+export const mapCatalogToMembershipPlan = (catalog, tierCode) => ({
   benefits: [
     catalog.duration_days ? `${catalog.duration_days} hari gym access` : "Gym access sesuai katalog",
     catalog.session_count ? `${catalog.session_count} sesi` : "Personal member QR Code",
@@ -84,7 +97,8 @@ export const mapCatalogToMembershipPlan = (catalog) => ({
   id: getPlanIdFromCatalogCode(catalog.code),
   name: catalog.name,
   period: catalog.duration_days === 1 ? "day" : "month",
-  price: formatCatalogPrice(getCatalogPrice(catalog)),
+  price: formatCatalogPrice(getCatalogPrice(catalog, tierCode)),
+  selectedTierCode: getCatalogPriceItem(catalog, tierCode)?.tier_code,
   prices: Array.isArray(catalog.prices)
     ? catalog.prices.map((price) => ({
         price: formatCatalogPrice(price.price),
@@ -94,10 +108,10 @@ export const mapCatalogToMembershipPlan = (catalog) => ({
     : [],
 });
 
-export const mapCatalogsToMembershipPlans = (catalogs = []) => {
+export const mapCatalogsToMembershipPlans = (catalogs = [], tierCode = "") => {
   const plans = catalogs
     .filter((catalog) => catalog.family === "MEMBERSHIP" && catalog.is_active !== false)
-    .map(mapCatalogToMembershipPlan);
+    .map((catalog) => mapCatalogToMembershipPlan(catalog, tierCode));
 
   return plans.length > 0 ? plans : authMembershipPlans;
 };

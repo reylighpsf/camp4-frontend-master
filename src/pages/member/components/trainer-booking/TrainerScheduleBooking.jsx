@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
+import { getCatalogPrice } from "../../../auth/membership/hooks/authPlans";
 
 const formatCurrency = (value) =>
   `Rp ${Number(value || 0).toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;
 
-const getCatalogPrice = (catalog) => Number(catalog?.prices?.[0]?.price || 0);
 const days = Array.from({ length: 30 }, (_, index) => index + 1);
 const availability = {
   available: [3, 4, 8, 9, 10, 16, 17, 18, 22, 23, 26],
@@ -21,7 +21,7 @@ const getDayStatus = (day) => {
   return "";
 };
 
-export default function TrainerScheduleBookingModal({ catalogs = [], onClose, onConfirm, trainer }) {
+export default function TrainerScheduleBookingModal({ catalogs = [], onClose, onConfirm, tierCode = "", trainer }) {
   const [selectedCatalogCode, setSelectedCatalogCode] = useState(catalogs[0]?.code || "");
   const [selectedDay, setSelectedDay] = useState(26);
   const selectedCatalog = useMemo(
@@ -59,7 +59,7 @@ export default function TrainerScheduleBookingModal({ catalogs = [], onClose, on
             >
               <strong>{catalog.name}</strong>
               <span>{catalog.session_count || 10} sessions / {catalog.group_size || 1} person</span>
-              <b>{formatCurrency(getCatalogPrice(catalog))}</b>
+              <b>{formatCurrency(getCatalogPrice(catalog, tierCode))}</b>
             </button>
           ))}
         </section>

@@ -191,6 +191,8 @@ export default function useActiveMembers() {
     formData.append("role", values.role);
     formData.append("membershipPriceCode", values.membershipPriceCode);
     formData.append("penaltyAmount", values.penaltyAmount || "0");
+    if (values.phoneNumber?.trim()) formData.append("phoneNumber", values.phoneNumber.trim());
+    if (values.birthDate) formData.append("birthDate", values.birthDate);
     if (values.image) formData.append("image", values.image);
 
     try {
@@ -202,6 +204,37 @@ export default function useActiveMembers() {
       return { ok: true, data: response.data?.data || null };
     } catch (err) {
       const message = getErrorMessage(err, "Gagal menambahkan user.");
+      setActionError(message);
+      return { ok: false, error: message };
+    } finally {
+      setActionLoadingId("");
+    }
+  }, [fetchMembers]);
+
+  const updateUser = useCallback(async (userId, values) => {
+    setActionLoadingId(`edit-${userId}`);
+    setActionError("");
+    setActionSuccessMessage("");
+
+    const formData = new FormData();
+    formData.append("fullName", values.fullName.trim());
+    formData.append("role", values.role);
+    formData.append("membershipPriceCode", values.membershipPriceCode);
+    formData.append("penaltyAmount", values.penaltyAmount || "0");
+    if (values.phoneNumber?.trim()) formData.append("phoneNumber", values.phoneNumber.trim());
+    if (values.birthDate) formData.append("birthDate", values.birthDate);
+    if (values.password) formData.append("password", values.password);
+    if (values.image) formData.append("image", values.image);
+
+    try {
+      const response = await api.put(`/admin/users/${userId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setActionSuccessMessage("User berhasil diperbarui.");
+      await fetchMembers();
+      return { ok: true, data: response.data?.data || null };
+    } catch (err) {
+      const message = getErrorMessage(err, "Gagal memperbarui user.");
       setActionError(message);
       return { ok: false, error: message };
     } finally {
@@ -242,6 +275,7 @@ export default function useActiveMembers() {
     refetch: fetchMembers,
     getUserDetail,
     createUser,
+    updateUser,
     updateMembership,
     deleteMembership,
   };

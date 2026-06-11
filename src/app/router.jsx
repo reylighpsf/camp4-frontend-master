@@ -13,6 +13,7 @@ import VerifyEmailPage from "../pages/auth/verify/VerifyEmail";
 import VerifyEmailResultPage from "../pages/auth/verify/VerifyEmailResult";
 import PaymentPage from "../pages/auth/pay/Payment";
 import PaymentSuccessPage from "../pages/auth/pay/PaymentSuccess";
+import NewsDetailPage from "../pages/news/NewsDetail";
 import AdminPage from "../pages/admin/Dashboard";
 import ActiveMemberPage from "../pages/admin/components/active-member/ActiveMember";
 import {
@@ -94,6 +95,10 @@ export const router = createBrowserRouter([
   {
     path: "/explore",
     element: <LandingPage scrollToExplore />,
+  },
+  {
+    path: "/news/:id",
+    element: <NewsDetailPage />,
   },
   {
     path: "/membership",

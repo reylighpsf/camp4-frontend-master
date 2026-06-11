@@ -8,6 +8,7 @@ const api = axios.create({
 });
 
 export const authApi = {
+  googleConfig: () => api.get("/auth/google-config"),
   signup: (data) =>
     api.post("/auth/register", data, {
       headers: { "Content-Type": "multipart/form-data" },
