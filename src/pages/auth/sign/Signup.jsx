@@ -3,8 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { AuthFrame, Toast } from "../AuthFrame";
 import { useAuth } from "../../../components/auth/hooks/useAuth";
 import { buildGoogleRegisterPayload } from "./hooks/googleAuthPayload";
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+import { getGoogleClientId } from "./hooks/googleClientConfig";
 
 const getPhoneInputDigits = (phoneNumber) =>
   phoneNumber.replace(/^\+62/, "").replace(/^0/, "");
@@ -36,6 +35,9 @@ export default function Signup() {
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState("");
+  const [googleConfigLoading, setGoogleConfigLoading] = useState(true);
+  const [googleConfigError, setGoogleConfigError] = useState("");
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
 
   useEffect(() => {
@@ -122,7 +124,38 @@ export default function Signup() {
   };
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || !googleButtonRef.current) return undefined;
+    let isMounted = true;
+
+    const fetchGoogleClientId = async () => {
+      setGoogleConfigLoading(true);
+      setGoogleConfigError("");
+
+      try {
+        const clientId = await getGoogleClientId();
+        if (!isMounted) return;
+        setGoogleClientId(clientId);
+        if (!clientId) setGoogleConfigError("Google Client ID kosong dari backend.");
+      } catch (err) {
+        if (!isMounted) return;
+        setGoogleConfigError(
+          err.response?.data?.message ||
+            err.response?.data?.error ||
+            "Gagal mengambil Google Client ID dari backend.",
+        );
+      } finally {
+        if (isMounted) setGoogleConfigLoading(false);
+      }
+    };
+
+    fetchGoogleClientId();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) return undefined;
 
     let cancelled = false;
 
@@ -149,7 +182,7 @@ export default function Signup() {
     const renderGoogleButton = () => {
       if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) return;
       window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
+        client_id: googleClientId,
         callback: handleGoogleCredential,
       });
       googleButtonRef.current.innerHTML = "";
@@ -182,7 +215,7 @@ export default function Signup() {
     return () => {
       cancelled = true;
     };
-  }, [navigate, signupGoogle]);
+  }, [googleClientId, navigate, signupGoogle]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -390,17 +423,21 @@ export default function Signup() {
             )}
           </button>
 
-          {GOOGLE_CLIENT_ID ? (
-            <>
-              <div className="signup-divider"><span>atau</span></div>
-              <div className={`signup-google ${googleLoading ? "is-loading" : ""}`}>
+          <div className="signup-divider"><span>atau</span></div>
+          <div className={`signup-google ${googleLoading ? "is-loading" : ""}`}>
+            {googleClientId ? (
+              <>
                 <div ref={googleButtonRef} />
                 {googleLoading && <span className="signup-google-loading">Memproses Google...</span>}
+              </>
+            ) : googleConfigLoading ? (
+              <div className="signup-google-config-error">Memuat konfigurasi Google dari backend...</div>
+            ) : (
+              <div className="signup-google-config-error">
+                {googleConfigError || "Google register belum aktif. GOOGLE_CLIENT_ID belum tersedia dari backend."}
               </div>
-            </>
-          ) : (
-            null
-          )}
+            )}
+          </div>
         </form>
 
         <p className="auth-footer">
@@ -450,5 +487,18 @@ const signupGoogleStyles = `
     font-weight: 800;
     margin: 0;
     text-align: center;
+  }
+
+  .signup-google-config-error {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    color: #9a3412;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.4;
+    padding: 11px 12px;
+    text-align: center;
+    width: min(320px, 100%);
   }
 `;

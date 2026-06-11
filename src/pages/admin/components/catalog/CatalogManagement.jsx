@@ -263,6 +263,35 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
     }
   };
 
+  const moveCatalog = async (item, direction) => {
+    const currentIndex = familyCatalogs.findIndex((catalog) => catalog.code === item.code);
+    const targetIndex = currentIndex + direction;
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= familyCatalogs.length) return;
+
+    const reorderedCatalogs = [...familyCatalogs];
+    [reorderedCatalogs[currentIndex], reorderedCatalogs[targetIndex]] = [
+      reorderedCatalogs[targetIndex],
+      reorderedCatalogs[currentIndex],
+    ];
+
+    setActionLoading(`reorder-${item.code}`);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await api.patch("/catalogs/reorder", {
+        family,
+        orderedCodes: reorderedCatalogs.map((catalog) => catalog.code),
+      });
+      setCatalogs(response.data?.data || reorderedCatalogs);
+      setMessage("Urutan catalog berhasil diperbarui.");
+    } catch (err) {
+      setError(getErrorMessage(err, "Gagal mengubah urutan catalog."));
+    } finally {
+      setActionLoading("");
+    }
+  };
+
   return (
     <AdminLayout title={page.title} subtitle={page.subtitle}>
       <style>{catalogStyles}</style>
@@ -297,21 +326,22 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
                       <th>Detail</th>
                       <th>Prices</th>
                       <th>Status</th>
+                      <th>Urutan</th>
                       <th>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading && (
                       <tr>
-                        <td className="catalog-empty" colSpan="5">Memuat catalog...</td>
+                        <td className="catalog-empty" colSpan="6">Memuat catalog...</td>
                       </tr>
                     )}
                     {!loading && familyCatalogs.length === 0 && (
                       <tr>
-                        <td className="catalog-empty" colSpan="5">Belum ada catalog.</td>
+                        <td className="catalog-empty" colSpan="6">Belum ada catalog.</td>
                       </tr>
                     )}
-                    {!loading && familyCatalogs.map((item) => (
+                    {!loading && familyCatalogs.map((item, index) => (
                       <tr key={item.code}>
                         <td>
                           <strong>{item.name}</strong>
@@ -338,16 +368,44 @@ function CatalogManagementPage({ family = "MEMBERSHIP" }) {
                           </span>
                         </td>
                         <td>
+                          <div className="catalog-order-cell">
+                            <div className="catalog-order-actions" aria-label={`Ubah urutan ${item.name}`}>
+                              <button
+                                aria-label={`Naikkan ${item.name}`}
+                                className="move"
+                                disabled={index === 0 || actionLoading === `reorder-${item.code}`}
+                                onClick={() => moveCatalog(item, -1)}
+                                title="Naik"
+                                type="button"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                aria-label={`Turunkan ${item.name}`}
+                                className="move"
+                                disabled={index === familyCatalogs.length - 1 || actionLoading === `reorder-${item.code}`}
+                                onClick={() => moveCatalog(item, 1)}
+                                title="Turun"
+                                type="button"
+                              >
+                                ↓
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
                           <div className="catalog-actions">
-                            <button className="edit" onClick={() => startEdit(item)} type="button">Edit</button>
-                            <button
-                              className="delete"
-                              disabled={actionLoading === `delete-${item.code}`}
-                              onClick={() => deleteCatalog(item)}
-                              type="button"
-                            >
-                              Delete
-                            </button>
+                            <div className="catalog-row-actions">
+                              <button className="edit" onClick={() => startEdit(item)} type="button">Edit</button>
+                              <button
+                                className="delete"
+                                disabled={actionLoading === `delete-${item.code}`}
+                                onClick={() => deleteCatalog(item)}
+                                type="button"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -615,7 +673,7 @@ const catalogStyles = `
     font: inherit;
     font-size: 12px;
     font-weight: 900;
-    min-height: 36px;
+    min-height: 34px;
     padding: 0 12px;
     text-transform: uppercase;
   }
@@ -705,6 +763,14 @@ const catalogStyles = `
     text-transform: none;
   }
 
+  .catalog-table th:nth-child(5) {
+    width: 150px;
+  }
+
+  .catalog-table th:nth-child(6) {
+    width: 166px;
+  }
+
   .catalog-table td {
     border-bottom: 0;
     color: #11131d;
@@ -713,6 +779,10 @@ const catalogStyles = `
     padding: 18px;
     text-align: center;
     vertical-align: middle;
+  }
+
+  .catalog-table td:nth-child(5) {
+    padding: 12px 10px;
   }
 
   .catalog-table tbody tr {
@@ -761,22 +831,83 @@ const catalogStyles = `
   }
 
   .catalog-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
+    align-items: center;
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: 8px;
     justify-content: center;
+  }
+
+  .catalog-order-cell {
+    align-items: center;
+    background: #f8f9ff;
+    border: 1px solid #d9def2;
+    border-radius: 999px;
+    display: inline-grid;
+    gap: 4px;
+    grid-template-columns: 30px 30px;
+    justify-content: center;
+    padding: 4px 6px;
+  }
+
+  .catalog-order-actions,
+  .catalog-row-actions {
+    display: inline-flex;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .catalog-order-actions {
+    display: contents;
+    flex: 0 0 auto;
+  }
+
+  .catalog-row-actions {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+  }
+
+  .catalog-actions .move {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #b9bfd3;
+    border-radius: 4px;
+    color: #080478;
+    display: inline-flex;
+    font-size: 14px;
+    height: 30px;
+    justify-content: center;
+    min-height: 30px;
+    padding: 0;
+    width: 30px;
+  }
+
+  .catalog-actions .move:disabled {
+    background: #eef0f6;
+    border-color: #d7dbe8;
+    color: #b5bbce;
+    opacity: 1;
+  }
+
+  .catalog-actions .move:not(:disabled):hover {
+    background: #fff3d8;
+    border-color: #ffb43b;
   }
 
   .catalog-actions .edit {
     background: #080478;
     border: 1px solid #080478;
     color: #fff;
+    height: 34px;
+    min-width: 64px;
   }
 
   .catalog-actions .delete {
     background: #fff;
     border: 1px solid #c73822;
     color: #c73822;
+    height: 34px;
+    min-width: 76px;
   }
 
   .catalog-submit-btn:disabled,
@@ -785,6 +916,10 @@ const catalogStyles = `
   .catalog-actions button:disabled {
     cursor: not-allowed;
     opacity: .62;
+  }
+
+  .catalog-actions .move:disabled {
+    opacity: 1;
   }
 
   .catalog-empty {
