@@ -286,6 +286,12 @@ export const paymentStyles = `
     color: #c73822;
   }
 
+  .payments-action.view {
+    background: #080478;
+    border: 1px solid #080478;
+    color: #fff;
+  }
+
   .payments-table-status,
   .payments-empty {
     color: #6b7280;

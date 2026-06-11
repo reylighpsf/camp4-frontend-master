@@ -27,23 +27,30 @@ export default function PaymentsPage() {
     }
   };
 
-  const getProof = (transactionId) => {
-    try {
-      return JSON.parse(localStorage.getItem(`vocafit-payment-proof-${transactionId}`) || "null");
-    } catch {
-      return null;
+  const handleCancel = async (item) => {
+    const confirmed = await confirmAction({
+      confirmButtonColor: "#c73822",
+      confirmButtonText: "Cancel",
+      text: `Transaksi ${item.order_id || item.id} akan dibatalkan.`,
+      title: "Cancel Transaksi?",
+    });
+    if (!confirmed) return;
+
+    const result = await payments.cancelPayment(item.id);
+    if (result.ok) {
+      payments.fetchPayments();
     }
   };
 
   return (
-    <AdminLayout title="Payments" subtitle="Kelola pembayaran member dan transaksi gym.">
+    <AdminLayout title="Transaksi yang sedang diproses" subtitle="Pantau transaksi pending member dan transaksi gym.">
       <style>{paymentStyles}</style>
 
       <div className="payments-head">
         <div className="payments-head-main">
           <div>
-            <h2>Daftar Pembayaran Cash</h2>
-            <p>Konfirmasi pembayaran member berdasarkan struk yang diupload.</p>
+            <h2>Transaksi yang sedang diproses</h2>
+            <p>Menampilkan pembayaran cash dan QRIS/VA yang masih menunggu penyelesaian.</p>
           </div>
         </div>
         <div className="payments-nav">
@@ -70,7 +77,6 @@ export default function PaymentsPage() {
               <th>Metode</th>
               <th>Total</th>
               <th>Status</th>
-              <th>Struk</th>
               <th>Dibuat</th>
               <th>Expired</th>
               <th>Aksi</th>
@@ -79,7 +85,7 @@ export default function PaymentsPage() {
           <tbody>
             {payments.listLoading && (
               <tr>
-                <td className="payments-table-status" colSpan="9">
+                <td className="payments-table-status" colSpan="8">
                   Memuat data pembayaran...
                 </td>
               </tr>
@@ -87,7 +93,7 @@ export default function PaymentsPage() {
 
             {!payments.listLoading && payments.listError && (
               <tr>
-                <td className="payments-table-status error" colSpan="9">
+                <td className="payments-table-status error" colSpan="8">
                   {payments.listError}
                 </td>
               </tr>
@@ -95,17 +101,15 @@ export default function PaymentsPage() {
 
             {!payments.listLoading && !payments.listError && payments.payments.length === 0 && (
               <tr>
-                <td className="payments-empty" colSpan="9">
-                  Belum ada pembayaran cash yang menunggu konfirmasi.
+                <td className="payments-empty" colSpan="8">
+                  Belum ada transaksi yang sedang diproses.
                 </td>
               </tr>
             )}
 
             {!payments.listLoading &&
               !payments.listError &&
-              payments.payments.map((item) => {
-                const proof = getProof(item.id);
-                return (
+              payments.payments.map((item) => (
                   <tr key={item.id}>
                     <td className="payments-member">
                       <strong>{item.full_name || "-"}</strong>
@@ -119,32 +123,42 @@ export default function PaymentsPage() {
                     <td>
                       <span className="payments-badge pending">{item.status || "PENDING"}</span>
                     </td>
-                    <td className="payments-proof">{proof?.fileName || "Belum upload"}</td>
                     <td>{formatDateTime(item.created_at)}</td>
                     <td>{formatDateTime(item.expire_at)}</td>
                     <td>
                       <div className="payments-actions">
-                        <button
-                          className="payments-action accept"
-                          disabled={payments.actionLoadingId === item.id}
-                          onClick={() => handleConfirm(item, "SUCCESS")}
-                          type="button"
-                        >
-                          {payments.actionLoadingId === item.id ? "..." : "Terima"}
-                        </button>
+                        {item.payment_method === "CASH" ? (
+                          <>
+                            <button
+                              className="payments-action accept"
+                              disabled={payments.actionLoadingId === item.id}
+                              onClick={() => handleConfirm(item, "SUCCESS")}
+                              type="button"
+                            >
+                              {payments.actionLoadingId === item.id ? "..." : "Terima"}
+                            </button>
+                            <button
+                              className="payments-action reject"
+                              disabled={payments.actionLoadingId === item.id}
+                              onClick={() => handleConfirm(item, "FAILED")}
+                              type="button"
+                            >
+                              Tolak
+                            </button>
+                          </>
+                        ) : null}
                         <button
                           className="payments-action reject"
                           disabled={payments.actionLoadingId === item.id}
-                          onClick={() => handleConfirm(item, "FAILED")}
+                          onClick={() => handleCancel(item)}
                           type="button"
                         >
-                          Tolak
+                          Cancel
                         </button>
                       </div>
                     </td>
                   </tr>
-                );
-              })}
+              ))}
           </tbody>
         </table>
       </div>

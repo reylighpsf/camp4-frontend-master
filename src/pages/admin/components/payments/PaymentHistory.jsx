@@ -8,7 +8,6 @@ import {
   enrichTransactionMembers,
   paymentStyles,
 } from "./paymentHelpers";
-import { confirmAction } from "../../../../utils/sweetAlert";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
@@ -64,30 +63,6 @@ export default function PaymentHistoryPage() {
       );
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat detail transaksi."));
-    } finally {
-      setActionLoadingId("");
-    }
-  };
-
-  const cancelTransaction = async (transaction) => {
-    const confirmed = await confirmAction({
-      confirmButtonColor: "#c73822",
-      confirmButtonText: "Batalkan",
-      text: `Transaksi ${transaction.order_id || transaction.id} akan dibatalkan.`,
-      title: "Batalkan Transaksi?",
-    });
-    if (!confirmed) return;
-
-    setActionLoadingId(transaction.id);
-    setActionMessage("");
-    setError("");
-    try {
-      const response = await api.post(`/transactions/${transaction.id}/cancel`);
-      setSelectedTransaction(response.data?.data || null);
-      setActionMessage("Transaksi berhasil dibatalkan.");
-      await fetchHistory();
-    } catch (err) {
-      setError(getErrorMessage(err, "Gagal membatalkan transaksi."));
     } finally {
       setActionLoadingId("");
     }
@@ -173,16 +148,6 @@ export default function PaymentHistoryPage() {
                     >
                       Detail
                     </button>
-                    {item.status === "PENDING" && (
-                      <button
-                        className="payments-action reject"
-                        disabled={actionLoadingId === item.id}
-                        onClick={() => cancelTransaction(item)}
-                        type="button"
-                      >
-                        Cancel
-                      </button>
-                    )}
                   </div>
                 </td>
               </tr>
@@ -223,16 +188,6 @@ export default function PaymentHistoryPage() {
             </dl>
 
             <div className="payments-modal-actions">
-              {selectedTransaction.status === "PENDING" && (
-                <button
-                  className="payments-action reject"
-                  disabled={actionLoadingId === selectedTransaction.id}
-                  onClick={() => cancelTransaction(selectedTransaction)}
-                  type="button"
-                >
-                  Cancel Transaction
-                </button>
-              )}
               <button className="payments-action accept" onClick={() => setSelectedTransaction(null)} type="button">
                 Tutup
               </button>
