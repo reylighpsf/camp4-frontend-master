@@ -11,6 +11,31 @@ export default function LandingPage({ scrollToExplore = false }) {
   const [plans, setPlans] = useState(authMembershipPlans);
 
   useEffect(() => {
+    const html = document.documentElement;
+    const root = document.getElementById("root");
+    const previousHtmlOverflow = html.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousRootHeight = root?.style.height || "";
+    const previousRootOverflow = root?.style.overflow || "";
+
+    html.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    if (root) {
+      root.style.height = "100dvh";
+      root.style.overflow = "hidden";
+    }
+
+    return () => {
+      html.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      if (root) {
+        root.style.height = previousRootHeight;
+        root.style.overflow = previousRootOverflow;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const motionItems = Array.from(document.querySelectorAll(".landing-motion"));
     if (motionItems.length === 0) return undefined;
 
@@ -87,10 +112,11 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
 
         .landing-page {
-          min-height: 100vh;
-          min-height: 100dvh;
+          height: 100vh;
+          height: 100dvh;
           width: 100%;
           overflow-x: hidden;
+          overflow-y: auto;
           background: #f1f2f5;
           color: #0a1185;
           font-family: 'DM Sans', sans-serif;

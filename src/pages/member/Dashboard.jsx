@@ -176,61 +176,390 @@ export default function MemberDashboard() {
   return (
     <MemberLayout active="Dashboard">
       <style>{`
-        .dashboard-layout { align-items: start; display: grid; gap: 18px; grid-template-columns: 1fr; width: 100%; }
-        .primary-stack { display: grid; gap: 16px; }
-        .dashboard-alert { background: #fff1f0; border-radius: 8px; color: #c73822; font-size: 13px; font-weight: 800; margin-bottom: 16px; padding: 12px 14px; }
-        .recap-card, .activity-card { background: #0b0871; border-radius: 10px; color: #fff; overflow: hidden; padding: 28px 28px 24px; position: relative; width: 100%; }
+        .dashboard-layout {
+          align-items: start;
+          display: grid;
+          gap: 18px;
+          grid-template-columns: 1fr;
+          width: 100%;
+        }
+        .primary-stack {
+          display: grid;
+          gap: 16px;
+        }
+        .dashboard-alert {
+          background: #fff1f0;
+          border-radius: 8px;
+          color: #c73822;
+          font-size: 13px;
+          font-weight: 800;
+          margin-bottom: 16px;
+          padding: 12px 14px;
+        }
+        .recap-card, .activity-card {
+          background: #0b0871;
+          border-radius: 10px;
+          color: #fff;
+          overflow: hidden;
+          padding: 28px 28px 24px;
+          position: relative;
+          width: 100%;
+        }
         .recap-card { min-height: 250px; }
-        .dashboard-bottom-grid { align-items: stretch; display: grid; gap: 22px; grid-template-columns: minmax(0, 1.8fr) minmax(260px, .95fr); }
-        .activity-card { min-height: 190px; padding-bottom: 26px; }
-        .status-card { background: #ffffff; border-radius: 10px; box-shadow: 0 12px 24px rgba(8,4,120,.08); color: #0b0871; min-height: 190px; padding: 28px 24px; }
-        .recap-card::before, .activity-card::before { background: rgba(255,255,255,.08); border-radius: 50%; content: ''; height: 190px; position: absolute; right: -48px; top: -58px; width: 190px; }
-        .eyebrow { color: #f2f0ff; font-size: 12px; font-weight: 900; margin-bottom: 16px; position: relative; text-transform: uppercase; z-index: 1; }
-        .recap-card h2 { color: #fff; font-family: 'Anton', sans-serif; font-size: clamp(30px, 3vw, 44px); font-weight: 400; line-height: 1; margin-bottom: 30px; max-width: 780px; position: relative; z-index: 1; }
-        .stats-row { display: grid; gap: 18px; grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 960px; position: relative; z-index: 1; }
-        .stat-card { align-items: center; background: rgba(255,255,255,.26); border-radius: 8px; display: grid; gap: 14px; grid-template-columns: 58px minmax(0, 1fr); min-height: 86px; min-width: 0; padding: 14px 16px; }
-        .stat-icon { align-items: center; align-self: center; background: #ff7a00; border-radius: 14px; color: #fff; display: inline-flex; height: 58px; justify-content: center; justify-self: center; width: 58px; }
-        .stat-icon svg { display: block; height: 30px; width: 30px; }
-        .stat-card strong { color: #fff; display: block; font-size: 27px; font-weight: 900; line-height: .95; overflow-wrap: anywhere; }
-        .stat-card span:not(.stat-icon) { color: #fff; display: block; font-size: 10px; font-weight: 900; line-height: 1.15; margin-top: 7px; opacity: .95; }
+        .dashboard-bottom-grid {
+          align-items: stretch;
+          display: grid;
+          gap: 22px;
+          grid-template-columns: minmax(0, 1.8fr) minmax(260px, .95fr);
+        }
+        .activity-card {
+          min-height: 190px;
+          padding-bottom: 26px;
+        }
+        .status-card {
+          background: #ffffff;
+          border-radius: 10px;
+          box-shadow: 0 12px 24px rgba(8,4,120,.08);
+          color: #0b0871;
+          min-height: 190px;
+          padding: 28px 24px;
+        }
+        .recap-card::before, .activity-card::before {
+          background: rgba(255,255,255,.08);
+          border-radius: 50%;
+          content: '';
+          height: 190px;
+          position: absolute;
+          right: -48px;
+          top: -58px;
+          width: 190px;
+        }
+        .eyebrow {
+          color: #f2f0ff;
+          font-size: 12px;
+          font-weight: 900;
+          margin-bottom: 16px;
+          position: relative;
+          text-transform: uppercase;
+          z-index: 1;
+        }
+        .recap-card h2 {
+          color: #fff;
+          font-family: 'Anton', sans-serif;
+          font-size: clamp(30px, 3vw, 44px);
+          font-weight: 400;
+          line-height: 1;
+          margin-bottom: 30px;
+          max-width: 780px;
+          position: relative;
+          z-index: 1;
+        }
+        .stats-row {
+          display: grid;
+          gap: 18px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          max-width: 960px;
+          position: relative;
+          z-index: 1;
+        }
+        .stat-card {
+          align-items: center;
+          background: rgba(255,255,255,.26);
+          border-radius: 8px;
+          display: grid;
+          gap: 14px;
+          grid-template-columns: 58px minmax(0, 1fr);
+          min-height: 86px;
+          min-width: 0;
+          padding: 14px 16px;
+        }
+        .stat-icon {
+          align-items: center;
+          align-self: center;
+          background: #ff7a00;
+          border-radius: 14px;
+          color: #fff;
+          display: inline-flex;
+          height: 58px;
+          justify-content: center;
+          justify-self: center;
+          width: 58px;
+        }
+        .stat-icon svg {
+          display: block;
+          height: 30px;
+          width: 30px;
+        }
+        .stat-card strong {
+          color: #fff;
+          display: block;
+          font-size: 27px;
+          font-weight: 900;
+          line-height: .95;
+          overflow-wrap: anywhere;
+        }
+        .stat-card span:not(.stat-icon) {
+          color: #fff;
+          display: block;
+          font-size: 10px;
+          font-weight: 900;
+          line-height: 1.15;
+          margin-top: 7px;
+          opacity: .95;
+        }
         .recap-meta-row { display: none; }
-        .recap-meta-card { background: rgba(255,255,255,.20); border-radius: 8px; min-height: 122px; padding: 18px 20px; }
-        .recap-meta-card span { color: #f2f0ff; display: block; font-size: 12px; font-weight: 900; margin-bottom: 9px; text-transform: uppercase; }
-        .recap-meta-card strong { color: #fff; display: block; font-size: 20px; font-weight: 900; line-height: 1.2; overflow-wrap: anywhere; }
-        .recap-meta-card small { color: #f2f0ff; display: block; font-size: 12px; font-weight: 800; margin-top: 9px; }
-        .recap-badge { border-radius: 999px; display: inline-flex; font-size: 11px; font-weight: 900; margin-top: 12px; padding: 6px 12px; text-transform: uppercase; }
-        .recap-badge.active { background: #edfdf3; color: #16794c; }
-        .recap-badge.pending { background: #fff4d8; color: #9a5a00; }
-        .recap-badge.inactive { background: #eef0f5; color: #70758d; }
-        .history-link, .view-link { color: #ff7a00; display: inline-block; font-size: 14px; font-weight: 900; margin-top: 22px; position: relative; text-decoration: none; z-index: 1; }
-        .activity-card h3 { color: #fff; font-family: 'Anton', sans-serif; font-size: 24px; font-weight: 400; line-height: 1; margin-bottom: 24px; position: relative; z-index: 1; }
-        .live-pill { background: #ff7a00; border-radius: 999px; color: #fff; display: inline-flex; font-family: 'DM Sans', sans-serif; font-size: 9px; font-weight: 900; margin-left: 8px; padding: 5px 9px; vertical-align: middle; }
-        .capacity { position: relative; z-index: 1; }
-        .capacity strong { display: block; font-size: 40px; font-weight: 900; line-height: 1; margin-top: 2px; }
-        .capacity span { color: #fff; display: block; font-size: 15px; font-weight: 700; margin-top: 6px; }
-        .progress-track { background: rgba(255,255,255,.30); border-radius: 999px; height: 10px; margin-top: 32px; overflow: hidden; position: relative; z-index: 1; }
-        .progress-fill { background: #ff7a00; border-radius: inherit; height: 100%; transition: width .2s; }
-        .status-card-head { align-items: center; display: flex; justify-content: space-between; margin-bottom: 34px; }
-        .status-card-head span { color: #625f9d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
-        .status-pill { border-radius: 999px; font-size: 10px; font-weight: 900; padding: 4px 10px; text-transform: uppercase; }
-        .status-pill.active { background: #dff9eb; color: #16864d; }
-        .status-pill.inactive { background: #eef0f5; color: #70758d; }
-        .status-card strong { color: #0b0871; display: block; font-family: 'Anton', sans-serif; font-size: 28px; font-weight: 400; line-height: 1; }
-        .status-card small { color: #6b6fa3; display: block; font-size: 12px; font-weight: 800; margin-top: 8px; }
-        .workout-item { border-radius: 12px; box-shadow: 0 3px 8px rgba(11,8,113,.08); }
-        .recent-head { align-items: end; display: flex; justify-content: space-between; margin: 8px 0 18px; }
-        .recent-head h2 { color: #0b0871; font-size: 18px; font-weight: 900; text-transform: uppercase; }
-        .recent-head p { color: #0b0871; font-size: 14px; margin-top: 4px; opacity: .85; }
+        .recap-meta-card {
+          background: rgba(255,255,255,.20);
+          border-radius: 8px;
+          min-height: 122px;
+          padding: 18px 20px;
+        }
+        .recap-meta-card span {
+          color: #f2f0ff;
+          display: block;
+          font-size: 12px;
+          font-weight: 900;
+          margin-bottom: 9px;
+          text-transform: uppercase;
+        }
+        .recap-meta-card strong {
+          color: #fff;
+          display: block;
+          font-size: 20px;
+          font-weight: 900;
+          line-height: 1.2;
+          overflow-wrap: anywhere;
+        }
+        .recap-meta-card small {
+          color: #f2f0ff;
+          display: block;
+          font-size: 12px;
+          font-weight: 800;
+          margin-top: 9px;
+        }
+        .recap-badge {
+          border-radius: 999px;
+          display: inline-flex;
+          font-size: 11px;
+          font-weight: 900;
+          margin-top: 12px;
+          padding: 6px 12px;
+          text-transform: uppercase;
+        }
+        .recap-badge.active {
+          background: #edfdf3;
+          color: #16794c;
+        }
+        .recap-badge.pending {
+          background: #fff4d8;
+          color: #9a5a00;
+        }
+        .recap-badge.inactive {
+          background: #eef0f5;
+          color: #70758d;
+        }
+        .history-link, .view-link {
+          color: #ff7a00;
+          display: inline-block;
+          font-size: 14px;
+          font-weight: 900;
+          margin-top: 22px;
+          position: relative;
+          text-decoration: none;
+          z-index: 1;
+        }
+        .activity-card h3 {
+          color: #fff;
+          font-family: 'Anton', sans-serif;
+          font-size: 24px;
+          font-weight: 400;
+          line-height: 1;
+          margin-bottom: 24px;
+          position: relative;
+          z-index: 1;
+        }
+        .live-pill {
+          background: #ff7a00;
+          border-radius: 999px;
+          color: #fff;
+          display: inline-flex;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 9px;
+          font-weight: 900;
+          margin-left: 8px;
+          padding: 5px 9px;
+          vertical-align: middle;
+        }
+        .capacity {
+          position: relative;
+          z-index: 1;
+        }
+        .capacity strong {
+          display: block;
+          font-size: 40px;
+          font-weight: 900;
+          line-height: 1;
+          margin-top: 2px;
+        }
+        .capacity span {
+          color: #fff;
+          display: block;
+          font-size: 15px;
+          font-weight: 700;
+          margin-top: 6px;
+        }
+        .progress-track {
+          background: rgba(255,255,255,.30);
+          border-radius: 999px;
+          height: 10px;
+          margin-top: 32px;
+          overflow: hidden;
+          position: relative;
+          z-index: 1;
+        }
+        .progress-fill {
+          background: #ff7a00;
+          border-radius: inherit;
+          height: 100%;
+          transition: width .2s;
+        }
+        .status-card-head {
+          align-items: center;
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 34px;
+        }
+        .status-card-head span {
+          color: #625f9d;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+        .status-pill {
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 900;
+          padding: 4px 10px;
+          text-transform: uppercase;
+        }
+        .status-pill.active {
+          background: #dff9eb;
+          color: #16864d;
+        }
+        .status-pill.inactive {
+          background: #eef0f5;
+          color: #70758d;
+        }
+        .status-card strong {
+          color: #0b0871;
+          display: block;
+          font-family: 'Anton', sans-serif;
+          font-size: 28px;
+          font-weight: 400;
+          line-height: 1;
+        }
+        .status-card small {
+          color: #6b6fa3;
+          display: block;
+          font-size: 12px;
+          font-weight: 800;
+          margin-top: 8px;
+        }
+        .workout-item {
+          border-radius: 12px;
+          box-shadow: 0 3px 8px rgba(11,8,113,.08);
+        }
+        .recent-head {
+          align-items: end;
+          display: flex;
+          justify-content: space-between;
+          margin: 8px 0 18px;
+        }
+        .recent-head h2 {
+          color: #0b0871;
+          font-size: 18px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+        .recent-head p {
+          color: #0b0871;
+          font-size: 14px;
+          margin-top: 4px;
+          opacity: .85;
+        }
         .view-link { margin: 0; }
-        .workouts { display: grid; gap: 18px; }
-        .workout-item { align-items: center; background: #f4f5f9; display: flex; gap: 16px; min-height: 62px; padding: 13px 20px; }
-        .workout-icon { align-items: center; background: #0b0871; border-radius: 50%; color: #fff; display: inline-flex; flex: 0 0 auto; height: 40px; justify-content: center; width: 40px; }
-        .workout-item h3 { color: #0b0871; font-size: 16px; font-weight: 900; margin-bottom: 4px; }
-        .workout-item p { color: #6470a8; font-size: 13px; font-weight: 700; }
-        .workout-item em { color: #ff7a00; font-style: normal; margin-left: 12px; }
-        .empty-workouts { background: #f4f5f9; border-radius: 12px; color: #6470a8; font-size: 13px; font-weight: 800; padding: 20px; }
-        @media (max-width: 1120px) { .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dashboard-bottom-grid { grid-template-columns: 1fr; } }
-        @media (max-width: 760px) { .recap-card, .activity-card, .status-card { padding: 22px 18px; } .stats-row { grid-template-columns: 1fr; } .recap-card h2 { font-size: 30px; } }
+        .workouts {
+          display: grid;
+          gap: 18px;
+        }
+        .workout-item {
+          align-items: center;
+          background: #f4f5f9;
+          display: flex;
+          gap: 16px;
+          min-height: 62px;
+          padding: 13px 20px;
+        }
+        .workout-icon {
+          align-items: center;
+          background: #0b0871;
+          border-radius: 50%;
+          color: #fff;
+          display: inline-flex;
+          flex: 0 0 auto;
+          height: 40px;
+          justify-content: center;
+          width: 40px;
+        }
+        .workout-item h3 {
+          color: #0b0871;
+          font-size: 16px;
+          font-weight: 900;
+          margin-bottom: 4px;
+        }
+        .workout-item p {
+          color: #6470a8;
+          font-size: 13px;
+          font-weight: 700;
+        }
+        .workout-item em {
+          color: #ff7a00;
+          font-style: normal;
+          margin-left: 12px;
+        }
+        .empty-workouts {
+          background: #f4f5f9;
+          border-radius: 12px;
+          color: #6470a8;
+          font-size: 13px;
+          font-weight: 800;
+          padding: 20px;
+        }
+        @media (max-width: 1120px) {
+          .stats-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .dashboard-bottom-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 760px) {
+          .recap-card,
+          .activity-card,
+          .status-card {
+            padding: 22px 18px;
+          }
+
+          .stats-row {
+            grid-template-columns: 1fr;
+          }
+
+          .recap-card h2 {
+            font-size: 30px;
+          }
+        }
       `}</style>
       <h1 className="page-title">Dashboard</h1>
       {error && <div className="dashboard-alert">{error}</div>}

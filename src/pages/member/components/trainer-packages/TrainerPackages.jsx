@@ -188,26 +188,133 @@ export default function TrainerPackagesPage() {
 }
 
 const styles = `
-  .trainer-package-page { display: grid; gap: 22px; }
-  .tp-head { align-items: center; display: flex; justify-content: space-between; gap: 18px; }
-  .tp-head h1 { font-family: Anton, sans-serif; font-size: 34px; font-weight: 400; margin: 0 0 6px; }
-  .tp-head p { font-weight: 800; margin: 0; }
-  .tp-link { background: #ff7415; border-radius: 8px; color: #fff; font-weight: 900; min-height: 42px; padding: 11px 16px; text-decoration: none; }
-  .tp-grid { display: grid; gap: 22px; grid-template-columns: minmax(0, .9fr) minmax(420px, 1.1fr); }
-  .tp-panel { background: #f8f8fb; border-radius: 10px; padding: 24px; }
-  .tp-panel h2 { font-size: 18px; margin: 0 0 16px; }
-  .tp-cards, .tp-sessions { display: grid; gap: 12px; }
-  .tp-card, .tp-session { background: #fff; border: 1px solid #eceef3; border-radius: 8px; color: #0b0871; display: grid; gap: 6px; padding: 16px; text-decoration: none; }
-  .tp-card.active { border-color: #ff7415; box-shadow: 0 0 0 2px rgba(255,116,21,.16); }
-  .tp-card span, .tp-session span { color: #5f6296; font-weight: 800; }
-  .tp-summary { display: grid; gap: 8px; grid-template-columns: 96px 1fr; margin-bottom: 16px; }
-  .tp-summary span { color: #5f6296; font-weight: 800; }
-  .tp-book { display: grid; gap: 10px; grid-template-columns: 1fr 150px; margin-bottom: 20px; }
-  .tp-book input { border: 1px solid #d8dbe6; border-radius: 8px; font: inherit; padding: 0 10px; }
-  .tp-book button, .tp-session button { background: #0b0871; border: 0; border-radius: 8px; color: #fff; cursor: pointer; font: inherit; font-weight: 900; min-height: 40px; padding: 0 12px; }
-  .tp-book button:disabled, .tp-session button:disabled { cursor: not-allowed; opacity: .6; }
-  .tp-alert { border-radius: 8px; font-weight: 900; padding: 12px 14px; }
-  .tp-alert.error { background: #fff1f0; color: #c73822; }
-  .tp-alert.success { background: #edfdf3; color: #16794c; }
-  @media (max-width: 980px) { .tp-grid { grid-template-columns: 1fr; } .tp-book { grid-template-columns: 1fr; } .tp-head { align-items: stretch; flex-direction: column; } }
+  .trainer-package-page {
+    display: grid;
+    gap: 22px;
+  }
+  .tp-head {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+  }
+  .tp-head h1 {
+    font-family: Anton, sans-serif;
+    font-size: 34px;
+    font-weight: 400;
+    margin: 0 0 6px;
+  }
+  .tp-head p {
+    font-weight: 800;
+    margin: 0;
+  }
+  .tp-link {
+    background: #ff7415;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 900;
+    min-height: 42px;
+    padding: 11px 16px;
+    text-decoration: none;
+  }
+  .tp-grid {
+    display: grid;
+    gap: 22px;
+    grid-template-columns: minmax(0, .9fr) minmax(420px, 1.1fr);
+  }
+  .tp-panel {
+    background: #f8f8fb;
+    border-radius: 10px;
+    padding: 24px;
+  }
+  .tp-panel h2 {
+    font-size: 18px;
+    margin: 0 0 16px;
+  }
+  .tp-cards, .tp-sessions {
+    display: grid;
+    gap: 12px;
+  }
+  .tp-card, .tp-session {
+    background: #fff;
+    border: 1px solid #eceef3;
+    border-radius: 8px;
+    color: #0b0871;
+    display: grid;
+    gap: 6px;
+    padding: 16px;
+    text-decoration: none;
+  }
+  .tp-card.active {
+    border-color: #ff7415;
+    box-shadow: 0 0 0 2px rgba(255,116,21,.16);
+  }
+  .tp-card span, .tp-session span {
+    color: #5f6296;
+    font-weight: 800;
+  }
+  .tp-summary {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 96px 1fr;
+    margin-bottom: 16px;
+  }
+  .tp-summary span {
+    color: #5f6296;
+    font-weight: 800;
+  }
+  .tp-book {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 1fr 150px;
+    margin-bottom: 20px;
+  }
+  .tp-book input {
+    border: 1px solid #d8dbe6;
+    border-radius: 8px;
+    font: inherit;
+    padding: 0 10px;
+  }
+  .tp-book button, .tp-session button {
+    background: #0b0871;
+    border: 0;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 900;
+    min-height: 40px;
+    padding: 0 12px;
+  }
+  .tp-book button:disabled, .tp-session button:disabled {
+    cursor: not-allowed;
+    opacity: .6;
+  }
+  .tp-alert {
+    border-radius: 8px;
+    font-weight: 900;
+    padding: 12px 14px;
+  }
+  .tp-alert.error {
+    background: #fff1f0;
+    color: #c73822;
+  }
+  .tp-alert.success {
+    background: #edfdf3;
+    color: #16794c;
+  }
+  @media (max-width: 980px) {
+    .tp-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .tp-book {
+      grid-template-columns: 1fr;
+    }
+
+    .tp-head {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  }
 `;

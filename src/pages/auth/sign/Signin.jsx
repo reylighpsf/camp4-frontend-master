@@ -65,7 +65,7 @@ export default function Signin() {
 
     const handleGoogleCredential = async (response) => {
       if (!response?.credential) {
-        setToast("Login Google gagal. Credential tidak diterima.");
+        setToast("Login Google gagal.");
         return;
       }
 
