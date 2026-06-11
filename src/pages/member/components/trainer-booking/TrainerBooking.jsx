@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import api from "../../../../components/auth/authApi";
+import { useAuth } from "../../../../components/auth/useAuth";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
 import TrainerScheduleBookingModal from "./TrainerScheduleBooking";
+import { getUserTierCode } from "../../../auth/membership/hooks/authPlans";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
@@ -59,6 +61,7 @@ const FilterIcon = () => (
 
 export default function TrainerBookingPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [trainers, setTrainers] = useState([]);
   const [trainerCatalogs, setTrainerCatalogs] = useState([]);
   const [packages, setPackages] = useState([]);
@@ -1001,6 +1004,7 @@ export default function TrainerBookingPage() {
           catalogs={trainerCatalogs}
           onClose={() => setScheduleTrainer(null)}
           onConfirm={(catalogCode) => navigate(`/member/trainer-checkout?trainerId=${scheduleTrainer.id}&catalog=${catalogCode}`)}
+          tierCode={getUserTierCode(user)}
           trainer={scheduleTrainer}
         />
       )}

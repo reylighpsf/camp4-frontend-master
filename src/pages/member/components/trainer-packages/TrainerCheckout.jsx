@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import api from "../../../../components/auth/authApi";
+import { useAuth } from "../../../../components/auth/useAuth";
+import { getCatalogPrice, getUserTierCode } from "../../../auth/membership/hooks/authPlans";
 
 const formatCurrency = (value) =>
   `Rp ${Number(value || 0).toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;
@@ -9,7 +11,39 @@ const formatCurrency = (value) =>
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
 
-const getCatalogPrice = (catalog) => Number(catalog?.prices?.[0]?.price || 0);
+const openPaymentInNewTab = (paymentUrl) => {
+  window.open(paymentUrl, "_blank", "noopener,noreferrer");
+};
+
+const openBlankPaymentTab = () => {
+  const paymentTab = window.open("", "_blank");
+  if (paymentTab) {
+    paymentTab.opener = null;
+    paymentTab.document.title = "Opening Midtrans...";
+    paymentTab.document.body.innerHTML =
+      "<p style=\"font-family:Arial,sans-serif;padding:24px;\">Opening Midtrans payment...</p>";
+  }
+  return paymentTab;
+};
+
+const getTransactionPayload = (responseData) => {
+  const data = responseData?.data || responseData || {};
+  const transaction = data.transaction || data;
+  const paymentUrl =
+    data.paymentUrl ||
+    data.payment_url ||
+    data.redirect_url ||
+    data.snap_redirect_url ||
+    data.midtrans_redirect_url ||
+    transaction?.paymentUrl ||
+    transaction?.payment_url ||
+    transaction?.redirect_url ||
+    transaction?.snap_redirect_url ||
+    transaction?.midtrans_redirect_url ||
+    "";
+
+  return { paymentUrl, transaction };
+};
 
 const isUuid = (value) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -23,6 +57,7 @@ const paymentMethods = [
 
 export default function TrainerCheckoutPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const initialTrainerId = searchParams.get("trainerId") || "";
   const initialCatalogCode = searchParams.get("catalog") || "";
@@ -74,6 +109,7 @@ export default function TrainerCheckoutPage() {
     [trainers, selectedTrainerId],
   );
   const requiredParticipants = Math.max(Number(selectedCatalog?.group_size || 1) - 1, 0);
+  const userTierCode = getUserTierCode(user);
   const participantEmails = participantText
     .split(/[\n,]/)
     .map((email) => email.trim().toLowerCase())
@@ -94,6 +130,7 @@ export default function TrainerCheckoutPage() {
       return;
     }
 
+    const paymentTab = paymentMethod === "QRIS" ? openBlankPaymentTab() : null;
     setSubmitting(true);
     try {
       const response = await api.post("/transactions/create", {
@@ -102,16 +139,29 @@ export default function TrainerCheckoutPage() {
         trainerId: selectedTrainerId,
         participantEmails,
       });
-      const transaction = response.data?.data?.transaction;
-      const paymentUrl = response.data?.data?.paymentUrl;
+      const { paymentUrl, transaction } = getTransactionPayload(response.data);
       if (paymentMethod === "QRIS" && paymentUrl) {
-        window.location.href = paymentUrl;
+        if (paymentTab) {
+          paymentTab.location.assign(paymentUrl);
+        } else {
+          openPaymentInNewTab(paymentUrl);
+        }
         return;
       }
+      if (paymentMethod === "QRIS" && !paymentUrl) {
+        if (paymentTab) {
+          paymentTab.document.body.innerHTML =
+            "<p style=\"font-family:Arial,sans-serif;padding:24px;\">Link pembayaran Midtrans tidak tersedia. Silakan kembali ke VocaFit.</p>";
+        }
+        setError("Link pembayaran Midtrans tidak tersedia.");
+        return;
+      }
+      paymentTab?.close();
       navigate("/member/trainer-packages", {
         state: { notice: `Transaksi ${transaction?.status || "PENDING"} dibuat. Package muncul setelah pembayaran sukses.` },
       });
     } catch (err) {
+      paymentTab?.close();
       setError(getErrorMessage(err, "Gagal membuat transaksi trainer."));
     } finally {
       setSubmitting(false);
@@ -147,7 +197,7 @@ export default function TrainerCheckoutPage() {
                   >
                     <strong>{catalog.name}</strong>
                     <span>{catalog.session_count || "-"} sesi / {catalog.group_size || 1} orang</span>
-                    <b>{formatCurrency(getCatalogPrice(catalog))}</b>
+                    <b>{formatCurrency(getCatalogPrice(catalog, userTierCode))}</b>
                   </button>
                 ))}
               </div>
@@ -193,7 +243,7 @@ export default function TrainerCheckoutPage() {
               <div className="tp-summary">
                 <span>Package</span><strong>{selectedCatalog?.name || "-"}</strong>
                 <span>Trainer</span><strong>{selectedTrainer?.name || "-"}</strong>
-                <span>Total</span><strong>{formatCurrency(getCatalogPrice(selectedCatalog))}</strong>
+                <span>Total</span><strong>{formatCurrency(getCatalogPrice(selectedCatalog, userTierCode))}</strong>
               </div>
 
               <button className="tp-primary" disabled={submitting} onClick={submitPayment} type="button">

@@ -5,9 +5,12 @@ import MemberIcon from "../../../../components/member/MemberIcon";
 import api from "../../../../components/auth/authApi";
 import {
   authMembershipPlans,
+  getCatalogPrice,
+  getCatalogPriceItem,
   getAuthMembershipPlan,
   getPlanIdFromCatalogCode,
   getTransactionTypeFromPlanId,
+  getUserTierCode,
 } from "../../../auth/membership/hooks/authPlans";
 
 const tabs = [
@@ -43,6 +46,38 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
     style: "currency",
   }).format(Number(value || 0));
+
+const openPaymentInNewTab = (paymentUrl) => {
+  window.open(paymentUrl, "_blank", "noopener,noreferrer");
+};
+
+const openBlankPaymentTab = () => {
+  const paymentTab = window.open("", "_blank");
+  if (paymentTab) {
+    paymentTab.opener = null;
+    paymentTab.document.title = "Opening Midtrans...";
+    paymentTab.document.body.innerHTML = "<p style=\"font-family:Arial,sans-serif;padding:24px;\">Opening Midtrans payment...</p>";
+  }
+  return paymentTab;
+};
+
+const getPaymentUrlFromResponse = (responseData) => {
+  const data = responseData?.data || responseData || {};
+  const transaction = data.transaction || data;
+  return (
+    data.paymentUrl ||
+    data.payment_url ||
+    data.redirect_url ||
+    data.snap_redirect_url ||
+    data.midtrans_redirect_url ||
+    transaction?.paymentUrl ||
+    transaction?.payment_url ||
+    transaction?.redirect_url ||
+    transaction?.snap_redirect_url ||
+    transaction?.midtrans_redirect_url ||
+    ""
+  );
+};
 
 const formatTierName = (value) =>
   String(value || "-")
@@ -209,10 +244,11 @@ export default function ProfileMembershipPlanPage() {
     [catalogPlans, transactions],
   );
   const currentPlanId = getProfilePlanId(profile, registrationPlanId);
+  const profileTierCode = getUserTierCode(profile);
   const fallbackPlan = useMemo(() => getAuthMembershipPlan(currentPlanId), [currentPlanId]);
   const currentPlan = useMemo(() => {
     if (!membershipSnapshot?.catalog) return fallbackPlan;
-    const price = membershipSnapshot.catalog.prices?.[0]?.price || membershipSnapshot.transaction?.amount || 0;
+    const price = getCatalogPrice(membershipSnapshot.catalog, profileTierCode) || membershipSnapshot.transaction?.amount || 0;
     return {
       description: membershipSnapshot.catalog.description || fallbackPlan.description,
       id: membershipSnapshot.catalog.code,
@@ -220,7 +256,7 @@ export default function ProfileMembershipPlanPage() {
       period: membershipSnapshot.catalog.duration_days ? `${membershipSnapshot.catalog.duration_days} hari` : fallbackPlan.period,
       price: formatCurrency(price),
     };
-  }, [fallbackPlan, membershipSnapshot]);
+  }, [fallbackPlan, membershipSnapshot, profileTierCode]);
   const status = membershipSnapshot?.status || getMembershipStatus(profile);
   const startDate = formatDate(
     membershipSnapshot?.start || profile?.membership_start_date || profile?.membership?.start_date || profile?.created_at,
@@ -236,7 +272,8 @@ export default function ProfileMembershipPlanPage() {
     }
 
     return catalogPlans.map((item) => {
-      const price = item.prices?.[0]?.price || 0;
+      const selectedPrice = getCatalogPriceItem(item, profileTierCode);
+      const price = selectedPrice?.price || 0;
       return {
         benefits: [
           item.duration_days ? `${item.duration_days} hari akses gym` : "Akses gym sesuai katalog",
@@ -250,6 +287,7 @@ export default function ProfileMembershipPlanPage() {
         paymentPlanId: getPlanIdFromCatalogCode(item.code),
         period: item.duration_days ? `${item.duration_days} hari` : "plan",
         price: formatCurrency(price),
+        selectedTierCode: selectedPrice?.tier_code,
         prices: (item.prices || []).map((priceItem) => ({
           price: formatCurrency(priceItem.price),
           tierCode: priceItem.tier_code,
@@ -257,7 +295,7 @@ export default function ProfileMembershipPlanPage() {
         })),
       };
     });
-  }, [catalogPlans]);
+  }, [catalogPlans, profileTierCode]);
   const currentPaymentPlan =
     availablePlans.find((plan) => plan.id === currentPlan.id || plan.catalogCode === currentPlan.id) ||
     availablePlans[0] ||
@@ -267,6 +305,7 @@ export default function ProfileMembershipPlanPage() {
   const createMembershipPayment = async () => {
     if (!paymentPlan) return;
 
+    const paymentTab = paymentMethod === "QRIS" ? openBlankPaymentTab() : null;
     setPaymentLoading(true);
     setError("");
     try {
@@ -274,16 +313,31 @@ export default function ProfileMembershipPlanPage() {
         paymentMethod,
         transactionType: paymentPlan.catalogCode || getTransactionTypeFromPlanId(paymentPlan.paymentPlanId || paymentPlan.id),
       });
-      const paymentUrl = response.data?.data?.paymentUrl;
+      const paymentUrl = getPaymentUrlFromResponse(response.data);
 
       if (paymentMethod === "QRIS" && paymentUrl) {
-        window.location.href = paymentUrl;
+        if (paymentTab) {
+          paymentTab.location.assign(paymentUrl);
+        } else {
+          openPaymentInNewTab(paymentUrl);
+        }
         return;
       }
 
+      if (paymentMethod === "QRIS" && !paymentUrl) {
+        if (paymentTab) {
+          paymentTab.document.body.innerHTML =
+            "<p style=\"font-family:Arial,sans-serif;padding:24px;\">Link pembayaran Midtrans tidak tersedia. Silakan kembali ke VocaFit.</p>";
+        }
+        setError("Link pembayaran Midtrans tidak tersedia.");
+        return;
+      }
+
+      paymentTab?.close();
       setPaymentPlan(null);
       await fetchTransactions();
     } catch (err) {
+      paymentTab?.close();
       setError(getErrorMessage(err, "Gagal membuat pembayaran membership."));
     } finally {
       setPaymentLoading(false);
@@ -838,16 +892,14 @@ export default function ProfileMembershipPlanPage() {
           grid-template-columns: minmax(0, 1fr) 272px;
         }
 
-        .membership-benefits-card,
-        .membership-next-card {
+        .membership-benefits-card {
           background: #ffffff;
           border-radius: 12px;
           box-shadow: 0 14px 28px rgba(8, 4, 120, .08);
           padding: 22px;
         }
 
-        .membership-benefits-card h2,
-        .membership-next-card h2 {
+        .membership-benefits-card h2 {
           color: #0b0871;
           font-size: 15px;
           font-weight: 900;
@@ -885,58 +937,6 @@ export default function ProfileMembershipPlanPage() {
           height: 18px;
           justify-content: center;
           width: 18px;
-        }
-
-        .membership-next-card {
-          display: grid;
-          gap: 12px;
-        }
-
-        .membership-next-item {
-          align-items: center;
-          border-radius: 8px;
-          display: grid;
-          gap: 12px;
-          grid-template-columns: 34px minmax(0, 1fr);
-          min-height: 54px;
-          padding: 10px;
-        }
-
-        .membership-next-item.amount {
-          background: #eef4ff;
-        }
-
-        .membership-next-item.due {
-          background: #fff0c2;
-        }
-
-        .membership-next-icon {
-          align-items: center;
-          background: #ffffff;
-          border-radius: 8px;
-          color: #3474ff;
-          display: inline-flex;
-          height: 34px;
-          justify-content: center;
-          width: 34px;
-        }
-
-        .membership-next-item.due .membership-next-icon {
-          color: #ff7a00;
-        }
-
-        .membership-next-item span {
-          color: #7177aa;
-          display: block;
-          font-size: 11px;
-          font-weight: 900;
-        }
-
-        .membership-next-item strong {
-          color: #25399a;
-          display: block;
-          font-size: 13px;
-          font-weight: 900;
         }
 
         .membership-action-stack {
@@ -1073,24 +1073,6 @@ export default function ProfileMembershipPlanPage() {
             </section>
 
             <aside className="membership-action-stack">
-              <section className="membership-next-card">
-                <h2>Next Payment</h2>
-                <div className="membership-next-item amount">
-                  <span className="membership-next-icon"><MemberIcon name="calendar" /></span>
-                  <div>
-                    <span>Amount</span>
-                    <strong>{currentPlan.price}</strong>
-                  </div>
-                </div>
-                <div className="membership-next-item due">
-                  <span className="membership-next-icon"><MemberIcon name="check" /></span>
-                  <div>
-                    <span>Due Date</span>
-                    <strong>{endDate}</strong>
-                  </div>
-                </div>
-              </section>
-
               <button className="membership-upgrade-btn" onClick={() => setIsUpgradeOpen(true)} type="button">
                 Upgrade Plan
               </button>

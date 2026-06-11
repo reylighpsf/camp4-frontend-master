@@ -1,10 +1,47 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap");
+
+:root {
+  font-family: "DM Sans", Arial, sans-serif;
+}
+
 *,
 *::before,
 *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+body,
+input,
+textarea,
+select,
+button {
+  font-family: "DM Sans", Arial, sans-serif;
+}
+
+input,
+textarea,
+select {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+button {
+  letter-spacing: 0;
+}
+
+label {
+  letter-spacing: 0;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280;
+  font-family: "DM Sans", Arial, sans-serif;
+  opacity: 0.9;
 }
 
 html,

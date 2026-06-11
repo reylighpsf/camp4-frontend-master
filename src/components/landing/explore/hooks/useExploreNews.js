@@ -14,6 +14,7 @@ const resolveImageUrl = (value) => {
 
 const normalizeNewsItem = (item) => ({
   id: item.id || item.news_id || item.title,
+  fromApi: true,
   tag: item.category || item.type || "News",
   title: item.title || "Untitled News",
   text: item.summary || item.content || item.description || "",

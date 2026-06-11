@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import useExploreNews from "./hooks/useExploreNews";
 
 const services = [
@@ -84,7 +85,11 @@ export default function Explore() {
               <span>{item.tag}</span>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
-              <a href="#facilities">Read More</a>
+              {item.fromApi ? (
+                <Link to={`/news/${item.id}`}>Read More</Link>
+              ) : (
+                <a href="#facilities">Read More</a>
+              )}
             </div>
           </article>
         ))}

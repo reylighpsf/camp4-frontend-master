@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AdminLayout from "../../../../components/admin/AdminLayout";
 import useActiveMembers from "./hooks/useActiveMembers";
+import { confirmAction } from "../../../../utils/sweetAlert";
 
 const activeMemberStyles = `
   .active-member-page {
@@ -269,7 +270,7 @@ const activeMemberStyles = `
     display: flex;
     inset: 0;
     justify-content: center;
-    padding: 28px;
+    padding: 20px;
     position: fixed;
     z-index: 1000;
   }
@@ -278,12 +279,18 @@ const activeMemberStyles = `
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 24px 80px rgba(0,0,0,.28);
+    max-height: calc(100vh - 40px);
+    overflow: auto;
     padding: 24px;
     width: min(100%, 460px);
   }
 
   .membership-modal.wide {
-    width: min(100%, 720px);
+    width: min(96vw, 1080px);
+  }
+
+  .membership-modal.detail-wide {
+    width: min(98vw, 1180px);
   }
 
   .membership-modal h2 {
@@ -296,6 +303,137 @@ const activeMemberStyles = `
     color: #6b7280;
     font-size: 13px;
     margin: 0 0 18px;
+  }
+
+  .membership-detail-photo {
+    align-items: center;
+    background: #f4f5f8;
+    border-radius: 50%;
+    display: flex;
+    flex: 0 0 auto;
+    height: 86px;
+    justify-content: center;
+    overflow: hidden;
+    width: 86px;
+  }
+
+  .membership-detail-photo img {
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+
+  .membership-detail-head {
+    align-items: center;
+    background: #f8f8fb;
+    border: 1px solid #eceef3;
+    border-radius: 12px;
+    display: flex;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding: 16px;
+  }
+
+  .membership-detail-top {
+    align-items: start;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff;
+    padding-bottom: 12px;
+  }
+
+  .membership-detail-top h2 {
+    margin-bottom: 6px;
+  }
+
+  .membership-detail-initial {
+    align-items: center;
+    background: #080478;
+    border-radius: 50%;
+    color: #fff;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 24px;
+    font-weight: 900;
+    height: 86px;
+    justify-content: center;
+    width: 86px;
+  }
+
+  .membership-detail-name {
+    min-width: 0;
+  }
+
+  .membership-detail-name strong {
+    color: #080478;
+    display: block;
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1.15;
+    margin-bottom: 6px;
+  }
+
+  .membership-detail-name span {
+    color: #6b7280;
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .membership-detail-sections {
+    display: grid;
+    gap: 16px;
+  }
+
+  .membership-detail-section {
+    border: 1px solid #eceef3;
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+
+  .membership-detail-section h3 {
+    color: #080478;
+    font-size: 14px;
+    font-weight: 900;
+    margin: 0 0 14px;
+  }
+
+  .membership-detail-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .membership-detail-item {
+    background: #f8f8fb;
+    border: 1px solid #eceef3;
+    border-radius: 10px;
+    min-width: 0;
+    padding: 12px 14px;
+  }
+
+  .membership-detail-item span {
+    color: #6b7280;
+    display: block;
+    font-size: 11px;
+    font-weight: 900;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .membership-detail-item strong {
+    color: #11131d;
+    display: block;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
   }
 
   .membership-form {
@@ -330,6 +468,36 @@ const activeMemberStyles = `
     text-transform: none;
   }
 
+  .membership-form input[readonly] {
+    background: #f8f8fb;
+    color: #11131d;
+  }
+
+  .membership-phone-shell {
+    align-items: center;
+    border: 1px solid #d8dbe6;
+    border-radius: 8px;
+    display: flex;
+    height: 42px;
+    overflow: hidden;
+  }
+
+  .membership-phone-prefix {
+    color: #30333d;
+    flex: 0 0 auto;
+    font-size: 13px;
+    font-weight: 900;
+    padding-left: 12px;
+  }
+
+  .membership-phone-shell input {
+    border: 0;
+    height: 100%;
+    min-width: 0;
+    padding-left: 5px;
+    width: 100%;
+  }
+
   .membership-modal-actions {
     display: flex;
     gap: 10px;
@@ -355,9 +523,19 @@ const activeMemberStyles = `
       grid-template-columns: 1fr;
     }
 
+    .membership-detail-grid {
+      grid-template-columns: 1fr;
+    }
+
     .active-member-cards {
       grid-template-columns: 1fr;
       gap: 18px;
+    }
+  }
+
+  @media (min-width: 761px) and (max-width: 1040px) {
+    .membership-detail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 `;
@@ -370,6 +548,30 @@ const formatTime = (value) => {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+  }).format(date);
+};
+
+const formatDate = (value) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+    year: "numeric",
   }).format(date);
 };
 
@@ -406,6 +608,16 @@ const isMemberActive = (member) => {
   return Boolean(member.is_membership_active);
 };
 
+const getPhoneInputDigits = (phoneNumber = "") =>
+  phoneNumber.replace(/^\+62/, "").replace(/^0/, "");
+
+const normalizeIndonesianPhone = (value) => {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("62")) digits = digits.slice(2);
+  if (digits.startsWith("0")) digits = digits.slice(1);
+  return digits ? `+62${digits}` : "";
+};
+
 export default function ActiveMemberPage() {
   const {
     members,
@@ -417,26 +629,48 @@ export default function ActiveMemberPage() {
     actionSuccessMessage,
     refetch,
     createUser,
+    getUserDetail,
+    updateUser,
+    deleteMembership,
   } = useActiveMembers();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [editingMember, setEditingMember] = useState(null);
+  const [editForm, setEditForm] = useState({
+    birthDate: "",
     email: "",
     fullName: "",
     image: null,
     membershipPriceCode: "UMUM",
     password: "",
     penaltyAmount: "0",
+    paymentMethod: "CASH",
+    phoneNumber: "",
+    role: "member",
+  });
+  const [createForm, setCreateForm] = useState({
+    birthDate: "",
+    email: "",
+    fullName: "",
+    image: null,
+    membershipPriceCode: "UMUM",
+    password: "",
+    penaltyAmount: "0",
+    phoneNumber: "",
     role: "member",
   });
 
   const openCreateModal = () => {
     setCreateForm({
+      birthDate: "",
       email: "",
       fullName: "",
       image: null,
       membershipPriceCode: "UMUM",
       password: "",
       penaltyAmount: "0",
+      paymentMethod: "CASH",
+      phoneNumber: "",
       role: "member",
     });
     setIsCreateOpen(true);
@@ -446,6 +680,58 @@ export default function ActiveMemberPage() {
     event.preventDefault();
     const result = await createUser(createForm);
     if (result.ok) setIsCreateOpen(false);
+  };
+
+  const updateCreateForm = (field, value) => {
+    setCreateForm((current) => ({
+      ...current,
+      [field]: field === "phoneNumber" ? normalizeIndonesianPhone(value) : value,
+    }));
+  };
+
+  const openEditModal = (member) => {
+    setEditingMember(member);
+    setEditForm({
+      birthDate: member.date_of_birth ? String(member.date_of_birth).slice(0, 10) : "",
+      email: member.email || "",
+      fullName: member.full_name || "",
+      image: null,
+      membershipPriceCode: member.membership_price_code || "UMUM",
+      password: "",
+      penaltyAmount: String(member.penalty_amount ?? 0),
+      phoneNumber: member.phone_number || "",
+      role: member.role || "member",
+    });
+  };
+
+  const handleEditUser = async (event) => {
+    event.preventDefault();
+    if (!editingMember) return;
+    const result = await updateUser(editingMember.id, editForm);
+    if (result.ok) setEditingMember(null);
+  };
+
+  const handleShowDetail = async (member) => {
+    const result = await getUserDetail(member.id);
+    setSelectedMember(result.ok && result.data ? { ...member, ...result.data } : member);
+  };
+
+  const updateEditForm = (field, value) => {
+    setEditForm((current) => ({
+      ...current,
+      [field]: field === "phoneNumber" ? normalizeIndonesianPhone(value) : value,
+    }));
+  };
+
+  const handleDeleteMember = async (member) => {
+    const confirmed = await confirmAction({
+      confirmButtonColor: "#c73822",
+      confirmButtonText: "Hapus",
+      text: `Member "${member.full_name || member.email || "-"}" akan dihapus.`,
+      title: "Hapus Member?",
+    });
+    if (!confirmed) return;
+    await deleteMembership(member.id);
   };
 
   return (
@@ -475,9 +761,9 @@ export default function ActiveMemberPage() {
 
         <section className="active-member-cards" aria-label="Ringkasan member">
           <article className="active-member-card">
-            <span>Membership Aktif</span>
-            <strong>{summary.activeMemberships}</strong>
-            <p>Member dengan membership aktif.</p>
+            <span>Member Sedang Tap In</span>
+            <strong>{summary.activeMembers}</strong>
+            <p>Member yang sedang berada di gym.</p>
           </article>
           <article className="active-member-card">
             <span>Total Member Terdaftar</span>
@@ -496,12 +782,13 @@ export default function ActiveMemberPage() {
                 <th>Check In</th>
                 <th>Membership Plan</th>
                 <th>Status</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td className="active-member-status" colSpan="5">
+                  <td className="active-member-status" colSpan="6">
                     Memuat daftar member...
                   </td>
                 </tr>
@@ -509,7 +796,7 @@ export default function ActiveMemberPage() {
 
               {!loading && error && (
                 <tr>
-                  <td className="active-member-status error" colSpan="5">
+                  <td className="active-member-status error" colSpan="6">
                     {error}
                   </td>
                 </tr>
@@ -517,7 +804,7 @@ export default function ActiveMemberPage() {
 
               {!loading && !error && members.length === 0 && (
                 <tr>
-                  <td className="active-member-status" colSpan="5">
+                  <td className="active-member-status" colSpan="6">
                     Belum ada data member di database.
                   </td>
                 </tr>
@@ -547,6 +834,34 @@ export default function ActiveMemberPage() {
                           {member.membership_status_label || (isActive ? "Aktif" : "Tidak Aktif")}
                         </span>
                       </td>
+                      <td>
+                        <div className="active-member-actions">
+                          <button
+                            className="active-member-action detail"
+                            disabled={actionLoadingId === member.id}
+                            onClick={() => handleShowDetail(member)}
+                            type="button"
+                          >
+                            {actionLoadingId === member.id ? "..." : "Detail"}
+                          </button>
+                          <button
+                            className="active-member-action edit"
+                            disabled={actionLoadingId === `edit-${member.id}`}
+                            onClick={() => openEditModal(member)}
+                            type="button"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="active-member-action delete"
+                            disabled={actionLoadingId === member.id}
+                            onClick={() => handleDeleteMember(member)}
+                            type="button"
+                          >
+                            {actionLoadingId === member.id ? "..." : "Hapus"}
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -556,44 +871,129 @@ export default function ActiveMemberPage() {
       </section>
       </section>
 
-      {isCreateOpen && (
+      {selectedMember && (
+        <div className="membership-modal-backdrop">
+          <section className="membership-modal wide detail-wide" role="dialog" aria-modal="true">
+            <div className="membership-detail-top">
+              <div>
+                <h2>Detail Member</h2>
+                <p>Seluruh profile pengguna yang tersedia dari database.</p>
+              </div>
+              <button className="active-member-action delete" onClick={() => setSelectedMember(null)} type="button">
+                Tutup
+              </button>
+            </div>
+            <div className="membership-detail-head">
+              {selectedMember.profile_image_url ? (
+                <div className="membership-detail-photo">
+                  <img src={selectedMember.profile_image_url} alt="" />
+                </div>
+              ) : (
+                <span className="membership-detail-initial">
+                  {(selectedMember.full_name || selectedMember.email || "?").trim().charAt(0).toUpperCase()}
+                </span>
+              )}
+              <div className="membership-detail-name">
+                <strong>{selectedMember.full_name || "-"}</strong>
+                <span>{selectedMember.email || "-"}</span>
+                <span>{selectedMember.role || "-"} | {selectedMember.is_verified === false ? "Belum verified" : "Verified"}</span>
+              </div>
+            </div>
+
+            <div className="membership-detail-sections">
+              <section className="membership-detail-section">
+                <h3>Profile</h3>
+                <div className="membership-detail-grid">
+                  <div className="membership-detail-item"><span>User ID</span><strong>{selectedMember.id || "-"}</strong></div>
+                  <div className="membership-detail-item"><span>No. HP</span><strong>{selectedMember.phone_number || "-"}</strong></div>
+                  <div className="membership-detail-item"><span>Tanggal Lahir</span><strong>{formatDate(selectedMember.date_of_birth)}</strong></div>
+                  <div className="membership-detail-item"><span>Penalty</span><strong>{String(selectedMember.penalty_amount ?? 0)}</strong></div>
+                  <div className="membership-detail-item"><span>Dibuat</span><strong>{formatDateTime(selectedMember.created_at)}</strong></div>
+                  <div className="membership-detail-item"><span>Diupdate</span><strong>{formatDateTime(selectedMember.updated_at)}</strong></div>
+                </div>
+              </section>
+
+              <section className="membership-detail-section">
+                <h3>Membership</h3>
+                <div className="membership-detail-grid">
+                  <div className="membership-detail-item"><span>Membership Plan</span><strong>{formatMembershipPlan(selectedMember)}</strong></div>
+                  <div className="membership-detail-item"><span>Membership Type</span><strong>{selectedMember.membership?.type || "-"}</strong></div>
+                  <div className="membership-detail-item"><span>Membership End Date</span><strong>{formatDateTime(selectedMember.membership?.end_date)}</strong></div>
+                  <div className="membership-detail-item"><span>Tier Harga</span><strong>{selectedMember.tier || selectedMember.membership_price_code || "-"}</strong></div>
+                  <div className="membership-detail-item"><span>Status</span><strong>{selectedMember.membership_status_label || "-"}</strong></div>
+                </div>
+              </section>
+
+              <section className="membership-detail-section">
+                <h3>Activity</h3>
+                <div className="membership-detail-grid">
+                  <div className="membership-detail-item"><span>Check In</span><strong>{formatTime(selectedMember.check_in_at)}</strong></div>
+                  <div className="membership-detail-item"><span>Check Out</span><strong>{formatTime(selectedMember.check_out_at)}</strong></div>
+                </div>
+              </section>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {editingMember && (
         <div className="membership-modal-backdrop">
           <section className="membership-modal wide" role="dialog" aria-modal="true">
-            <h2>Tambah User</h2>
-            <p>Buat akun member atau pengurus baru.</p>
-            <form className="membership-form two-cols" onSubmit={handleCreateUser}>
+            <h2>Edit User</h2>
+            <p>Perbarui data member atau pengurus.</p>
+            <form className="membership-form two-cols" onSubmit={handleEditUser}>
               <label>
                 Nama Lengkap
                 <input
                   required
-                  value={createForm.fullName}
-                  onChange={(event) => setCreateForm((value) => ({ ...value, fullName: event.target.value }))}
+                  value={editForm.fullName}
+                  onChange={(event) => updateEditForm("fullName", event.target.value)}
                 />
               </label>
               <label>
                 Email
                 <input
+                  disabled
                   required
                   type="email"
-                  value={createForm.email}
-                  onChange={(event) => setCreateForm((value) => ({ ...value, email: event.target.value }))}
+                  value={editForm.email}
+                  readOnly
                 />
               </label>
               <label>
-                Password
+                No. HP
+                <span className="membership-phone-shell">
+                  <span className="membership-phone-prefix">+62</span>
+                  <input
+                    placeholder="8123456789"
+                    value={getPhoneInputDigits(editForm.phoneNumber)}
+                    onChange={(event) => updateEditForm("phoneNumber", event.target.value)}
+                  />
+                </span>
+              </label>
+              <label>
+                Tanggal Lahir
+                <input
+                  type="date"
+                  value={editForm.birthDate}
+                  onChange={(event) => updateEditForm("birthDate", event.target.value)}
+                />
+              </label>
+              <label>
+                Password Baru
                 <input
                   minLength={8}
-                  required
+                  placeholder="Kosongkan jika tidak diganti"
                   type="password"
-                  value={createForm.password}
-                  onChange={(event) => setCreateForm((value) => ({ ...value, password: event.target.value }))}
+                  value={editForm.password}
+                  onChange={(event) => updateEditForm("password", event.target.value)}
                 />
               </label>
               <label>
                 Role
                 <select
-                  value={createForm.role}
-                  onChange={(event) => setCreateForm((value) => ({ ...value, role: event.target.value }))}
+                  value={editForm.role}
+                  onChange={(event) => updateEditForm("role", event.target.value)}
                 >
                   <option value="member">Member</option>
                   <option value="pengurus">Pengurus</option>
@@ -602,8 +1002,8 @@ export default function ActiveMemberPage() {
               <label>
                 Tier Harga
                 <select
-                  value={createForm.membershipPriceCode}
-                  onChange={(event) => setCreateForm((value) => ({ ...value, membershipPriceCode: event.target.value }))}
+                  value={editForm.membershipPriceCode}
+                  onChange={(event) => updateEditForm("membershipPriceCode", event.target.value)}
                 >
                   <option value="UMUM">Umum</option>
                   <option value="PEGAWAI_KARYAWAN">Pegawai/Karyawan</option>
@@ -616,8 +1016,8 @@ export default function ActiveMemberPage() {
                 <input
                   min="0"
                   type="number"
-                  value={createForm.penaltyAmount}
-                  onChange={(event) => setCreateForm((value) => ({ ...value, penaltyAmount: event.target.value }))}
+                  value={editForm.penaltyAmount}
+                  onChange={(event) => updateEditForm("penaltyAmount", event.target.value)}
                 />
               </label>
               <label className="wide-field">
@@ -625,7 +1025,121 @@ export default function ActiveMemberPage() {
                 <input
                   accept="image/jpeg,image/png,image/webp"
                   type="file"
-                  onChange={(event) => setCreateForm((value) => ({ ...value, image: event.target.files?.[0] || null }))}
+                  onChange={(event) => updateEditForm("image", event.target.files?.[0] || null)}
+                />
+              </label>
+              <div className="membership-modal-actions wide-field">
+                <button className="active-member-action delete" onClick={() => setEditingMember(null)} type="button">
+                  Batal
+                </button>
+                <button className="active-member-action edit" disabled={actionLoadingId === `edit-${editingMember.id}`} type="submit">
+                  {actionLoadingId === `edit-${editingMember.id}` ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {isCreateOpen && (
+        <div className="membership-modal-backdrop">
+          <section className="membership-modal wide" role="dialog" aria-modal="true">
+            <h2>Tambah User</h2>
+            <p>Buat akun member atau pengurus baru.</p>
+            <form className="membership-form two-cols" onSubmit={handleCreateUser}>
+              <label>
+                Nama Lengkap
+                <input
+                  required
+                  value={createForm.fullName}
+                  onChange={(event) => updateCreateForm("fullName", event.target.value)}
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  required
+                  type="email"
+                  value={createForm.email}
+                  onChange={(event) => updateCreateForm("email", event.target.value)}
+                />
+              </label>
+              <label>
+                No. HP
+                <span className="membership-phone-shell">
+                  <span className="membership-phone-prefix">+62</span>
+                  <input
+                    placeholder="8123456789"
+                    value={getPhoneInputDigits(createForm.phoneNumber)}
+                    onChange={(event) => updateCreateForm("phoneNumber", event.target.value)}
+                  />
+                </span>
+              </label>
+              <label>
+                Tanggal Lahir
+                <input
+                  type="date"
+                  value={createForm.birthDate}
+                  onChange={(event) => updateCreateForm("birthDate", event.target.value)}
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  minLength={8}
+                  required
+                  type="password"
+                  value={createForm.password}
+                  onChange={(event) => updateCreateForm("password", event.target.value)}
+                />
+              </label>
+              <label>
+                Role
+                <select
+                  value={createForm.role}
+                  onChange={(event) => updateCreateForm("role", event.target.value)}
+                >
+                  <option value="member">Member</option>
+                  <option value="pengurus">Pengurus</option>
+                </select>
+              </label>
+              <label>
+                Tier Harga
+                <select
+                  value={createForm.membershipPriceCode}
+                  onChange={(event) => updateCreateForm("membershipPriceCode", event.target.value)}
+                >
+                  <option value="UMUM">Umum</option>
+                  <option value="PEGAWAI_KARYAWAN">Pegawai/Karyawan</option>
+                  <option value="MAHASISWA_NON_VOKASI">Mahasiswa Non Vokasi</option>
+                  <option value="MAHASISWA_VOKASI">Mahasiswa Vokasi</option>
+                </select>
+              </label>
+              <label>
+                Metode Pembayaran
+                <select
+                  value={createForm.paymentMethod}
+                  onChange={(event) => updateCreateForm("paymentMethod", event.target.value)}
+                >
+                  <option value="CASH">Cash</option>
+                  <option value="QRIS">QRIS</option>
+                </select>
+              </label>
+              <label>
+                Penalty
+                <input
+                  min="0"
+                  type="number"
+                  value={createForm.penaltyAmount}
+                  onChange={(event) => updateCreateForm("penaltyAmount", event.target.value)}
+                />
+              </label>
+              <label className="wide-field">
+                Foto Profil
+                <input
+                  accept="image/jpeg,image/png,image/webp"
+                  type="file"
+                  onChange={(event) => updateCreateForm("image", event.target.files?.[0] || null)}
                 />
               </label>
               <div className="membership-modal-actions wide-field">

@@ -57,6 +57,16 @@ export const AuthProvider = ({ children }) => {
     return await fetchMe();
   };
 
+  const signinGoogle = async (googleToken) => {
+    await authApi.loginGoogle({ googleToken });
+    return await fetchMe();
+  };
+
+  const signupGoogle = async (data) => {
+    await authApi.registerGoogle(data);
+    return await fetchMe();
+  };
+
   const signup = async (data) => {
     await authApi.signup(data);
   };
@@ -67,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signin, signup, logout, fetchMe }}>
+    <AuthContext.Provider value={{ user, loading, signin, signinGoogle, signup, signupGoogle, logout, fetchMe }}>
       {children}
     </AuthContext.Provider>
   );

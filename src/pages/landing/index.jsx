@@ -11,6 +11,30 @@ export default function LandingPage({ scrollToExplore = false }) {
   const [plans, setPlans] = useState(authMembershipPlans);
 
   useEffect(() => {
+    const motionItems = Array.from(document.querySelectorAll(".landing-motion"));
+    if (motionItems.length === 0) return undefined;
+
+    if (!("IntersectionObserver" in window)) {
+      motionItems.forEach((item) => item.classList.add("is-visible"));
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        });
+      },
+      { rootMargin: "0px 0px -12% 0px", threshold: 0.16 },
+    );
+
+    motionItems.forEach((item) => observer.observe(item));
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     if (!scrollToExplore) return;
 
     const exploreSection = document.getElementById("explore");
@@ -72,6 +96,33 @@ export default function LandingPage({ scrollToExplore = false }) {
           font-family: 'DM Sans', sans-serif;
         }
 
+        .landing-motion {
+          opacity: 0;
+          transform: perspective(1200px) translate3d(0, 52px, -90px) scale(.965);
+          transform-origin: center top;
+          transition:
+            opacity .78s cubic-bezier(.22, 1, .36, 1),
+            transform .78s cubic-bezier(.22, 1, .36, 1);
+          will-change: opacity, transform;
+        }
+
+        .landing-motion.is-visible {
+          opacity: 1;
+          transform: perspective(1200px) translate3d(0, 0, 0) scale(1);
+        }
+
+        .landing-motion-delay-1 {
+          transition-delay: .08s;
+        }
+
+        .landing-motion-delay-2 {
+          transition-delay: .16s;
+        }
+
+        .landing-motion-delay-3 {
+          transition-delay: .24s;
+        }
+
         .landing-home {
           min-height: 100vh;
           min-height: 100dvh;
@@ -84,6 +135,51 @@ export default function LandingPage({ scrollToExplore = false }) {
           background:
             linear-gradient(90deg, rgba(10, 17, 133, 0.98) 0%, rgba(10, 17, 133, 0.88) 46%, rgba(10, 17, 133, 0.44) 100%),
             var(--hero-image) center / cover;
+        }
+
+        .landing-home .landing-nav {
+          animation: landingNavEnter .72s cubic-bezier(.22, 1, .36, 1) both;
+        }
+
+        .landing-home .landing-hero-copy {
+          animation: landingDepthEnter .9s cubic-bezier(.22, 1, .36, 1) .08s both;
+        }
+
+        .landing-home .explore-ticker {
+          animation: landingTickerEnter .74s cubic-bezier(.22, 1, .36, 1) .2s both;
+        }
+
+        @keyframes landingDepthEnter {
+          from {
+            opacity: 0;
+            transform: perspective(1200px) translate3d(0, 42px, -140px) scale(.94);
+          }
+          to {
+            opacity: 1;
+            transform: perspective(1200px) translate3d(0, 0, 0) scale(1);
+          }
+        }
+
+        @keyframes landingNavEnter {
+          from {
+            opacity: 0;
+            transform: translateY(-18px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes landingTickerEnter {
+          from {
+            opacity: 0;
+            transform: translateY(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
         .landing-nav {
@@ -234,6 +330,19 @@ export default function LandingPage({ scrollToExplore = false }) {
           }
           to {
             transform: translateX(0);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .landing-motion,
+          .landing-motion.is-visible,
+          .landing-home .landing-nav,
+          .landing-home .landing-hero-copy,
+          .landing-home .explore-ticker {
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+            transition: none !important;
           }
         }
 
@@ -735,10 +844,10 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
 
         .membership-plan.is-featured {
-          background: #101010;
-          border-color: #ff7a00;
-          color: #fff;
-          transform: translateY(-16px);
+          background: #fff;
+          border-color: transparent;
+          color: #0a1185;
+          transform: none;
         }
 
         .membership-plan:hover {
@@ -747,7 +856,7 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
 
         .membership-plan.is-featured:hover {
-          transform: translateY(-22px);
+          transform: translateY(-6px);
         }
 
         .membership-plan:active {
@@ -755,7 +864,7 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
 
         .membership-plan.is-featured:active {
-          transform: translateY(-14px) scale(.992);
+          transform: translateY(-2px) scale(.992);
         }
 
         .plan-kicker {
@@ -796,7 +905,7 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
 
         .membership-plan.is-featured .membership-price-list {
-          border-color: rgba(255, 255, 255, .18);
+          border-color: rgba(10, 17, 133, .12);
         }
 
         .membership-price-row {
@@ -810,7 +919,7 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
 
         .membership-plan.is-featured .membership-price-row {
-          background: rgba(255, 255, 255, .08);
+          background: rgba(10, 17, 133, .04);
         }
 
         .membership-price-row + .membership-price-row {
@@ -818,7 +927,7 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
 
         .membership-plan.is-featured .membership-price-row + .membership-price-row {
-          border-top-color: rgba(255, 255, 255, .14);
+          border-top-color: rgba(10, 17, 133, .1);
         }
 
         .membership-price-row span {
@@ -1263,10 +1372,18 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
       `}</style>
       <Home />
-      <MembershipPlanCards compact plans={plans} />
-      <Explore />
-      <Facilities />
-      <Footer />
+      <div className="landing-motion landing-motion-delay-1">
+        <MembershipPlanCards compact plans={plans} />
+      </div>
+      <div className="landing-motion landing-motion-delay-1">
+        <Explore />
+      </div>
+      <div className="landing-motion landing-motion-delay-2">
+        <Facilities />
+      </div>
+      <div className="landing-motion landing-motion-delay-3">
+        <Footer />
+      </div>
     </main>
   );
 }

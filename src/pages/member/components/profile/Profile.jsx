@@ -62,6 +62,16 @@ const notificationPreferences = [
   },
 ];
 
+const getPhoneInputDigits = (phoneNumber = "") =>
+  phoneNumber.replace(/^\+62/, "").replace(/^0/, "");
+
+const normalizeIndonesianPhone = (value) => {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("62")) digits = digits.slice(2);
+  if (digits.startsWith("0")) digits = digits.slice(1);
+  return digits ? `+62${digits}` : "";
+};
+
 const getNotificationCategory = (type) => {
   if (["TRANSACTION_CREATED", "TRANSACTION_SUCCESS", "TRANSACTION_FAILED"].includes(type)) return "payment";
   if (type === "SESSION_REMINDER") return "trainer";
@@ -192,7 +202,6 @@ export default function ProfilePage() {
     email: user?.email || "",
     phoneNumber: user?.phone_number || "",
     birthDate: "",
-    address: "",
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -230,7 +239,6 @@ export default function ProfilePage() {
           email: nextProfile?.email || "",
           phoneNumber: nextProfile?.phone_number || nextProfile?.phone || "",
           birthDate: nextProfile?.date_of_birth ? String(nextProfile.date_of_birth).slice(0, 10) : "",
-          address: nextProfile?.address || "",
         });
       } catch (err) {
         if (isMounted) setError(getErrorMessage(err, "Gagal memuat profile."));
@@ -351,6 +359,14 @@ export default function ProfilePage() {
   const joinDate = formatDate(profile?.created_at);
 
   const updateField = (field, value) => {
+    if (field === "phoneNumber") {
+      setFormValues((current) => ({
+        ...current,
+        phoneNumber: normalizeIndonesianPhone(value),
+      }));
+      return;
+    }
+
     setFormValues((current) => ({ ...current, [field]: value }));
   };
 
@@ -785,6 +801,42 @@ export default function ProfilePage() {
 
         .profile-input-shell .profile-input {
           padding-right: 42px;
+        }
+
+        .profile-phone-shell {
+          align-items: center;
+          background: #f4f5fb;
+          border: 1px solid transparent;
+          border-radius: 8px;
+          display: flex;
+          height: 60px;
+          overflow: hidden;
+        }
+
+        .profile-phone-prefix {
+          color: #0b0871;
+          flex: 0 0 auto;
+          font: inherit;
+          font-size: 15px;
+          font-weight: 900;
+          padding-left: 20px;
+        }
+
+        .profile-phone-shell .profile-input {
+          background: transparent;
+          border: 0;
+          height: 100%;
+          padding-left: 5px;
+        }
+
+        .profile-phone-shell:focus-within {
+          border-color: #ff7a00;
+          box-shadow: 0 0 0 3px rgba(255, 122, 0, .14);
+        }
+
+        .profile-phone-shell .profile-input:focus {
+          border-color: transparent;
+          box-shadow: none;
         }
 
         .profile-input-icon {
@@ -1396,12 +1448,15 @@ export default function ProfilePage() {
                     </label>
                     <label className="profile-field">
                       Phone Number
-                      <input
-                        className="profile-input"
-                        value={formValues.phoneNumber}
-                        onChange={(event) => updateField("phoneNumber", event.target.value)}
-                        placeholder="+628123456789"
-                      />
+                      <span className="profile-phone-shell">
+                        <span className="profile-phone-prefix">+62</span>
+                        <input
+                          className="profile-input"
+                          value={getPhoneInputDigits(formValues.phoneNumber)}
+                          onChange={(event) => updateField("phoneNumber", event.target.value)}
+                          placeholder="8123456789"
+                        />
+                      </span>
                     </label>
                     <label className="profile-field">
                       Date of Birth
@@ -1416,15 +1471,6 @@ export default function ProfilePage() {
                           <MemberIcon name="calendar" />
                         </span>
                       </span>
-                    </label>
-                    <label className="profile-field is-wide">
-                      Address
-                      <textarea
-                        className="profile-input profile-textarea"
-                        value={formValues.address}
-                        onChange={(event) => updateField("address", event.target.value)}
-                        placeholder="Jl. Ketintang Barat No. 09, Surabaya, Jawa Timur"
-                      />
                     </label>
                   </div>
 
