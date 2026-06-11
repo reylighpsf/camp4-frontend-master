@@ -34,7 +34,7 @@ const getMembershipEndFromTransaction = (transaction) => {
 
   const start = new Date(transaction.settled_at || transaction.created_at);
   if (Number.isNaN(start.getTime())) return null;
-  const days = type.includes("DAILY") ? 1 : 30;
+  const days = type.includes("DAILY") ? 1 : type.includes("YEAR") ? 365 : 30;
   return new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
 };
 
@@ -179,11 +179,13 @@ export default function CheckInOutPage() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const profileEndDate = profile?.membership_end_date || profile?.membership?.end_date || user?.membership_end_date;
-      const effectiveEndDate = membershipEndDate || (profileEndDate ? new Date(profileEndDate) : null);
+      const profileEffectiveEndDate = profileEndDate ? new Date(profileEndDate) : null;
+      const effectiveEndDate = profileEffectiveEndDate || membershipEndDate;
       const membershipStatus = String(profile?.membership_status || profile?.membership?.status || "").toLowerCase();
+      const activeByEndDate = Boolean(effectiveEndDate && effectiveEndDate.getTime() > Date.now());
       const activeByProfile =
         Boolean(profile?.active_membership) || membershipStatus === "active" || membershipStatus === "aktif";
-      const active = isMembershipActive || activeByProfile;
+      const active = activeByEndDate || isMembershipActive || activeByProfile;
 
       if (!active || !effectiveEndDate) {
         setMembershipRemainingText("Membership tidak aktif");

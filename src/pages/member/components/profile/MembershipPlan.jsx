@@ -130,7 +130,28 @@ const getMembershipStatus = (profile) => {
   return "Selected";
 };
 
-const getActiveMembershipSnapshot = (transactions, catalogPlans) => {
+const getActiveMembershipSnapshot = (profile, transactions, catalogPlans) => {
+  const profileMembership = profile?.membership;
+  const profileMembershipEnd = profile?.membership_end_date || profileMembership?.end_date;
+  const profileMembershipStatus = String(profile?.membership_status || profileMembership?.status || "").toUpperCase();
+  const hasActiveProfileMembership =
+    profileMembershipEnd &&
+    new Date(profileMembershipEnd).getTime() > Date.now() &&
+    (!profileMembershipStatus || profileMembershipStatus === "ACTIVE");
+
+  if (hasActiveProfileMembership) {
+    const planCode = profile?.membership_plan_id || profileMembership?.plan_code || profileMembership?.plan;
+    return {
+      catalog: catalogPlans.find((item) => item.code === planCode),
+      end: new Date(profileMembershipEnd),
+      start: profile?.membership_start_date || profileMembership?.start_date
+        ? new Date(profile?.membership_start_date || profileMembership?.start_date)
+        : null,
+      status: "Active",
+      transaction: null,
+    };
+  }
+
   const membershipTransactions = transactions
     .filter((transaction) => {
       const family = String(transaction.transaction_family || "").toUpperCase();
@@ -240,8 +261,8 @@ export default function ProfileMembershipPlanPage() {
   }, [profile]);
 
   const membershipSnapshot = useMemo(
-    () => getActiveMembershipSnapshot(transactions, catalogPlans),
-    [catalogPlans, transactions],
+    () => getActiveMembershipSnapshot(profile, transactions, catalogPlans),
+    [catalogPlans, profile, transactions],
   );
   const currentPlanId = getProfilePlanId(profile, registrationPlanId);
   const profileTierCode = getUserTierCode(profile);

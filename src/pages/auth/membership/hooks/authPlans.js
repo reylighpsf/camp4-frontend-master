@@ -40,6 +40,20 @@ export const authMembershipPlans = [
       "Member event discounts",
     ],
   },
+  {
+    id: "year",
+    name: "Year Membership",
+    price: "Rp 1.800.000",
+    period: "year",
+    description: "Annual membership for long-term gym access.",
+    benefits: [
+      "1-year gym access",
+      "Personal member QR Code",
+      "Workout tracking dashboard",
+      "Trainer booking access",
+      "Live gym capacity information",
+    ],
+  },
 ];
 
 export const getAuthMembershipPlan = (planId) =>
@@ -76,12 +90,14 @@ export const getPlanIdFromCatalogCode = (code) => {
   const normalizedCode = String(code || "").toUpperCase();
   if (normalizedCode === "MEMBERSHIP_DAILY") return "daily";
   if (normalizedCode === "MEMBERSHIP_MONTHLY") return "premium";
+  if (normalizedCode === "MEMBERSHIP_YEAR") return "year";
   return normalizedCode.toLowerCase();
 };
 
 export const getTransactionTypeFromPlanId = (planId) => {
   if (planId === "daily") return "MEMBERSHIP_DAILY";
   if (planId === "student" || planId === "premium") return "MEMBERSHIP_MONTHLY";
+  if (planId === "year") return "MEMBERSHIP_YEAR";
   return String(planId || "").toUpperCase();
 };
 
@@ -96,7 +112,7 @@ export const mapCatalogToMembershipPlan = (catalog, tierCode) => ({
   description: catalog.description || "Membership plan dari katalog backend.",
   id: getPlanIdFromCatalogCode(catalog.code),
   name: catalog.name,
-  period: catalog.duration_days === 1 ? "day" : "month",
+  period: catalog.duration_days === 1 ? "day" : catalog.duration_days >= 365 ? "year" : "month",
   price: formatCatalogPrice(getCatalogPrice(catalog, tierCode)),
   selectedTierCode: getCatalogPriceItem(catalog, tierCode)?.tier_code,
   prices: Array.isArray(catalog.prices)
