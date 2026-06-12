@@ -9,6 +9,7 @@ import {
   mapCatalogsToMembershipPlans,
 } from "../membership/hooks/authPlans";
 import api from "../../../components/auth/hooks/authApi";
+import useTurnstile from "../sign/hooks/useTurnstile";
 
 const paymentMethods = [
   { id: "qris", paymentMethod: "QRIS", title: "QRIS / VA Bank", subtitle: "Bayar lewat QRIS atau virtual account bank", icon: "bank" },
@@ -87,6 +88,12 @@ export default function Payment() {
   const [plans, setPlans] = useState(authMembershipPlans);
   const [waitingPayment, setWaitingPayment] = useState(null);
   const [remainingMs, setRemainingMs] = useState(getInitialRemainingMs("QRIS"));
+  const {
+    containerRef: turnstileRef,
+    error: turnstileError,
+    reset: resetTurnstile,
+    token: turnstileToken,
+  } = useTurnstile();
   const planId =
     searchParams.get("plan") ||
     localStorage.getItem("vocafit-selected-plan") ||
@@ -203,10 +210,17 @@ export default function Payment() {
     setError("");
     setCashPending(false);
 
+    if (!turnstileToken) {
+      setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
+      return;
+    }
+
     try {
       const response = await api.post("/transactions/create", {
         transactionType: selectedPlan.catalogCode || getTransactionTypeFromPlanId(selectedPlan.id),
         paymentMethod: selectedMethod.paymentMethod,
+      }, {
+        headers: { "X-Turnstile-Token": turnstileToken },
       });
       const { transaction, paymentUrl } = getTransactionPayload(response.data);
 
@@ -268,6 +282,7 @@ export default function Payment() {
 
       setError(nextError);
     } finally {
+      resetTurnstile();
       setLoading(false);
     }
   };
@@ -439,6 +454,11 @@ export default function Payment() {
           Your membership will be activated after the payment is successfully
           confirmed.
         </p>
+
+        <div className="payment-turnstile">
+          <div ref={turnstileRef} />
+          {turnstileError && <span>{turnstileError}</span>}
+        </div>
 
         <div className="payment-actions">
           <Link className="payment-back" to={cashPending ? "/member" : "/choose-plan"}>
@@ -721,6 +741,22 @@ const paymentStyles = `
     font-weight: 800;
     line-height: 1.35;
     padding: 13px 15px;
+    text-align: center;
+  }
+
+  .payment-turnstile {
+    display: grid;
+    justify-items: center;
+    margin: 0 0 18px;
+    min-height: 8px;
+    width: 100%;
+  }
+
+  .payment-turnstile span {
+    color: #d84b17;
+    font-size: 12px;
+    font-weight: 800;
+    margin-top: 6px;
     text-align: center;
   }
 

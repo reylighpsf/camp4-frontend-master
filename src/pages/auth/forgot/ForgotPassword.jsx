@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { authApi } from "../../../components/auth/hooks/authApi";
 import signupGym from "../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
+import useTurnstile from "../sign/hooks/useTurnstile";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
@@ -25,6 +26,12 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState("");
   const [expiresIn, setExpiresIn] = useState(15 * 60);
+  const {
+    containerRef: turnstileRef,
+    error: turnstileError,
+    reset: resetTurnstile,
+    token: turnstileToken,
+  } = useTurnstile();
 
   const otp = useMemo(() => otpDigits.join(""), [otpDigits]);
 
@@ -50,13 +57,18 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    if (!turnstileToken) {
+      setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
+      return;
+    }
+
     setLoading(mode);
     try {
       const payload = { email: email.trim() };
       const response =
         mode === "resend"
-          ? await authApi.resendForgotPassword(payload)
-          : await authApi.forgotPassword(payload);
+          ? await authApi.resendForgotPassword(payload, turnstileToken)
+          : await authApi.forgotPassword(payload, turnstileToken);
 
       setExpiresIn(15 * 60);
       setOtpDigits(Array(6).fill(""));
@@ -66,6 +78,7 @@ export default function ForgotPasswordPage() {
     } catch (err) {
       setError(getErrorMessage(err, "Gagal mengirim OTP reset password."));
     } finally {
+      resetTurnstile();
       setLoading("");
     }
   };
@@ -111,13 +124,18 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    if (!turnstileToken) {
+      setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
+      return;
+    }
+
     setLoading("reset");
     try {
       const response = await authApi.resetPassword({
         email: email.trim(),
         otp,
         newPassword: passwords.newPassword,
-      });
+      }, turnstileToken);
 
       navigate("/sign-in", {
         replace: true,
@@ -127,6 +145,7 @@ export default function ForgotPasswordPage() {
       setError(getErrorMessage(err, "Gagal reset password."));
       setStep(STEP_VERIFY);
     } finally {
+      resetTurnstile();
       setLoading("");
     }
   };
@@ -165,6 +184,10 @@ export default function ForgotPasswordPage() {
 
                 {message && <p className="forgot-alert success">{message}</p>}
                 {error && <p className="forgot-alert error">{error}</p>}
+                <div className="forgot-turnstile">
+                  <div ref={turnstileRef} />
+                  {turnstileError && <span>{turnstileError}</span>}
+                </div>
 
                 <label className="forgot-field" htmlFor="email">
                   <span>Email Address</span>
@@ -200,6 +223,10 @@ export default function ForgotPasswordPage() {
 
                 {message && <p className="forgot-alert success">{message}</p>}
                 {error && <p className="forgot-alert error">{error}</p>}
+                <div className="forgot-turnstile">
+                  <div ref={turnstileRef} />
+                  {turnstileError && <span>{turnstileError}</span>}
+                </div>
 
                 <div className="forgot-otp-group" aria-label="OTP code">
                   {otpDigits.map((digit, index) => (
@@ -234,6 +261,10 @@ export default function ForgotPasswordPage() {
                 <p className="forgot-copy">Create a strong password to secure your account</p>
 
                 {error && <p className="forgot-alert error">{error}</p>}
+                <div className="forgot-turnstile">
+                  <div ref={turnstileRef} />
+                  {turnstileError && <span>{turnstileError}</span>}
+                </div>
 
                 <label className="forgot-field" htmlFor="newPassword">
                   <span>New Password</span>
@@ -512,6 +543,22 @@ const forgotStyles = `
   .forgot-alert.error {
     background: rgba(255, 107, 32, .18);
     color: #ffb18a;
+  }
+
+  .forgot-turnstile {
+    display: grid;
+    justify-items: center;
+    margin: 0 0 14px;
+    min-height: 8px;
+    width: 100%;
+  }
+
+  .forgot-turnstile span {
+    color: #ffb18a;
+    font-size: 11px;
+    font-weight: 800;
+    margin-top: 6px;
+    text-align: center;
   }
 
   .forgot-otp-group {

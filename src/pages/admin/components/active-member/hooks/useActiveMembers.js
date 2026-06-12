@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../../../../components/auth/hooks/authApi";
+import { getResponseList } from "../../../../../utils/responseData";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
@@ -100,7 +101,7 @@ export default function useActiveMembers() {
         api.get("/visits/crowd").catch(() => null),
       ]);
 
-      const nextUsers = (response.data?.data || []).map((user) => {
+      const nextUsers = getResponseList(response).map((user) => {
         const isActive = isMembershipActive(user);
 
         return {

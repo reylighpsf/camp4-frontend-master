@@ -1,22 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "../../../../../components/auth/hooks/authApi";
+import { getResponseList } from "../../../../../utils/responseData";
 import { enrichTransactionMembers } from "./paymentHelpers";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
 
-const mergePendingTransactions = (cashTransactions = [], historyTransactions = []) => {
+const mergePendingTransactions = (...transactionGroups) => {
   const byId = new Map();
 
-  cashTransactions.forEach((transaction) => {
-    byId.set(transaction.id, transaction);
-  });
-
-  historyTransactions
-    .filter((transaction) => transaction.status === "PENDING" && transaction.payment_method === "QRIS")
-    .forEach((transaction) => {
+  transactionGroups.flat().forEach((transaction) => {
+    if (transaction?.id) {
       byId.set(transaction.id, transaction);
-    });
+    }
+  });
 
   return Array.from(byId.values()).sort(
     (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
@@ -35,16 +32,16 @@ export default function usePayments() {
     setListLoading(true);
     setListError("");
     try {
-      const [paymentResponse, historyResponse, usersResponse] = await Promise.all([
-        api.get("/transactions/cash/pending"),
-        api.get("/transactions/history", { params: { page: 1, limit: 100 } }),
-        api.get("/admin/users"),
+      const [cashResponse, qrisResponse, usersResponse] = await Promise.all([
+        api.get("/transactions/history", { params: { method: "cash", page: 1, limit: 100, status: "pending" } }),
+        api.get("/transactions/history", { params: { method: "qris", page: 1, limit: 100, status: "pending" } }),
+        api.get("/admin/users", { params: { page: 1, limit: 100 } }),
       ]);
       const pendingTransactions = mergePendingTransactions(
-        paymentResponse.data?.data || [],
-        historyResponse.data?.data || [],
+        getResponseList(cashResponse),
+        getResponseList(qrisResponse),
       );
-      setPayments(enrichTransactionMembers(pendingTransactions, usersResponse.data?.data || []));
+      setPayments(enrichTransactionMembers(pendingTransactions, getResponseList(usersResponse)));
     } catch (err) {
       setListError(getErrorMessage(err, "Gagal memuat data pembayaran."));
       setPayments([]);
@@ -64,7 +61,7 @@ export default function usePayments() {
     setActionSuccessMessage("");
 
     try {
-      const response = await api.post("/transactions/cash/confirm", {
+      const response = await api.post("/transactions/confirm", {
         transactionId,
         status,
       });

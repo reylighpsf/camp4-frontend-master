@@ -5,6 +5,7 @@ import signupGym from "../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
 import { buildGoogleRegisterPayload } from "./hooks/googleAuthPayload";
 import { getGoogleClientId } from "./hooks/googleClientConfig";
+import useTurnstile from "./hooks/useTurnstile";
 
 const isAdminRole = (role) => role === "pengurus" || role === "admin";
 
@@ -29,6 +30,12 @@ export default function Signin() {
   const navigate = useNavigate();
   const location = useLocation();
   const googleButtonRef = useRef(null);
+  const {
+    containerRef: turnstileRef,
+    error: turnstileError,
+    reset: resetTurnstile,
+    token: turnstileToken,
+  } = useTurnstile();
   const [form, setForm] = useState({ email: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState({});
   const [toast, setToast] = useState("");
@@ -106,13 +113,13 @@ export default function Signin() {
       setGoogleLoading(true);
       setToast("");
       try {
-        const user = await signinGoogle(response.credential);
+        const user = await signinGoogle(response.credential, turnstileToken);
         navigateAfterLogin(user);
       } catch (err) {
         const res = err.response?.data;
         if (err.response?.status === 404) {
           try {
-            const user = await signupGoogle(buildGoogleRegisterPayload(response.credential));
+            const user = await signupGoogle(buildGoogleRegisterPayload(response.credential), turnstileToken);
             navigateAfterLogin(user);
             return;
           } catch (registerErr) {
@@ -123,6 +130,7 @@ export default function Signin() {
         }
         setToast(res?.error || res?.message || "Login Google gagal. Coba beberapa saat lagi.");
       } finally {
+        resetTurnstile();
         setGoogleLoading(false);
       }
     };
@@ -163,7 +171,7 @@ export default function Signin() {
     return () => {
       cancelled = true;
     };
-  }, [googleClientId, location.state, navigate, signinGoogle, signupGoogle]);
+  }, [googleClientId, location.state, navigate, resetTurnstile, signinGoogle, signupGoogle, turnstileToken]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -192,9 +200,14 @@ export default function Signin() {
       return;
     }
 
+    if (!turnstileToken) {
+      setToast(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const user = await signin(form);
+      const user = await signin(form, turnstileToken);
       navigateAfterLogin(user);
     } catch (err) {
       const res = err.response?.data;
@@ -204,6 +217,7 @@ export default function Signin() {
         setToast(res?.error || res?.message || "Login gagal. Coba beberapa saat lagi.");
       }
     } finally {
+      resetTurnstile();
       setLoading(false);
     }
   };
@@ -273,6 +287,11 @@ export default function Signin() {
                 )}
               </button>
             </form>
+
+            <div className="signin-turnstile">
+              <div ref={turnstileRef} />
+              {turnstileError && <span>{turnstileError}</span>}
+            </div>
 
             <div className="signin-divider"><span>atau</span></div>
             <div className={`signin-google ${googleLoading ? "is-loading" : ""}`}>
@@ -537,6 +556,22 @@ const signinStyles = `
     font-size: 12px;
     font-weight: 900;
     margin: 0;
+    text-align: center;
+  }
+
+  .signin-turnstile {
+    display: grid;
+    justify-items: center;
+    margin: 16px 0 0;
+    min-height: 66px;
+    width: 100%;
+  }
+
+  .signin-turnstile span {
+    color: #ffdc7b;
+    font-size: 12px;
+    font-weight: 800;
+    margin-top: 8px;
     text-align: center;
   }
 

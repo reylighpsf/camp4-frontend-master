@@ -4,6 +4,7 @@ import { AuthFrame, Toast } from "../AuthFrame";
 import { useAuth } from "../../../components/auth/hooks/useAuth";
 import { buildGoogleRegisterPayload } from "./hooks/googleAuthPayload";
 import { getGoogleClientId } from "./hooks/googleClientConfig";
+import useTurnstile from "./hooks/useTurnstile";
 
 const getPhoneInputDigits = (phoneNumber) =>
   phoneNumber.replace(/^\+62/, "").replace(/^0/, "");
@@ -20,6 +21,12 @@ export default function Signup() {
   const navigate = useNavigate();
   const imageInputRef = useRef(null);
   const googleButtonRef = useRef(null);
+  const {
+    containerRef: turnstileRef,
+    error: turnstileError,
+    reset: resetTurnstile,
+    token: turnstileToken,
+  } = useTurnstile();
 
   const [form, setForm] = useState({
     fullName: "",
@@ -169,12 +176,13 @@ export default function Signup() {
 
       setGoogleLoading(true);
       try {
-        await signupGoogle(buildGoogleRegisterPayload(response.credential));
+        await signupGoogle(buildGoogleRegisterPayload(response.credential), turnstileToken);
         navigate("/choose-plan");
       } catch (err) {
         const res = err.response?.data;
         setToast(res?.error || res?.message || "Registrasi Google gagal. Coba beberapa saat lagi.");
       } finally {
+        resetTurnstile();
         setGoogleLoading(false);
       }
     };
@@ -215,7 +223,7 @@ export default function Signup() {
     return () => {
       cancelled = true;
     };
-  }, [googleClientId, navigate, signupGoogle]);
+  }, [googleClientId, navigate, resetTurnstile, signupGoogle, turnstileToken]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -225,6 +233,11 @@ export default function Signup() {
     const errors = validate();
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
+      return;
+    }
+
+    if (!turnstileToken) {
+      setToast(turnstileError || "Selesaikan verifikasi Turnstile terlebih dahulu.");
       return;
     }
 
@@ -239,7 +252,7 @@ export default function Signup() {
       formData.append("password", form.password);
       formData.append("image", form.image);
 
-      await signup(formData);
+      await signup(formData, turnstileToken);
       localStorage.setItem("vocafit-registration-email", normalizedEmail);
       navigate("/verify-email", { state: { email: normalizedEmail } });
     } catch (err) {
@@ -254,6 +267,7 @@ export default function Signup() {
         );
       }
     } finally {
+      resetTurnstile();
       setLoading(false);
     }
   };
@@ -423,6 +437,11 @@ export default function Signup() {
             )}
           </button>
 
+          <div className="signup-turnstile">
+            <div ref={turnstileRef} />
+            {turnstileError && <span>{turnstileError}</span>}
+          </div>
+
           <div className="signup-divider"><span>atau</span></div>
           <div className={`signup-google ${googleLoading ? "is-loading" : ""}`}>
             {googleClientId ? (
@@ -486,6 +505,22 @@ const signupGoogleStyles = `
     font-size: 12px;
     font-weight: 800;
     margin: 0;
+    text-align: center;
+  }
+
+  .signup-turnstile {
+    display: grid;
+    justify-items: center;
+    margin: 16px 0 0;
+    min-height: 66px;
+    width: 100%;
+  }
+
+  .signup-turnstile span {
+    color: #9a3412;
+    font-size: 12px;
+    font-weight: 800;
+    margin-top: 8px;
     text-align: center;
   }
 

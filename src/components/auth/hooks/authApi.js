@@ -7,27 +7,44 @@ const api = axios.create({
   withCredentials: true,
 });
 
+const withTurnstile = (turnstileToken, config = {}) => ({
+  ...config,
+  headers: {
+    ...(config.headers || {}),
+    ...(turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {}),
+  },
+});
+
 export const authApi = {
   googleConfig: () => api.get("/auth/google-config"),
-  signup: (data) =>
+  signup: (data, turnstileToken = "") =>
     api.post("/auth/register", data, {
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: {
+        "Content-Type": "multipart/form-data",
+        ...(turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {}),
+      },
     }),
-  signin: (data) => api.post("/auth/login", data),
-  registerGoogle: (data) =>
+  signin: (data, turnstileToken = "") => api.post("/auth/login", data, withTurnstile(turnstileToken)),
+  registerGoogle: (data, turnstileToken = "") =>
     data instanceof FormData
       ? api.post("/auth/register/google", data, {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: {
+            "Content-Type": "multipart/form-data",
+            ...(turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {}),
+          },
         })
-      : api.post("/auth/register/google", data),
-  loginGoogle: (data) => api.post("/auth/login/google", data),
-  resendVerificationEmail: (data) => api.post("/auth/register/resend", data),
-  verifyEmail: (token) => api.get(`/auth/verify-email/${token}`),
+      : api.post("/auth/register/google", data, withTurnstile(turnstileToken)),
+  loginGoogle: (data, turnstileToken = "") => api.post("/auth/login/google", data, withTurnstile(turnstileToken)),
+  resendVerificationEmail: (data, turnstileToken = "") =>
+    api.post("/auth/register/resend", data, withTurnstile(turnstileToken)),
+  verifyEmail: (token, turnstileToken = "") => api.get(`/auth/verify-email/${token}`, withTurnstile(turnstileToken)),
   me: () => api.get("/users/me"),
-  logout: () => api.post("/auth/logout"),
-  forgotPassword: (data) => api.post("/auth/forgot-password", data),
-  resendForgotPassword: (data) => api.post("/auth/forgot-password/resend", data),
-  resetPassword: (data) => api.post("/auth/forgot-password/reset", data),
+  logout: (turnstileToken = "") => api.post("/auth/logout", null, withTurnstile(turnstileToken)),
+  forgotPassword: (data, turnstileToken = "") => api.post("/auth/forgot-password", data, withTurnstile(turnstileToken)),
+  resendForgotPassword: (data, turnstileToken = "") =>
+    api.post("/auth/forgot-password/resend", data, withTurnstile(turnstileToken)),
+  resetPassword: (data, turnstileToken = "") =>
+    api.post("/auth/forgot-password/reset", data, withTurnstile(turnstileToken)),
 };
 
 export default api;

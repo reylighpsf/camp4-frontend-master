@@ -4,6 +4,7 @@ import MemberLayout from "../../../../components/member/MemberLayout";
 import api from "../../../../components/auth/hooks/authApi";
 import { useAuth } from "../../../../components/auth/hooks/useAuth";
 import { getCatalogPrice, getUserTierCode } from "../../../auth/membership/hooks/authPlans";
+import useTurnstile from "../../../auth/sign/hooks/useTurnstile";
 
 const formatCurrency = (value) =>
   `Rp ${Number(value || 0).toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;
@@ -70,6 +71,12 @@ export default function TrainerCheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const {
+    containerRef: turnstileRef,
+    error: turnstileError,
+    reset: resetTurnstile,
+    token: turnstileToken,
+  } = useTurnstile();
 
   useEffect(() => {
     let mounted = true;
@@ -129,6 +136,10 @@ export default function TrainerCheckoutPage() {
       setError(`Package ini membutuhkan ${requiredParticipants} email peserta tambahan.`);
       return;
     }
+    if (!turnstileToken) {
+      setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
+      return;
+    }
 
     const paymentTab = paymentMethod === "QRIS" ? openBlankPaymentTab() : null;
     setSubmitting(true);
@@ -138,6 +149,8 @@ export default function TrainerCheckoutPage() {
         transactionType: selectedCatalogCode,
         trainerId: selectedTrainerId,
         participantEmails,
+      }, {
+        headers: { "X-Turnstile-Token": turnstileToken },
       });
       const { paymentUrl, transaction } = getTransactionPayload(response.data);
       if (paymentMethod === "QRIS" && paymentUrl) {
@@ -164,6 +177,7 @@ export default function TrainerCheckoutPage() {
       paymentTab?.close();
       setError(getErrorMessage(err, "Gagal membuat transaksi trainer."));
     } finally {
+      resetTurnstile();
       setSubmitting(false);
     }
   };
@@ -244,6 +258,11 @@ export default function TrainerCheckoutPage() {
                 <span>Package</span><strong>{selectedCatalog?.name || "-"}</strong>
                 <span>Trainer</span><strong>{selectedTrainer?.name || "-"}</strong>
                 <span>Total</span><strong>{formatCurrency(getCatalogPrice(selectedCatalog, userTierCode))}</strong>
+              </div>
+
+              <div className="tp-turnstile">
+                <div ref={turnstileRef} />
+                {turnstileError && <span>{turnstileError}</span>}
               </div>
 
               <button className="tp-primary" disabled={submitting} onClick={submitPayment} type="button">
@@ -376,6 +395,20 @@ const styles = `
     gap: 8px;
     grid-template-columns: 100px 1fr;
     padding-top: 14px;
+  }
+  .tp-turnstile {
+    display: grid;
+    justify-items: center;
+    margin-top: 16px;
+    min-height: 8px;
+    width: 100%;
+  }
+  .tp-turnstile span {
+    color: #c73822;
+    font-size: 12px;
+    font-weight: 800;
+    margin-top: 6px;
+    text-align: center;
   }
   .tp-summary span {
     color: #5f6296;

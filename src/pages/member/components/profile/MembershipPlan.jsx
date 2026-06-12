@@ -12,6 +12,7 @@ import {
   getTransactionTypeFromPlanId,
   getUserTierCode,
 } from "../../../auth/membership/hooks/authPlans";
+import useTurnstile from "../../../auth/sign/hooks/useTurnstile";
 
 const tabs = [
   { label: "Account Settings", icon: "profile", to: "/member/profile" },
@@ -203,6 +204,12 @@ export default function ProfileMembershipPlanPage() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [error, setError] = useState("");
   const [registrationPlanId, setRegistrationPlanId] = useState("");
+  const {
+    containerRef: turnstileRef,
+    error: turnstileError,
+    reset: resetTurnstile,
+    token: turnstileToken,
+  } = useTurnstile();
 
   const fetchTransactions = async () => {
     try {
@@ -326,6 +333,11 @@ export default function ProfileMembershipPlanPage() {
   const createMembershipPayment = async () => {
     if (!paymentPlan) return;
 
+    if (!turnstileToken) {
+      setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
+      return;
+    }
+
     const paymentTab = paymentMethod === "QRIS" ? openBlankPaymentTab() : null;
     setPaymentLoading(true);
     setError("");
@@ -333,6 +345,8 @@ export default function ProfileMembershipPlanPage() {
       const response = await api.post("/transactions/create", {
         paymentMethod,
         transactionType: paymentPlan.catalogCode || getTransactionTypeFromPlanId(paymentPlan.paymentPlanId || paymentPlan.id),
+      }, {
+        headers: { "X-Turnstile-Token": turnstileToken },
       });
       const paymentUrl = getPaymentUrlFromResponse(response.data);
 
@@ -361,6 +375,7 @@ export default function ProfileMembershipPlanPage() {
       paymentTab?.close();
       setError(getErrorMessage(err, "Gagal membuat pembayaran membership."));
     } finally {
+      resetTurnstile();
       setPaymentLoading(false);
     }
   };
@@ -753,6 +768,22 @@ export default function ProfileMembershipPlanPage() {
           color: #ffffff;
         }
 
+        .profile-payment-turnstile {
+          display: grid;
+          justify-items: center;
+          margin: 0 0 16px;
+          min-height: 8px;
+          width: 100%;
+        }
+
+        .profile-payment-turnstile span {
+          color: #c73822;
+          font-size: 12px;
+          font-weight: 800;
+          margin-top: 6px;
+          text-align: center;
+        }
+
         .profile-payment-actions {
           display: flex;
           gap: 10px;
@@ -1130,6 +1161,11 @@ export default function ProfileMembershipPlanPage() {
                   {method}
                 </button>
               ))}
+            </div>
+
+            <div className="profile-payment-turnstile">
+              <div ref={turnstileRef} />
+              {turnstileError && <span>{turnstileError}</span>}
             </div>
 
             <div className="profile-payment-actions">

@@ -3,6 +3,7 @@ import { useLocation } from "react-router";
 import { AuthFrame } from "../AuthFrame";
 import Swal from "sweetalert2";
 import { authApi } from "../../../components/auth/hooks/authApi";
+import useTurnstile from "../sign/hooks/useTurnstile";
 
 const RESEND_COOLDOWN_MS = 2 * 60 * 1000;
 
@@ -22,6 +23,12 @@ export default function VerifyEmail() {
     localStorage.getItem("vocafit-registration-email") ||
     "";
   const [cooldownMs, setCooldownMs] = useState(0);
+  const {
+    containerRef: turnstileRef,
+    error: turnstileError,
+    reset: resetTurnstile,
+    token: turnstileToken,
+  } = useTurnstile();
 
   useEffect(() => {
     const storageKey = getResendStorageKey(email);
@@ -64,8 +71,18 @@ export default function VerifyEmail() {
       return;
     }
 
+    if (!turnstileToken) {
+      await Swal.fire({
+        confirmButtonColor: "#ff6414",
+        icon: "warning",
+        text: turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.",
+        title: "Captcha Dibutuhkan",
+      });
+      return;
+    }
+
     try {
-      await authApi.resendVerificationEmail({ email });
+      await authApi.resendVerificationEmail({ email }, turnstileToken);
       localStorage.setItem(getResendStorageKey(email), String(Date.now()));
       setCooldownMs(RESEND_COOLDOWN_MS);
       await Swal.fire({
@@ -81,6 +98,8 @@ export default function VerifyEmail() {
         text: err.response?.data?.message || err.response?.data?.error || "Gagal mengirim ulang verify email.",
         title: "Resend Gagal",
       });
+    } finally {
+      resetTurnstile();
     }
   };
 
@@ -169,6 +188,21 @@ export default function VerifyEmail() {
           overflow-wrap: anywhere;
         }
 
+        .verify-email-turnstile {
+          display: grid;
+          justify-items: center;
+          margin-top: 18px;
+          min-height: 8px;
+          width: 100%;
+        }
+
+        .verify-email-turnstile span {
+          color: #d84b17;
+          font-size: 12px;
+          font-weight: 800;
+          margin-top: 6px;
+        }
+
         .verify-email-button {
           background: #ff6414;
           border: 0;
@@ -222,6 +256,11 @@ export default function VerifyEmail() {
         <div className="verify-email-target">
           <span>Email sent to:</span>
           <strong>{email || "email yang kamu daftarkan"}</strong>
+        </div>
+
+        <div className="verify-email-turnstile">
+          <div ref={turnstileRef} />
+          {turnstileError && <span>{turnstileError}</span>}
         </div>
 
         <button

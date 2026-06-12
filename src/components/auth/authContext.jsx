@@ -52,23 +52,23 @@ export const AuthProvider = ({ children }) => {
     return () => clearTimeout(timeoutId);
   }, []);
 
-  const signin = async (data) => {
-    await authApi.signin(data);
+  const signin = async (data, turnstileToken = "") => {
+    await authApi.signin(data, turnstileToken);
     return await fetchMe();
   };
 
-  const signinGoogle = async (googleToken) => {
-    await authApi.loginGoogle({ googleToken });
+  const signinGoogle = async (googleToken, turnstileToken = "") => {
+    await authApi.loginGoogle({ googleToken }, turnstileToken);
     return await fetchMe();
   };
 
-  const signupGoogle = async (data) => {
-    await authApi.registerGoogle(data);
+  const signupGoogle = async (data, turnstileToken = "") => {
+    await authApi.registerGoogle(data, turnstileToken);
     return await fetchMe();
   };
 
-  const signup = async (data) => {
-    await authApi.signup(data);
+  const signup = async (data, turnstileToken = "") => {
+    await authApi.signup(data, turnstileToken);
   };
 
   const logout = async () => {
