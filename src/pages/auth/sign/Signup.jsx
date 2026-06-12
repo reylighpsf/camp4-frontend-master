@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { AuthFrame, Toast } from "../AuthFrame";
 import { useAuth } from "../../../components/auth/hooks/useAuth";
 import { buildGoogleRegisterPayload } from "./hooks/googleAuthPayload";
@@ -18,6 +18,7 @@ const normalizeIndonesianPhone = (value) => {
 
 export default function Signup() {
   const { signup, signupGoogle } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
   const imageInputRef = useRef(null);
   const googleButtonRef = useRef(null);
@@ -46,6 +47,17 @@ export default function Signup() {
   const [googleConfigLoading, setGoogleConfigLoading] = useState(true);
   const [googleConfigError, setGoogleConfigError] = useState("");
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
+
+  useEffect(() => {
+    const notice = location.state?.notice;
+    if (!notice) return undefined;
+
+    const timeoutId = setTimeout(() => {
+      setToast(notice);
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [location.state]);
 
   useEffect(() => {
     if (!form.image) {

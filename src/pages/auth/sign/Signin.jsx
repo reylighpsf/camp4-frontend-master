@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../../../components/auth/hooks/useAuth";
 import signupGym from "../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
-import { buildGoogleRegisterPayload } from "./hooks/googleAuthPayload";
 import { getGoogleClientId } from "./hooks/googleClientConfig";
 import useTurnstile from "./hooks/useTurnstile";
 
@@ -26,7 +25,7 @@ function Toast({ message, onClose }) {
 }
 
 export default function Signin() {
-  const { signin, signinGoogle, signupGoogle } = useAuth();
+  const { signin, signinGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const googleButtonRef = useRef(null);
@@ -118,15 +117,12 @@ export default function Signin() {
       } catch (err) {
         const res = err.response?.data;
         if (err.response?.status === 404) {
-          try {
-            const user = await signupGoogle(buildGoogleRegisterPayload(response.credential), turnstileToken);
-            navigateAfterLogin(user);
-            return;
-          } catch (registerErr) {
-            const registerRes = registerErr.response?.data;
-            setToast(registerRes?.error || registerRes?.message || "Daftar Google gagal. Coba beberapa saat lagi.");
-            return;
-          }
+          navigate("/sign-up", {
+            state: {
+              notice: "Akun Google belum terdaftar. Silakan daftar dengan Google terlebih dahulu.",
+            },
+          });
+          return;
         }
         setToast(res?.error || res?.message || "Login Google gagal. Coba beberapa saat lagi.");
       } finally {
@@ -171,7 +167,7 @@ export default function Signin() {
     return () => {
       cancelled = true;
     };
-  }, [googleClientId, location.state, navigate, resetTurnstile, signinGoogle, signupGoogle, turnstileToken]);
+  }, [googleClientId, location.state, navigate, resetTurnstile, signinGoogle, turnstileToken]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
