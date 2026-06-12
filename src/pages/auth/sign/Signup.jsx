@@ -188,8 +188,8 @@ export default function Signup() {
 
       setGoogleLoading(true);
       try {
-        await signupGoogle(buildGoogleRegisterPayload(response.credential), turnstileToken);
-        navigate("/choose-plan");
+        await signupGoogle(buildGoogleRegisterPayload(response.credential), turnstileToken, { skipFetchMe: true });
+        navigate("/choose-plan", { replace: true });
       } catch (err) {
         const res = err.response?.data;
         setToast(res?.error || res?.message || "Registrasi Google gagal. Coba beberapa saat lagi.");

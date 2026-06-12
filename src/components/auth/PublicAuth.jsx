@@ -7,8 +7,10 @@ const PublicAuth = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
   const returnTo = location.state?.returnTo;
+  const allowAuthenticatedUser = location.pathname === "/choose-plan";
 
   if (loading) return <LoadingScreen />;
+  if (user && allowAuthenticatedUser) return children;
   if (user)
     return (
       <Navigate

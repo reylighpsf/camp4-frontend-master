@@ -62,8 +62,9 @@ export const AuthProvider = ({ children }) => {
     return await fetchMe();
   };
 
-  const signupGoogle = async (data, turnstileToken = "") => {
+  const signupGoogle = async (data, turnstileToken = "", options = {}) => {
     await authApi.registerGoogle(data, turnstileToken);
+    if (options.skipFetchMe) return null;
     return await fetchMe();
   };
 
