@@ -53,11 +53,11 @@ export const requestTurnstileToken = async () => {
       },
       "error-callback": () => {
         cleanup();
-        reject(new Error("Verifikasi Turnstile gagal."));
+        reject(new Error("Verifikasi captcha gagal."));
       },
       "expired-callback": () => {
         cleanup();
-        reject(new Error("Verifikasi Turnstile kedaluwarsa."));
+        reject(new Error("Verifikasi captcha kedaluwarsa."));
       },
     });
   });
