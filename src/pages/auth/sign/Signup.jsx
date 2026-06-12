@@ -511,8 +511,8 @@ const signupGoogleStyles = `
   .signup-turnstile {
     display: grid;
     justify-items: center;
-    margin: 16px 0 0;
-    min-height: 66px;
+    margin: 0;
+    min-height: 0;
     width: 100%;
   }
 

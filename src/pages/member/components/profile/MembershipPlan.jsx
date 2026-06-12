@@ -771,8 +771,8 @@ export default function ProfileMembershipPlanPage() {
         .profile-payment-turnstile {
           display: grid;
           justify-items: center;
-          margin: 0 0 16px;
-          min-height: 8px;
+          margin: 0;
+          min-height: 0;
           width: 100%;
         }
 

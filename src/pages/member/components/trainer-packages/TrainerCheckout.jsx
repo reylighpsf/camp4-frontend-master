@@ -399,8 +399,8 @@ const styles = `
   .tp-turnstile {
     display: grid;
     justify-items: center;
-    margin-top: 16px;
-    min-height: 8px;
+    margin-top: 0;
+    min-height: 0;
     width: 100%;
   }
   .tp-turnstile span {

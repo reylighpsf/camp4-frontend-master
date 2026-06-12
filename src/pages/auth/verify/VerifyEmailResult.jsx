@@ -277,8 +277,8 @@ export default function VerifyEmailResult() {
         .verify-result-turnstile {
           display: grid;
           justify-items: center;
-          margin-top: 22px;
-          min-height: 8px;
+          margin-top: 0;
+          min-height: 0;
           width: 100%;
         }
 

@@ -747,8 +747,8 @@ const paymentStyles = `
   .payment-turnstile {
     display: grid;
     justify-items: center;
-    margin: 0 0 18px;
-    min-height: 8px;
+    margin: 0;
+    min-height: 0;
     width: 100%;
   }
 

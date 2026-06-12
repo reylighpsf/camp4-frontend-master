@@ -191,8 +191,8 @@ export default function VerifyEmail() {
         .verify-email-turnstile {
           display: grid;
           justify-items: center;
-          margin-top: 18px;
-          min-height: 8px;
+          margin-top: 0;
+          min-height: 0;
           width: 100%;
         }
 
