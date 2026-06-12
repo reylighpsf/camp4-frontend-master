@@ -9,6 +9,7 @@ import {
   mapCatalogsToMembershipPlans,
 } from "../membership/hooks/authPlans";
 import api from "../../../components/auth/hooks/authApi";
+import { requestTurnstileToken } from "../../../components/auth/hooks/turnstileToken";
 import useTurnstile from "../sign/hooks/useTurnstile";
 
 const paymentMethods = [
@@ -210,17 +211,18 @@ export default function Payment() {
     setError("");
     setCashPending(false);
 
-    if (!turnstileToken) {
-      setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
-      return;
-    }
-
     try {
+      const nextTurnstileToken = turnstileToken || await requestTurnstileToken();
+      if (!nextTurnstileToken) {
+        setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
+        return;
+      }
+
       const response = await api.post("/transactions/create", {
         transactionType: selectedPlan.catalogCode || getTransactionTypeFromPlanId(selectedPlan.id),
         paymentMethod: selectedMethod.paymentMethod,
       }, {
-        headers: { "X-Turnstile-Token": turnstileToken },
+        headers: { "X-Turnstile-Token": nextTurnstileToken },
       });
       const { transaction, paymentUrl } = getTransactionPayload(response.data);
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import api from "../../../../components/auth/hooks/authApi";
+import { requestTurnstileToken } from "../../../../components/auth/hooks/turnstileToken";
 import { useAuth } from "../../../../components/auth/hooks/useAuth";
 import { getCatalogPrice, getUserTierCode } from "../../../auth/membership/hooks/authPlans";
 import useTurnstile from "../../../auth/sign/hooks/useTurnstile";
@@ -136,21 +137,23 @@ export default function TrainerCheckoutPage() {
       setError(`Package ini membutuhkan ${requiredParticipants} email peserta tambahan.`);
       return;
     }
-    if (!turnstileToken) {
-      setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
-      return;
-    }
-
     const paymentTab = paymentMethod === "QRIS" ? openBlankPaymentTab() : null;
     setSubmitting(true);
     try {
+      const nextTurnstileToken = turnstileToken || await requestTurnstileToken();
+      if (!nextTurnstileToken) {
+        setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
+        paymentTab?.close();
+        return;
+      }
+
       const response = await api.post("/transactions/create", {
         paymentMethod,
         transactionType: selectedCatalogCode,
         trainerId: selectedTrainerId,
         participantEmails,
       }, {
-        headers: { "X-Turnstile-Token": turnstileToken },
+        headers: { "X-Turnstile-Token": nextTurnstileToken },
       });
       const { paymentUrl, transaction } = getTransactionPayload(response.data);
       if (paymentMethod === "QRIS" && paymentUrl) {

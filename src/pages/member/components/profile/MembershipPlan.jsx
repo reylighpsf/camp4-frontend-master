@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import MemberIcon from "../../../../components/member/MemberIcon";
 import api from "../../../../components/auth/hooks/authApi";
+import { requestTurnstileToken } from "../../../../components/auth/hooks/turnstileToken";
 import {
   authMembershipPlans,
   getCatalogPrice,
@@ -333,20 +334,22 @@ export default function ProfileMembershipPlanPage() {
   const createMembershipPayment = async () => {
     if (!paymentPlan) return;
 
-    if (!turnstileToken) {
-      setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
-      return;
-    }
-
     const paymentTab = paymentMethod === "QRIS" ? openBlankPaymentTab() : null;
     setPaymentLoading(true);
     setError("");
     try {
+      const nextTurnstileToken = turnstileToken || await requestTurnstileToken();
+      if (!nextTurnstileToken) {
+        setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
+        paymentTab?.close();
+        return;
+      }
+
       const response = await api.post("/transactions/create", {
         paymentMethod,
         transactionType: paymentPlan.catalogCode || getTransactionTypeFromPlanId(paymentPlan.paymentPlanId || paymentPlan.id),
       }, {
-        headers: { "X-Turnstile-Token": turnstileToken },
+        headers: { "X-Turnstile-Token": nextTurnstileToken },
       });
       const paymentUrl = getPaymentUrlFromResponse(response.data);
 

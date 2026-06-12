@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { authApi } from "./hooks/authApi";
 import { AuthContext } from "./hooks/authContextValue";
+import { requestTurnstileToken } from "./hooks/turnstileToken";
 
 const SKIP_ME_PATHS = [
   "/choose-plan",
@@ -73,8 +74,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await authApi.logout();
-    setUser(null);
+    try {
+      const turnstileToken = await requestTurnstileToken();
+      await authApi.logout(turnstileToken);
+    } finally {
+      setUser(null);
+    }
   };
 
   return (
