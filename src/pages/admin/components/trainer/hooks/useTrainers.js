@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "../../../../../components/auth/hooks/authApi";
+import { getResponseList } from "../../../../../utils/responseData";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
@@ -30,8 +31,8 @@ export default function useTrainers() {
     setListError("");
 
     try {
-      const response = await api.get("/trainers");
-      setTrainers(response.data?.data || []);
+      const response = await api.get("/trainers", { params: { page: 1, limit: 100 } });
+      setTrainers(getResponseList(response));
     } catch (err) {
       setListError(getErrorMessage(err, "Gagal memuat data trainer."));
       setTrainers([]);
