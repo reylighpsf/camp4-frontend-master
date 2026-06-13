@@ -25,6 +25,10 @@ export default function useTrainers() {
   const [submitSuccessMessage, setSubmitSuccessMessage] = useState("");
   const [deleteLoadingId, setDeleteLoadingId] = useState("");
   const [deleteError, setDeleteError] = useState("");
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionError, setSessionError] = useState("");
+  const [sessions, setSessions] = useState([]);
+  const [sessionMeta, setSessionMeta] = useState(null);
 
   const fetchTrainers = useCallback(async () => {
     setListLoading(true);
@@ -102,6 +106,28 @@ export default function useTrainers() {
     }
   };
 
+  const fetchTrainerSessions = async (trainerId, params = {}) => {
+    setSessionLoading(true);
+    setSessionError("");
+    setSessions([]);
+    setSessionMeta(null);
+
+    try {
+      const response = await api.get(`/trainers/admin/sessions/${trainerId}`, {
+        params: { page: 1, limit: 100, ...params },
+      });
+      setSessions(getResponseList(response));
+      setSessionMeta(response.data?.meta || null);
+      return { ok: true, data: response.data?.data || [] };
+    } catch (err) {
+      const message = getErrorMessage(err, "Gagal memuat sesi trainer.");
+      setSessionError(message);
+      return { ok: false, error: message };
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
   return {
     trainers,
     listLoading,
@@ -111,7 +137,12 @@ export default function useTrainers() {
     submitSuccessMessage,
     deleteLoadingId,
     deleteError,
+    sessionLoading,
+    sessionError,
+    sessions,
+    sessionMeta,
     fetchTrainers,
+    fetchTrainerSessions,
     createTrainer,
     updateTrainer,
     deleteTrainer,

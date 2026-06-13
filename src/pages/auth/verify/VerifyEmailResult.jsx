@@ -2,17 +2,15 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { AuthFrame } from "../AuthFrame";
 import { authApi } from "../../../components/auth/hooks/authApi";
-import useTurnstile from "../sign/hooks/useTurnstile";
 
 const verificationRequests = new Map();
 
-const getVerificationRequest = (token, turnstileToken) => {
-  const cacheKey = `${token}:${turnstileToken}`;
-  if (!verificationRequests.has(cacheKey)) {
-    verificationRequests.set(cacheKey, authApi.verifyEmail(token, turnstileToken));
+const getVerificationRequest = (token) => {
+  if (!verificationRequests.has(token)) {
+    verificationRequests.set(token, authApi.verifyEmail(token));
   }
 
-  return verificationRequests.get(cacheKey);
+  return verificationRequests.get(token);
 };
 
 export default function VerifyEmailResult() {
@@ -26,12 +24,6 @@ export default function VerifyEmailResult() {
   const [registrationEmail, setRegistrationEmail] = useState(
     () => localStorage.getItem("vocafit-registration-email") || "",
   );
-  const {
-    containerRef: turnstileRef,
-    error: turnstileError,
-    reset: resetTurnstile,
-    token: turnstileToken,
-  } = useTurnstile();
 
   useEffect(() => {
     if (!verificationToken) {
@@ -69,12 +61,6 @@ export default function VerifyEmailResult() {
       return () => clearTimeout(timeoutId);
     }
 
-    if (!turnstileToken) {
-      setStatus("loading");
-      setMessage(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
-      return undefined;
-    }
-
     let isMounted = true;
 
     const verify = async () => {
@@ -82,7 +68,7 @@ export default function VerifyEmailResult() {
       setMessage("");
 
       try {
-        const res = await getVerificationRequest(verificationToken, turnstileToken);
+        const res = await getVerificationRequest(verificationToken);
         if (!isMounted) return;
         const verifiedEmail =
           res.data?.data?.email ||
@@ -103,7 +89,6 @@ export default function VerifyEmailResult() {
         if (!isMounted) return;
 
         verificationRequests.delete(verificationToken);
-        verificationRequests.delete(`${verificationToken}:${turnstileToken}`);
         setStatus("error");
         setMessage(
           err.response?.data?.error ||
@@ -117,9 +102,8 @@ export default function VerifyEmailResult() {
 
     return () => {
       isMounted = false;
-      resetTurnstile();
     };
-  }, [verificationToken, queryString, resetTurnstile, turnstileError, turnstileToken]);
+  }, [verificationToken, queryString]);
 
   const statusLabel = {
     loading: "Memverifikasi...",
@@ -399,13 +383,7 @@ export default function VerifyEmailResult() {
         )}
 
         {status === "loading" && (
-          <>
-            <div className="verify-result-turnstile">
-              <div ref={turnstileRef} />
-              {turnstileError && <span>{turnstileError}</span>}
-            </div>
-            <span className={`verify-result-status ${status}`}>{statusLabel}</span>
-          </>
+          <span className={`verify-result-status ${status}`}>{statusLabel}</span>
         )}
 
         {status === "error" && (

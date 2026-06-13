@@ -30,16 +30,15 @@ export const authApi = {
       ? api.post("/auth/register/google", data, {
           headers: {
             "Content-Type": "multipart/form-data",
-            ...(turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {}),
           },
         })
-      : api.post("/auth/register/google", data, withTurnstile(turnstileToken)),
-  loginGoogle: (data, turnstileToken = "") => api.post("/auth/login/google", data, withTurnstile(turnstileToken)),
+      : api.post("/auth/register/google", data),
+  loginGoogle: (data) => api.post("/auth/login/google", data),
   resendVerificationEmail: (data, turnstileToken = "") =>
     api.post("/auth/register/resend", data, withTurnstile(turnstileToken)),
-  verifyEmail: (token, turnstileToken = "") => api.get(`/auth/verify-email/${token}`, withTurnstile(turnstileToken)),
+  verifyEmail: (token) => api.get(`/auth/verify-email/${token}`),
   me: () => api.get("/users/me"),
-  logout: (turnstileToken = "") => api.post("/auth/logout", null, withTurnstile(turnstileToken)),
+  logout: () => api.post("/auth/logout"),
   forgotPassword: (data, turnstileToken = "") => api.post("/auth/forgot-password", data, withTurnstile(turnstileToken)),
   resendForgotPassword: (data, turnstileToken = "") =>
     api.post("/auth/forgot-password/resend", data, withTurnstile(turnstileToken)),

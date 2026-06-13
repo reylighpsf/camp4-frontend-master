@@ -404,6 +404,14 @@ const normalizeIndonesianPhone = (value) => {
   return digits ? `+62${digits}` : "";
 };
 
+const formatDateTime = (value) => {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+};
+
 const validateForm = (values) => {
   const errors = {};
   if (values.name.trim().length < 2) errors.name = "Nama trainer minimal 2 karakter.";
@@ -426,6 +434,7 @@ export default function TrainerPage() {
   const [errors, setErrors] = useState({});
   const [image, setImage] = useState(null);
   const [imageError, setImageError] = useState("");
+  const [sessionTrainer, setSessionTrainer] = useState(null);
 
   const previewUrl = useMemo(() => {
     if (!image) return gymImage;
@@ -519,6 +528,11 @@ export default function TrainerPage() {
     if (result.ok) trainers.fetchTrainers();
   };
 
+  const handleOpenSessions = async (trainer) => {
+    setSessionTrainer(trainer);
+    await trainers.fetchTrainerSessions(trainer.id);
+  };
+
   return (
     <>
       <AdminLayout title="Trainer" subtitle="Kelola trainer dan jadwal sesi.">
@@ -577,6 +591,13 @@ export default function TrainerPage() {
                     <td>{item.specialties || "-"}</td>
                     <td>
                       <div className="trainer-row-actions">
+                        <button
+                          className="trainer-row-action edit"
+                          onClick={() => handleOpenSessions(item)}
+                          type="button"
+                        >
+                          Detail
+                        </button>
                         <button
                           className="trainer-row-action edit"
                           onClick={() => handleOpenEditForm(item)}
@@ -710,6 +731,55 @@ export default function TrainerPage() {
                   {trainers.submitLoading ? "Menyimpan..." : editingTrainer ? "Simpan Perubahan" : "Simpan Trainer"}
               </button>
             </div>
+          </section>
+        </div>
+      )}
+      {sessionTrainer && (
+        <div className="trainer-modal-backdrop">
+          <section className="trainer-modal" role="dialog" aria-modal="true">
+            <div className="trainer-modal-head">
+              <div>
+                <h2>Session Trainer</h2>
+                <p className="trainer-muted">
+                  {sessionTrainer.name} - daftar member yang booking trainer ini.
+                </p>
+              </div>
+              <button className="trainer-close-btn" onClick={() => setSessionTrainer(null)} type="button">x</button>
+            </div>
+
+            {trainers.sessionLoading && <p className="trainer-status">Memuat sesi trainer...</p>}
+            {!trainers.sessionLoading && trainers.sessionError && (
+              <p className="trainer-status error">{trainers.sessionError}</p>
+            )}
+            {!trainers.sessionLoading && !trainers.sessionError && trainers.sessions.length === 0 && (
+              <p className="trainer-status">Belum ada booking untuk trainer ini.</p>
+            )}
+            {!trainers.sessionLoading && !trainers.sessionError && trainers.sessions.length > 0 && (
+              <div className="trainer-table-wrap">
+                <table className="trainer-table">
+                  <thead>
+                    <tr>
+                      <th>Waktu Mulai</th>
+                      <th>Waktu Selesai</th>
+                      <th>Member</th>
+                      <th>Package</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trainers.sessions.map((session) => (
+                      <tr key={session.id}>
+                        <td>{formatDateTime(session.start_time || session.startTime)}</td>
+                        <td>{formatDateTime(session.end_time || session.endTime)}</td>
+                        <td>{session.booked_by_name || session.member_name || session.user_name || "-"}</td>
+                        <td>{session.catalog_name || session.package_name || session.catalog_code || "-"}</td>
+                        <td>{session.status || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         </div>
       )}
