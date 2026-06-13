@@ -47,7 +47,6 @@ const toDatetimeLocalValue = (date) => {
 };
 
 const toDateInputValue = (date) => toDatetimeLocalValue(date).slice(0, 10);
-const toTimeInputValue = (date) => toDatetimeLocalValue(date).slice(11, 16);
 const combineDateTime = (dateValue, timeValue) => `${dateValue}T${timeValue}`;
 const getDateKey = (value) => toDateInputValue(new Date(value));
 const monthLabel = (date) => new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(date);
@@ -1348,6 +1347,26 @@ export default function TrainerBookingPage() {
             </div>
 
             {detailLoading && <div className="trainer-status">Memuat detail package...</div>}
+          </section>
+
+          <section className="member-schedule-card">
+            <div className="session-head">
+              <h2>Trainer Schedule</h2>
+            </div>
+            <div className="member-schedule-list">
+              {scheduleLoading && <div className="trainer-status">Memuat schedule...</div>}
+              {!scheduleLoading && memberScheduleItems.length === 0 && (
+                <div className="trainer-status">Belum ada jadwal booking trainer.</div>
+              )}
+              {!scheduleLoading && memberScheduleItems.map((session) => (
+                <article className="member-schedule-item" key={session.id}>
+                  <strong>{formatDateTime(session.start_time)}</strong>
+                  <span>{session.packageName}</span>
+                  <span>Trainer: {session.trainerName || "-"}</span>
+                  <span className="member-schedule-status">{session.status}</span>
+                </article>
+              ))}
+            </div>
           </section>
         </aside>
       </section>

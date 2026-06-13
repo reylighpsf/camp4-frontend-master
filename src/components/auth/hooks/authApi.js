@@ -25,7 +25,7 @@ export const authApi = {
       },
     }),
   signin: (data, turnstileToken = "") => api.post("/auth/login", data, withTurnstile(turnstileToken)),
-  registerGoogle: (data, turnstileToken = "") =>
+  registerGoogle: (data) =>
     data instanceof FormData
       ? api.post("/auth/register/google", data, {
           headers: {
