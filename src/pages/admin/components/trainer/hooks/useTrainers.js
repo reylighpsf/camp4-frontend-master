@@ -128,6 +128,19 @@ export default function useTrainers() {
     }
   };
 
+  const cancelTrainerSession = async (sessionId, reason = "Cancelled by admin") => {
+    setSessionError("");
+
+    try {
+      const response = await api.post(`/trainers/sessions/${sessionId}/cancel`, { reason });
+      return { ok: true, data: response.data?.data };
+    } catch (err) {
+      const message = getErrorMessage(err, "Gagal cancel sesi trainer.");
+      setSessionError(message);
+      return { ok: false, error: message };
+    }
+  };
+
   return {
     trainers,
     listLoading,
@@ -143,6 +156,7 @@ export default function useTrainers() {
     sessionMeta,
     fetchTrainers,
     fetchTrainerSessions,
+    cancelTrainerSession,
     createTrainer,
     updateTrainer,
     deleteTrainer,

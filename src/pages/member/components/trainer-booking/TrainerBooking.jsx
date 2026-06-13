@@ -46,6 +46,48 @@ const toDatetimeLocalValue = (date) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
+const toDateInputValue = (date) => toDatetimeLocalValue(date).slice(0, 10);
+const toTimeInputValue = (date) => toDatetimeLocalValue(date).slice(11, 16);
+const combineDateTime = (dateValue, timeValue) => `${dateValue}T${timeValue}`;
+const getDateKey = (value) => toDateInputValue(new Date(value));
+const monthLabel = (date) => new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(date);
+const normalizeSessionStartTime = (value) => {
+  const [datePart, rawTimePart = ""] = String(value || "").split("T");
+  if (!datePart) return "";
+  const [rawHour = "0", rawMinute = "0"] = rawTimePart.split(":");
+  const hour = Math.min(Math.max(Number(rawHour) || 6, 6), 18);
+  const minute = Number(rawMinute) >= 30 ? 30 : 0;
+  const [year, month, day] = datePart.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day, hour - 7, minute, 0, 0)).toISOString();
+};
+
+const timeOptions = Array.from({ length: 25 }, (_, index) => {
+  const totalMinutes = 6 * 60 + index * 30;
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+});
+
+const canMemberCancelSession = (startTime) => {
+  if (!startTime) return false;
+  const today = new Date();
+  const sessionDate = new Date(startTime);
+  today.setHours(0, 0, 0, 0);
+  sessionDate.setHours(0, 0, 0, 0);
+  const daysBeforeSession = Math.ceil((sessionDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+  return daysBeforeSession >= 2;
+};
+
+const getCalendarDays = (monthDate) => {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const firstDate = new Date(year, month, 1);
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  const blanks = Array.from({ length: firstDate.getDay() }, () => null);
+  const days = Array.from({ length: totalDays }, (_, index) => new Date(year, month, index + 1));
+  return [...blanks, ...days];
+};
+
 const SearchIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8" />
@@ -65,12 +107,15 @@ export default function TrainerBookingPage() {
   const [trainers, setTrainers] = useState([]);
   const [trainerCatalogs, setTrainerCatalogs] = useState([]);
   const [packages, setPackages] = useState([]);
+  const [packageSchedules, setPackageSchedules] = useState([]);
   const [selectedTrainer, setSelectedTrainer] = useState(null);
   const [scheduleTrainer, setScheduleTrainer] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [packageLoading, setPackageLoading] = useState(true);
+  const [scheduleLoading, setScheduleLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
   const [error, setError] = useState("");
@@ -82,6 +127,7 @@ export default function TrainerBookingPage() {
     if (next.getMinutes() === 0) next.setHours(next.getHours() + 1);
     return toDatetimeLocalValue(next);
   });
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
 
   const fetchTrainers = useCallback(async () => {
     setLoading(true);
@@ -108,25 +154,41 @@ export default function TrainerBookingPage() {
 
   const fetchPackages = useCallback(async () => {
     setPackageLoading(true);
+    setScheduleLoading(true);
     setPackageError("");
     try {
       const response = await api.get("/trainers/packages");
-      setPackages(response.data?.data || []);
+      const nextPackages = response.data?.data || [];
+      setPackages(nextPackages);
+
+      const detailResults = await Promise.allSettled(
+        nextPackages.map((pkg) => api.get(`/trainers/packages/${pkg.id}`)),
+      );
+      setPackageSchedules(
+        detailResults
+          .filter((result) => result.status === "fulfilled")
+          .map((result) => result.value.data?.data)
+          .filter(Boolean),
+      );
     } catch (err) {
       setPackageError(getErrorMessage(err, "Gagal memuat paket trainer."));
       setPackages([]);
+      setPackageSchedules([]);
     } finally {
       setPackageLoading(false);
+      setScheduleLoading(false);
     }
   }, []);
 
-  const fetchPackageDetail = useCallback(async (packageId) => {
+  const fetchPackageDetail = useCallback(async (packageId, { openModal = false } = {}) => {
     setDetailLoading(true);
     setPackageError("");
     setActionMessage("");
     try {
       const response = await api.get(`/trainers/packages/${packageId}`);
-      setSelectedPackage(response.data?.data || null);
+      const detail = response.data?.data || null;
+      setSelectedPackage(detail);
+      if (openModal) setIsPackageModalOpen(true);
     } catch (err) {
       setPackageError(getErrorMessage(err, "Gagal memuat detail paket trainer."));
     } finally {
@@ -154,11 +216,12 @@ export default function TrainerBookingPage() {
     setActionMessage("");
     try {
       await api.post(`/trainers/packages/${selectedPackage.id}/sessions`, {
-        startTime: new Date(sessionStart).toISOString(),
+        startTime: normalizeSessionStartTime(sessionStart),
       });
       setActionMessage("Sesi trainer berhasil dibooking.");
       await fetchPackageDetail(selectedPackage.id);
       await fetchPackages();
+      setCalendarMonth(new Date(sessionStart));
     } catch (err) {
       setPackageError(getErrorMessage(err, "Gagal booking sesi trainer."));
     } finally {
@@ -202,13 +265,81 @@ export default function TrainerBookingPage() {
     });
   }, [query, trainers]);
 
+  const selectedDateValue = sessionStart.slice(0, 10);
+  const selectedTimeValue = sessionStart.slice(11, 16);
+  const memberScheduleItems = useMemo(() => {
+    return packageSchedules
+      .flatMap((pkg) =>
+        (pkg.sessions || []).map((session) => ({
+          ...session,
+          packageName: pkg.catalog_name || pkg.catalog_code,
+          trainerName: pkg.trainer_name,
+        })),
+      )
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+  }, [packageSchedules]);
+  const bookedDateKeys = useMemo(() => {
+    return new Set(
+      (selectedPackage?.sessions || [])
+        .filter((session) => String(session.status || "").toUpperCase() === "BOOKED")
+        .map((session) => getDateKey(session.start_time)),
+    );
+  }, [selectedPackage]);
+  const calendarDays = useMemo(() => getCalendarDays(calendarMonth), [calendarMonth]);
+  const closePackageModal = () => {
+    if (actionLoading === "book-session") return;
+    setIsPackageModalOpen(false);
+  };
+  const renderScheduleCalendar = (compact = false) => (
+    <section className={`package-calendar-card ${compact ? "compact" : ""}`}>
+      <div className="package-calendar-top">
+        <h3>{monthLabel(calendarMonth)}</h3>
+        <div className="package-calendar-nav">
+          <button onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))} type="button">‹</button>
+          <button onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))} type="button">›</button>
+        </div>
+      </div>
+      <div className="package-calendar-week">
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <span key={day}>{day}</span>)}
+      </div>
+      <div className="package-calendar-grid">
+        {calendarDays.map((date, index) => {
+          if (!date) return <span className="package-calendar-empty" key={`empty-${index}`} />;
+          const dateValue = toDateInputValue(date);
+          const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+          const isBooked = bookedDateKeys.has(dateValue);
+          const isSelected = dateValue === selectedDateValue;
+          return (
+            <button
+              className={`package-calendar-day ${isSelected ? "selected" : ""} ${isBooked ? "booked" : ""}`}
+              disabled={isPast}
+              key={dateValue}
+              onClick={() => {
+                setSessionStart(combineDateTime(dateValue, selectedTimeValue));
+                setCalendarMonth(date);
+              }}
+              type="button"
+            >
+              {date.getDate()}
+            </button>
+          );
+        })}
+      </div>
+      <div className="package-calendar-legend">
+        <span><i className="available" /> Available</span>
+        <span><i className="booked" /> Booked</span>
+        <span><i className="unavailable" /> Unavailable</span>
+      </div>
+    </section>
+  );
+
   return (
     <MemberLayout active="Trainer Booking">
       <style>{`
         .trainer-booking-page {
           display: grid;
           gap: 28px;
-          grid-template-columns: minmax(0, 1fr) 320px;
+          grid-template-columns: minmax(0, 1fr) 400px;
         }
 
         .trainer-booking-title {
@@ -416,9 +547,15 @@ export default function TrainerBookingPage() {
 
         .session-panel {
           align-self: start;
+          display: grid;
+          gap: 18px;
+          margin-top: 82px;
+        }
+
+        .package-panel-card,
+        .member-schedule-card {
           background: #f8f8fb;
           border-radius: 12px;
-          margin-top: 82px;
           padding: 22px;
         }
 
@@ -555,6 +692,52 @@ export default function TrainerBookingPage() {
         .package-card.active {
           border-color: #ff7a00;
           box-shadow: 0 0 0 2px rgba(255, 122, 0, .16);
+        }
+
+        .inline-schedule-panel {
+          display: grid;
+          gap: 14px;
+          margin-top: 16px;
+        }
+
+        .member-schedule-list {
+          display: grid;
+          gap: 12px;
+        }
+
+        .member-schedule-item {
+          background: #ffffff;
+          border: 1px solid #eceef3;
+          border-radius: 8px;
+          display: grid;
+          gap: 6px;
+          padding: 13px;
+        }
+
+        .member-schedule-item strong {
+          color: #0b0871;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .member-schedule-item span {
+          color: #292782;
+          font-size: 12px;
+          font-weight: 800;
+          line-height: 1.35;
+        }
+
+        .member-schedule-status {
+          align-self: start;
+          background: #edf4ff;
+          border-radius: 999px;
+          color: #0b0871;
+          display: inline-flex;
+          font-size: 10px;
+          font-weight: 900;
+          justify-self: start;
+          padding: 4px 9px;
+          text-transform: uppercase;
         }
 
         .session-book-form {
@@ -750,8 +933,285 @@ export default function TrainerBookingPage() {
           height: 40px;
         }
 
+        .package-schedule-backdrop {
+          align-items: flex-start;
+          overflow-y: auto;
+        }
+
+        .package-schedule-modal {
+          background: #ffffff;
+          border-radius: 12px;
+          box-shadow: 0 24px 70px rgba(4, 2, 64, .28);
+          color: #0b0871;
+          margin: 18px 0;
+          overflow: hidden;
+          width: min(1180px, 100%);
+        }
+
+        .package-schedule-head {
+          align-items: center;
+          border-bottom: 1px solid #dfe1ee;
+          display: flex;
+          justify-content: space-between;
+          min-height: 62px;
+          padding: 0 26px;
+        }
+
+        .package-schedule-head h2 {
+          font-size: 18px;
+          font-weight: 900;
+          margin: 0;
+        }
+
+        .package-schedule-body {
+          background: #f7f8fc;
+          display: grid;
+          align-items: start;
+          gap: 18px;
+          grid-template-columns: minmax(0, 1fr) 320px;
+          max-height: calc(100vh - 120px);
+          overflow-y: auto;
+          padding: 24px;
+        }
+
+        .package-calendar-card,
+        .package-summary-card,
+        .package-schedule-list {
+          background: #ffffff;
+          border: 1px solid #e4e6f0;
+          border-radius: 10px;
+          padding: 18px;
+        }
+
+        .package-calendar-card {
+          justify-self: center;
+          width: min(100%, 620px);
+        }
+
+        .package-calendar-top {
+          align-items: center;
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 16px;
+          margin-left: auto;
+          margin-right: auto;
+          max-width: 520px;
+        }
+
+        .package-calendar-top h3,
+        .package-summary-card h3,
+        .package-schedule-list h3 {
+          color: #0b0871;
+          font-size: 16px;
+          font-weight: 900;
+          margin: 0;
+        }
+
+        .package-calendar-nav {
+          display: inline-flex;
+          gap: 8px;
+        }
+
+        .package-calendar-nav button {
+          background: #f3f4fb;
+          border: 1px solid #d8dbe6;
+          border-radius: 8px;
+          color: #0b0871;
+          cursor: pointer;
+          font: inherit;
+          font-size: 16px;
+          font-weight: 900;
+          height: 36px;
+          width: 36px;
+        }
+
+        .package-calendar-week,
+        .package-calendar-grid {
+          display: grid;
+          gap: 8px;
+          grid-template-columns: repeat(7, minmax(0, 1fr));
+          margin-left: auto;
+          margin-right: auto;
+          max-width: 520px;
+        }
+
+        .package-calendar-week {
+          color: #292782;
+          font-size: 12px;
+          font-weight: 900;
+          margin-bottom: 9px;
+          text-align: center;
+        }
+
+        .package-calendar-day,
+        .package-calendar-empty {
+          border-radius: 9px;
+          height: 46px;
+          min-height: 0;
+        }
+
+        .package-calendar-day {
+          background: #dcfae7;
+          border: 1px solid #24c870;
+          color: #06122d;
+          cursor: pointer;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .package-calendar-day.booked {
+          background: #ffe6e8;
+          border-color: #ff5365;
+        }
+
+        .package-calendar-day.selected {
+          box-shadow: 0 0 0 3px #0b0871 inset;
+          outline: 2px solid rgba(255, 122, 0, .22);
+        }
+
+        .package-calendar-day:disabled {
+          background: #d7d9e3;
+          border-color: #d7d9e3;
+          color: #7c8198;
+          cursor: not-allowed;
+        }
+
+        .package-calendar-legend {
+          align-items: center;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          justify-content: center;
+          margin-left: auto;
+          margin-right: auto;
+          margin-top: 15px;
+          max-width: 520px;
+        }
+
+        .package-calendar-legend span {
+          align-items: center;
+          color: #292782;
+          display: inline-flex;
+          font-size: 11px;
+          font-weight: 800;
+          gap: 7px;
+        }
+
+        .package-calendar-legend i {
+          border-radius: 999px;
+          height: 9px;
+          width: 9px;
+        }
+
+        .package-calendar-legend .available { background: #24c870; }
+        .package-calendar-legend .booked { background: #ff5365; }
+        .package-calendar-legend .unavailable { background: #818598; }
+
+        .package-book-side {
+          display: grid;
+          gap: 18px;
+          align-content: start;
+        }
+
+        .package-summary-card dl {
+          display: grid;
+          gap: 14px;
+          margin: 0;
+        }
+
+        .package-summary-card dl div {
+          display: grid;
+          gap: 8px;
+          grid-template-columns: 110px minmax(0, 1fr);
+        }
+
+        .package-summary-card dt {
+          color: #6f72a6;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .package-summary-card dd {
+          color: #0b0871;
+          font-size: 13px;
+          font-weight: 900;
+          line-height: 1.35;
+          margin: 0;
+        }
+
+        .package-summary-card input,
+        .package-summary-card select {
+          border: 1px solid #d8dbe6;
+          border-radius: 9px;
+          color: #0b0871;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 900;
+          min-height: 46px;
+          margin-top: 12px;
+          padding: 0 14px;
+          width: 100%;
+        }
+
+        .package-summary-card p {
+          color: #6f72a6;
+          font-size: 12px;
+          font-weight: 800;
+          line-height: 1.35;
+          margin: 12px 0 16px;
+        }
+
+        .package-book-button {
+          background: #0b0871;
+          border: 0;
+          border-radius: 9px;
+          color: #ffffff;
+          cursor: pointer;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 900;
+          min-height: 46px;
+          width: 100%;
+        }
+
+        .package-book-button:disabled {
+          cursor: not-allowed;
+          opacity: .62;
+        }
+
+        .package-schedule-main {
+          display: grid;
+          gap: 18px;
+          grid-template-columns: minmax(420px, 1fr) minmax(270px, .72fr);
+          min-width: 0;
+        }
+
+        .package-schedule-list {
+          align-self: stretch;
+          display: grid;
+          gap: 12px;
+          max-height: 440px;
+          overflow-y: auto;
+        }
+
+        .package-schedule-list .session-item {
+          display: grid;
+          gap: 6px;
+          padding: 12px;
+        }
+
         @media (max-width: 1120px) {
           .trainer-booking-page {
+            grid-template-columns: 1fr;
+          }
+
+          .package-schedule-body {
+            grid-template-columns: 1fr;
+            padding: 18px;
+          }
+
+          .package-schedule-main {
             grid-template-columns: 1fr;
           }
 
@@ -861,84 +1321,119 @@ export default function TrainerBookingPage() {
         </div>
 
         <aside className="session-panel" id="sessions">
-          <div className="session-head">
-            <h2 id="my-trainer-packages">My Trainer Packages</h2>
-            <a href="#sessions" onClick={(event) => { event.preventDefault(); fetchPackages(); }}>Refresh</a>
-          </div>
-          {packageError && <p className="trainer-message error">{packageError}</p>}
-          {actionMessage && <p className="trainer-message success">{actionMessage}</p>}
+          <section className="package-panel-card">
+            <div className="session-head">
+              <h2 id="my-trainer-packages">My Trainer Packages</h2>
+              <a href="#sessions" onClick={(event) => { event.preventDefault(); fetchPackages(); }}>Refresh</a>
+            </div>
+            {packageError && <p className="trainer-message error">{packageError}</p>}
+            {actionMessage && <p className="trainer-message success">{actionMessage}</p>}
 
-          <div className="package-list">
-            {packageLoading && <div className="trainer-status">Memuat paket trainer...</div>}
-            {!packageLoading && packages.length === 0 && <div className="trainer-status">Belum ada paket trainer aktif.</div>}
-            {!packageLoading && packages.map((pkg) => (
-              <button
-                className={`package-card ${selectedPackage?.id === pkg.id ? "active" : ""}`}
-                key={pkg.id}
-                onClick={() => fetchPackageDetail(pkg.id)}
-                type="button"
-              >
-                <strong>{pkg.catalog_name || pkg.catalog_code}</strong>
-                <span>Trainer: {pkg.trainer_name}</span>
-                <span>Sisa sesi: {pkg.session_remaining}/{pkg.session_total}</span>
-                <span>Status: {pkg.status}</span>
+            <div className="package-list">
+              {packageLoading && <div className="trainer-status">Memuat paket trainer...</div>}
+              {!packageLoading && packages.length === 0 && <div className="trainer-status">Belum ada paket trainer aktif.</div>}
+              {!packageLoading && packages.map((pkg) => (
+                <button
+                  className={`package-card ${selectedPackage?.id === pkg.id ? "active" : ""}`}
+                  key={pkg.id}
+                  onClick={() => fetchPackageDetail(pkg.id, { openModal: true })}
+                  type="button"
+                >
+                  <strong>{pkg.catalog_name || pkg.catalog_code}</strong>
+                  <span>Trainer: {pkg.trainer_name}</span>
+                  <span>Sisa sesi: {pkg.session_remaining}/{pkg.session_total}</span>
+                  <span>Status: {pkg.status}</span>
+                </button>
+              ))}
+            </div>
+
+            {detailLoading && <div className="trainer-status">Memuat detail package...</div>}
+          </section>
+        </aside>
+      </section>
+
+      {isPackageModalOpen && selectedPackage && (
+        <div className="trainer-detail-modal package-schedule-backdrop">
+          <article className="package-schedule-modal" role="dialog" aria-modal="true">
+            <div className="package-schedule-head">
+              <h2>Schedule & Book Session</h2>
+              <button className="trainer-detail-close" onClick={closePackageModal} type="button" aria-label="Close schedule">
+                <CloseIcon />
               </button>
-            ))}
-          </div>
+            </div>
 
-          {detailLoading && <div className="trainer-status">Memuat detail package...</div>}
-          {selectedPackage && !detailLoading && (
-            <div className="package-detail">
-              <article className="package-detail-card">
-                <strong>{selectedPackage.catalog_name || selectedPackage.catalog_code}</strong>
-                <span>Trainer: {selectedPackage.trainer_name}</span>
-                <span>Berakhir: {formatDateTime(selectedPackage.expires_at)}</span>
-                <span>Sisa sesi: {selectedPackage.session_remaining}/{selectedPackage.session_total}</span>
+            <div className="package-schedule-body">
+              <div className="package-schedule-main">
+                {renderScheduleCalendar()}
 
-                <div className="session-book-form">
+                <section className="package-schedule-list">
+                  <h3>Schedule</h3>
+                  {(selectedPackage.sessions || []).length === 0 && <div className="trainer-status">Belum ada jadwal sesi.</div>}
+                  {(selectedPackage.sessions || []).map((session) => {
+                    const canCancel = canMemberCancelSession(session.start_time);
+                    return (
+                      <article className="session-item" key={session.id}>
+                        <strong>{formatDateTime(session.start_time)}</strong>
+                        <span>Status: {session.status}</span>
+                        <span>Booked by: {session.booked_by_name || "-"}</span>
+                        {session.status === "BOOKED" && canCancel && (
+                          <button
+                            className="trainer-action secondary"
+                            disabled={actionLoading === `cancel-${session.id}`}
+                            onClick={() => cancelSession(session.id)}
+                            type="button"
+                          >
+                            {actionLoading === `cancel-${session.id}` ? "Cancel..." : "Cancel Session"}
+                          </button>
+                        )}
+                        {session.status === "BOOKED" && !canCancel && (
+                          <span>Cancel hanya bisa sampai H-2. Hubungi admin untuk pembatalan H-1 atau hari H.</span>
+                        )}
+                      </article>
+                    );
+                  })}
+                </section>
+              </div>
+
+              <aside className="package-book-side">
+                <section className="package-summary-card">
+                  <dl>
+                    <div><dt>Package</dt><dd>{selectedPackage.catalog_name || selectedPackage.catalog_code}</dd></div>
+                    <div><dt>Trainer</dt><dd>{selectedPackage.trainer_name}</dd></div>
+                    <div><dt>Expired</dt><dd>{formatDateTime(selectedPackage.expires_at)}</dd></div>
+                    <div><dt>Sisa Sesi</dt><dd>{selectedPackage.session_remaining}/{selectedPackage.session_total}</dd></div>
+                    <div><dt>Status</dt><dd>{selectedPackage.status}</dd></div>
+                  </dl>
+                </section>
+                <section className="package-summary-card">
+                  <h3>Book Session</h3>
                   <input
-                    min={toDatetimeLocalValue(new Date())}
-                    onChange={(event) => setSessionStart(event.target.value)}
-                    type="datetime-local"
-                    value={sessionStart}
+                    min={toDateInputValue(new Date())}
+                    onChange={(event) => setSessionStart(combineDateTime(event.target.value, selectedTimeValue))}
+                    type="date"
+                    value={selectedDateValue}
                   />
+                  <select
+                    onChange={(event) => setSessionStart(combineDateTime(selectedDateValue, event.target.value))}
+                    value={selectedTimeValue}
+                  >
+                    {timeOptions.map((time) => <option key={time} value={time}>{time}</option>)}
+                  </select>
+                  <p>Jam mulai sesi tersedia 06:00-18:00, termasuk sesi 18:00-19:00, interval 30 menit.</p>
                   <button
-                    className="trainer-action primary"
+                    className="package-book-button"
                     disabled={actionLoading === "book-session" || selectedPackage.status !== "ACTIVE"}
                     onClick={bookSession}
                     type="button"
                   >
                     {actionLoading === "book-session" ? "Booking..." : "Book Session"}
                   </button>
-                </div>
-              </article>
-
-              <div className="session-list">
-                {(selectedPackage.sessions || []).length === 0 && (
-                  <div className="trainer-status">Belum ada jadwal sesi.</div>
-                )}
-                {(selectedPackage.sessions || []).map((session) => (
-                  <article className="session-item" key={session.id}>
-                    <strong>{formatDateTime(session.start_time)}</strong>
-                    <span>Status: {session.status}</span>
-                    <span>Booked by: {session.booked_by_name || "-"}</span>
-                    {session.status === "BOOKED" && (
-                      <button
-                        className="trainer-action secondary"
-                        disabled={actionLoading === `cancel-${session.id}`}
-                        onClick={() => cancelSession(session.id)}
-                        type="button"
-                      >
-                        {actionLoading === `cancel-${session.id}` ? "Cancel..." : "Cancel Session"}
-                      </button>
-                    )}
-                  </article>
-                ))}
-              </div>
+                </section>
+              </aside>
             </div>
-          )}
-        </aside>
-      </section>
+          </article>
+        </div>
+      )}
 
       {selectedTrainer && (
         <div className="trainer-detail-modal">

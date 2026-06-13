@@ -72,6 +72,206 @@ const trainerStyles = `
     overflow-x: auto;
   }
 
+  .trainer-session-section {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .trainer-session-section h3 {
+    color: #080478;
+    font-size: 18px;
+    font-weight: 900;
+    margin: 0;
+  }
+
+  .trainer-session-section .trainer-table {
+    min-width: 780px;
+  }
+
+  .trainer-session-calendar-layout {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(360px, 1fr) minmax(280px, 0.75fr);
+  }
+
+  .trainer-session-calendar,
+  .trainer-session-detail {
+    background: #f7f8fc;
+    border: 1px solid #e1e4f0;
+    border-radius: 12px;
+    padding: 18px;
+  }
+
+  .trainer-calendar-head {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .trainer-calendar-head h3 {
+    color: #080478;
+    font-size: 18px;
+    font-weight: 900;
+    margin: 0;
+  }
+
+  .trainer-calendar-nav {
+    display: flex;
+    gap: 8px;
+  }
+
+  .trainer-calendar-nav button {
+    background: #fff;
+    border: 1px solid #d7dced;
+    border-radius: 8px;
+    color: #080478;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 900;
+    height: 34px;
+    width: 38px;
+  }
+
+  .trainer-calendar-weekdays,
+  .trainer-calendar-grid {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .trainer-calendar-weekdays {
+    color: #565c7c;
+    font-size: 12px;
+    font-weight: 900;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .trainer-calendar-day {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e1e4f0;
+    border-radius: 10px;
+    color: #080478;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 900;
+    gap: 6px;
+    justify-content: center;
+    min-height: 58px;
+    padding: 8px 4px;
+  }
+
+  .trainer-calendar-day.outside {
+    color: #a3a8bd;
+    opacity: .55;
+  }
+
+  .trainer-calendar-day.has-session {
+    border-color: #ff7314;
+  }
+
+  .trainer-calendar-day.selected {
+    background: #080478;
+    border-color: #080478;
+    color: #fff;
+  }
+
+  .trainer-day-badges {
+    display: flex;
+    gap: 4px;
+  }
+
+  .trainer-day-badge {
+    border-radius: 999px;
+    height: 7px;
+    width: 7px;
+  }
+
+  .trainer-day-badge.booked {
+    background: #16a34a;
+  }
+
+  .trainer-day-badge.cancelled {
+    background: #dc2626;
+  }
+
+  .trainer-detail-title {
+    color: #080478;
+    font-size: 18px;
+    font-weight: 900;
+    margin: 0 0 14px;
+  }
+
+  .trainer-session-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .trainer-session-card {
+    background: #fff;
+    border: 1px solid #e1e4f0;
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .trainer-session-card strong {
+    color: #080478;
+    display: block;
+    font-size: 13px;
+    margin-bottom: 5px;
+  }
+
+  .trainer-session-card span {
+    color: #4b5563;
+    display: block;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .trainer-session-label {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 11px;
+    font-weight: 900;
+    margin-bottom: 8px;
+    padding: 4px 8px;
+  }
+
+  .trainer-session-label.booked {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .trainer-session-label.cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .trainer-session-cancel {
+    background: #fff;
+    border: 1px solid #dc2626;
+    border-radius: 999px;
+    color: #dc2626;
+    cursor: pointer;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 900;
+    margin-top: 10px;
+    min-height: 30px;
+    padding: 0 12px;
+  }
+
+  .trainer-session-cancel:disabled {
+    cursor: not-allowed;
+    opacity: .62;
+  }
+
   .trainer-table {
     border-collapse: collapse;
     min-width: 1120px;
@@ -383,6 +583,10 @@ const trainerStyles = `
     .trainer-form-grid {
       grid-template-columns: 1fr;
     }
+
+    .trainer-session-calendar-layout {
+      grid-template-columns: 1fr;
+    }
   }
 `;
 
@@ -412,6 +616,48 @@ const formatDateTime = (value) => {
   }).format(new Date(value));
 };
 
+const formatTime = (value) => {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+};
+
+const formatDateKey = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const formatReadableDate = (dateKey) => {
+  if (!dateKey) return "Pilih tanggal";
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "full",
+  }).format(new Date(`${dateKey}T00:00:00`));
+};
+
+const buildCalendarDays = (monthDate) => {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay();
+  const startDate = new Date(year, month, 1 - startOffset);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + index);
+    return {
+      date,
+      key: formatDateKey(date),
+      isCurrentMonth: date.getMonth() === month,
+    };
+  });
+};
+
 const validateForm = (values) => {
   const errors = {};
   if (values.name.trim().length < 2) errors.name = "Nama trainer minimal 2 karakter.";
@@ -435,6 +681,8 @@ export default function TrainerPage() {
   const [image, setImage] = useState(null);
   const [imageError, setImageError] = useState("");
   const [sessionTrainer, setSessionTrainer] = useState(null);
+  const [sessionCalendarMonth, setSessionCalendarMonth] = useState(() => new Date());
+  const [selectedSessionDate, setSelectedSessionDate] = useState(formatDateKey(new Date()));
 
   const previewUrl = useMemo(() => {
     if (!image) return gymImage;
@@ -442,6 +690,23 @@ export default function TrainerPage() {
   }, [image]);
 
   const displayedPreviewUrl = image ? previewUrl : editingTrainer?.image_url || gymImage;
+  const sessionsByDate = useMemo(() => (
+    trainers.sessions.reduce((grouped, session) => {
+      const key = formatDateKey(session.start_time || session.startTime);
+      if (!key) return grouped;
+      return {
+        ...grouped,
+        [key]: [...(grouped[key] || []), session],
+      };
+    }, {})
+  ), [trainers.sessions]);
+  const calendarDays = useMemo(() => buildCalendarDays(sessionCalendarMonth), [sessionCalendarMonth]);
+  const selectedDaySessions = sessionsByDate[selectedSessionDate] || [];
+  const selectedBookedSessions = selectedDaySessions.filter((session) => String(session.status || "").toUpperCase() === "BOOKED");
+  const selectedCancelledSessions = selectedDaySessions.filter((session) => String(session.status || "").toUpperCase() === "CANCELLED");
+  const sessionMonthLabel = useMemo(() => (
+    new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric" }).format(sessionCalendarMonth)
+  ), [sessionCalendarMonth]);
 
   const updateField = (field, value) => {
     if (field === "phoneNumber") {
@@ -530,7 +795,33 @@ export default function TrainerPage() {
 
   const handleOpenSessions = async (trainer) => {
     setSessionTrainer(trainer);
-    await trainers.fetchTrainerSessions(trainer.id);
+    const result = await trainers.fetchTrainerSessions(trainer.id);
+    const firstSession = result?.data?.[0];
+    const firstSessionDate = firstSession?.start_time || firstSession?.startTime;
+    if (firstSessionDate) {
+      const date = new Date(firstSessionDate);
+      setSessionCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+      setSelectedSessionDate(formatDateKey(date));
+    } else {
+      const now = new Date();
+      setSessionCalendarMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+      setSelectedSessionDate(formatDateKey(now));
+    }
+  };
+
+  const handleAdminCancelSession = async (session) => {
+    const confirmed = await confirmAction({
+      confirmButtonColor: "#c73822",
+      confirmButtonText: "Cancel Booking",
+      text: `Booking ${session.booked_by_name || session.member_name || session.user_name || "member"} akan dicancel oleh admin.`,
+      title: "Cancel Booking Trainer?",
+    });
+    if (!confirmed) return;
+
+    const result = await trainers.cancelTrainerSession(session.id);
+    if (result.ok && sessionTrainer?.id) {
+      await trainers.fetchTrainerSessions(sessionTrainer.id);
+    }
   };
 
   return (
@@ -755,29 +1046,114 @@ export default function TrainerPage() {
               <p className="trainer-status">Belum ada booking untuk trainer ini.</p>
             )}
             {!trainers.sessionLoading && !trainers.sessionError && trainers.sessions.length > 0 && (
-              <div className="trainer-table-wrap">
-                <table className="trainer-table">
-                  <thead>
-                    <tr>
-                      <th>Waktu Mulai</th>
-                      <th>Waktu Selesai</th>
-                      <th>Member</th>
-                      <th>Package</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {trainers.sessions.map((session) => (
-                      <tr key={session.id}>
-                        <td>{formatDateTime(session.start_time || session.startTime)}</td>
-                        <td>{formatDateTime(session.end_time || session.endTime)}</td>
-                        <td>{session.booked_by_name || session.member_name || session.user_name || "-"}</td>
-                        <td>{session.catalog_name || session.package_name || session.catalog_code || "-"}</td>
-                        <td>{session.status || "-"}</td>
-                      </tr>
+              <div className="trainer-session-calendar-layout">
+                <section className="trainer-session-calendar">
+                  <div className="trainer-calendar-head">
+                    <h3>{sessionMonthLabel}</h3>
+                    <div className="trainer-calendar-nav">
+                      <button
+                        aria-label="Bulan sebelumnya"
+                        onClick={() => setSessionCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
+                        type="button"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        aria-label="Bulan berikutnya"
+                        onClick={() => setSessionCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
+                        type="button"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="trainer-calendar-weekdays">
+                    {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((day) => (
+                      <span key={day}>{day}</span>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                  <div className="trainer-calendar-grid">
+                    {calendarDays.map((day) => {
+                      const daySessions = sessionsByDate[day.key] || [];
+                      const hasBooked = daySessions.some((session) => String(session.status || "").toUpperCase() === "BOOKED");
+                      const hasCancelled = daySessions.some((session) => String(session.status || "").toUpperCase() === "CANCELLED");
+                      const className = [
+                        "trainer-calendar-day",
+                        !day.isCurrentMonth ? "outside" : "",
+                        daySessions.length > 0 ? "has-session" : "",
+                        selectedSessionDate === day.key ? "selected" : "",
+                      ].filter(Boolean).join(" ");
+
+                      return (
+                        <button
+                          className={className}
+                          key={day.key}
+                          onClick={() => {
+                            setSelectedSessionDate(day.key);
+                            setSessionCalendarMonth(new Date(day.date.getFullYear(), day.date.getMonth(), 1));
+                          }}
+                          type="button"
+                        >
+                          <span>{day.date.getDate()}</span>
+                          {(hasBooked || hasCancelled) && (
+                            <span className="trainer-day-badges">
+                              {hasBooked && <span className="trainer-day-badge booked" />}
+                              {hasCancelled && <span className="trainer-day-badge cancelled" />}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="trainer-session-detail">
+                  <h3 className="trainer-detail-title">{formatReadableDate(selectedSessionDate)}</h3>
+
+                  <div className="trainer-session-section">
+                    <h3>Booked</h3>
+                    {selectedBookedSessions.length === 0 ? (
+                      <p className="trainer-status">Tidak ada session booked di tanggal ini.</p>
+                    ) : (
+                      <div className="trainer-session-list">
+                        {selectedBookedSessions.map((session) => (
+                          <article className="trainer-session-card" key={session.id}>
+                            <span className="trainer-session-label booked">BOOKED</span>
+                            <strong>{formatTime(session.start_time || session.startTime)} - {formatTime(session.end_time || session.endTime)}</strong>
+                            <span>Member: {session.booked_by_name || session.member_name || session.user_name || "-"}</span>
+                            <span>Package: {session.catalog_name || session.package_name || session.catalog_code || "-"}</span>
+                            <button
+                              className="trainer-session-cancel"
+                              onClick={() => handleAdminCancelSession(session)}
+                              type="button"
+                            >
+                              Cancel Booking
+                            </button>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="trainer-session-section">
+                    <h3>Cancelled</h3>
+                    {selectedCancelledSessions.length === 0 ? (
+                      <p className="trainer-status">Tidak ada session cancelled di tanggal ini.</p>
+                    ) : (
+                      <div className="trainer-session-list">
+                        {selectedCancelledSessions.map((session) => (
+                          <article className="trainer-session-card" key={session.id}>
+                            <span className="trainer-session-label cancelled">CANCELLED</span>
+                            <strong>{formatTime(session.start_time || session.startTime)} - {formatTime(session.end_time || session.endTime)}</strong>
+                            <span>Member: {session.booked_by_name || session.member_name || session.user_name || "-"}</span>
+                            <span>Package: {session.catalog_name || session.package_name || session.catalog_code || "-"}</span>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </section>
               </div>
             )}
           </section>

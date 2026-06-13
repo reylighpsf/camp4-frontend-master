@@ -1,33 +1,92 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import api from "../../../../components/auth/hooks/authApi";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
 import { getCatalogPrice } from "../../../auth/membership/hooks/authPlans";
 
 const formatCurrency = (value) =>
   `Rp ${Number(value || 0).toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;
 
-const days = Array.from({ length: 30 }, (_, index) => index + 1);
-const availability = {
-  available: [3, 4, 8, 9, 10, 16, 17, 18, 22, 23, 26],
-  booked: [15, 19, 25],
-  limited: [11, 12],
-  unavailable: [24, 29],
+const toDateKey = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
-const getDayStatus = (day) => {
-  if (availability.available.includes(day)) return "available";
-  if (availability.booked.includes(day)) return "booked";
-  if (availability.limited.includes(day)) return "limited";
-  if (availability.unavailable.includes(day)) return "unavailable";
-  return "";
+const getCalendarDays = (monthDate) => {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  return [
+    ...Array.from({ length: firstDay }, () => null),
+    ...Array.from({ length: totalDays }, (_, index) => new Date(year, month, index + 1)),
+  ];
+};
+
+const formatMonth = (date) =>
+  new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(date);
+
+const normalizeBookings = (payload) => {
+  const data = payload?.data || payload || [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.bookings)) return data.bookings;
+  if (Array.isArray(data.sessions)) return data.sessions;
+  return [];
 };
 
 export default function TrainerScheduleBookingModal({ catalogs = [], onClose, onConfirm, tierCode = "", trainer }) {
   const [selectedCatalogCode, setSelectedCatalogCode] = useState(catalogs[0]?.code || "");
-  const [selectedDay, setSelectedDay] = useState(26);
+  const [monthDate, setMonthDate] = useState(() => new Date());
+  const [bookings, setBookings] = useState([]);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleError, setScheduleError] = useState("");
   const selectedCatalog = useMemo(
     () => catalogs.find((catalog) => catalog.code === selectedCatalogCode) || catalogs[0],
     [catalogs, selectedCatalogCode],
   );
+  const bookedDates = useMemo(() => {
+    const map = new Map();
+    bookings.forEach((booking) => {
+      const key = toDateKey(booking.start_time || booking.startTime || booking.date);
+      if (!key) return;
+      map.set(key, [...(map.get(key) || []), booking]);
+    });
+    return map;
+  }, [bookings]);
+  const calendarDays = useMemo(() => getCalendarDays(monthDate), [monthDate]);
+
+  useEffect(() => {
+    if (!trainer?.id) return undefined;
+
+    let mounted = true;
+    const fetchTrainerBookings = async () => {
+      setScheduleLoading(true);
+      setScheduleError("");
+      try {
+        const response = await api.get(`/trainers/${trainer.id}/bookings`);
+        if (mounted) setBookings(normalizeBookings(response.data));
+      } catch (err) {
+        if (!mounted) return;
+        setBookings([]);
+        setScheduleError(
+          err.response?.status === 404
+            ? "Data booking trainer belum tersedia."
+            : err.response?.data?.message || err.response?.data?.error || "Gagal memuat schedule trainer.",
+        );
+      } finally {
+        if (mounted) setScheduleLoading(false);
+      }
+    };
+
+    fetchTrainerBookings();
+    return () => {
+      mounted = false;
+    };
+  }, [trainer?.id]);
 
   return (
     <div className="book-session-backdrop">
@@ -67,10 +126,22 @@ export default function TrainerScheduleBookingModal({ catalogs = [], onClose, on
         <div className="book-body-grid">
           <section className="calendar-panel">
             <div className="calendar-head">
-              <strong>June 2026</strong>
+              <strong>{formatMonth(monthDate)}</strong>
               <div>
-                <button type="button" aria-label="Previous month">&lsaquo;</button>
-                <button type="button" aria-label="Next month">&rsaquo;</button>
+                <button
+                  onClick={() => setMonthDate(new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1))}
+                  type="button"
+                  aria-label="Previous month"
+                >
+                  &lsaquo;
+                </button>
+                <button
+                  onClick={() => setMonthDate(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1))}
+                  type="button"
+                  aria-label="Next month"
+                >
+                  &rsaquo;
+                </button>
               </div>
             </div>
             <div className="calendar-week">
@@ -79,38 +150,42 @@ export default function TrainerScheduleBookingModal({ catalogs = [], onClose, on
               ))}
             </div>
             <div className="calendar-grid">
-              <span />
-              {days.map((day) => {
-                const status = getDayStatus(day);
+              {calendarDays.map((date, index) => {
+                if (!date) return <span key={`empty-${index}`} />;
+                const dateKey = toDateKey(date);
+                const isBooked = bookedDates.has(dateKey);
+                const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
                 return (
                   <button
-                    className={`${status} ${selectedDay === day ? "selected" : ""}`}
-                    key={day}
-                    onClick={() => setSelectedDay(day)}
+                    className={`${isBooked ? "booked" : "available"} ${isPast ? "unavailable" : ""}`}
+                    key={dateKey}
                     type="button"
+                    title={isBooked ? `${bookedDates.get(dateKey).length} booking` : "Available"}
                   >
-                    {day}
+                    {date.getDate()}
                   </button>
                 );
               })}
             </div>
             <div className="calendar-legend">
               <span><i className="available" />Available</span>
-              <span><i className="limited" />Limited Slot</span>
-              <span><i className="booked" />Fully Booked</span>
-              <span><i className="unavailable" />Unavailable</span>
+              <span><i className="booked" />Booked</span>
+              <span><i className="unavailable" />Past date</span>
             </div>
+            {scheduleLoading && <p className="schedule-note">Memuat schedule trainer...</p>}
+            {scheduleError && <p className="schedule-note error">{scheduleError}</p>}
           </section>
 
           <aside className="booking-summary">
-            <h2>Booking Summary</h2>
+            <h2>Package Summary</h2>
             <dl>
               <div><dt>Trainer</dt><dd>{trainer?.name || "-"}</dd></div>
-              <div><dt>Date</dt><dd>Friday, June {selectedDay}, 2026</dd></div>
-              <div><dt>Session Type</dt><dd>{selectedCatalog?.name || "-"}</dd></div>
+              <div><dt>Package</dt><dd>{selectedCatalog?.name || "-"}</dd></div>
+              <div><dt>Sesi</dt><dd>{selectedCatalog?.session_count || 10} sessions / {selectedCatalog?.group_size || 1} person</dd></div>
+              <div><dt>Harga</dt><dd>{formatCurrency(getCatalogPrice(selectedCatalog, tierCode))}</dd></div>
             </dl>
             <button className="confirm-booking" onClick={() => selectedCatalog && onConfirm(selectedCatalog.code)} type="button">
-              Confirm Booking
+              Continue Checkout
             </button>
             <button className="cancel-booking" onClick={onClose} type="button">
               Cancel
@@ -150,7 +225,7 @@ const styles = `
 }
 
 .book-session-card {
-  width: min(100%, 760px);
+  width: min(100%, 930px);
   max-height: calc(100vh - 36px);
 
   overflow: auto;
@@ -299,132 +374,141 @@ const styles = `
 
 .book-body-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 200px;
-  gap: 40px;
-
-  padding: 10px 22px 24px;
+  align-items: stretch;
+  grid-template-columns: minmax(360px, 1fr) minmax(280px, .95fr);
+  gap: 20px;
+  padding: 0 22px 24px;
 }
 
 /* =========================================================
    CALENDAR
 ========================================================= */
 
+.calendar-panel {
+  background: #fff;
+  border: 1px solid #e1e4ee;
+  border-radius: 8px;
+  display: grid;
+  grid-template-rows: auto auto auto auto auto;
+  padding: 18px;
+}
+
 .calendar-head {
+  align-items: center;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-
-  margin-bottom: 14px;
-  padding: 0 8px;
+  margin-bottom: 16px;
 }
 
 .calendar-head strong {
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.calendar-head div {
+  display: inline-flex;
+  gap: 8px;
 }
 
 .calendar-head button {
-  background: transparent;
-  border: none;
-
+  background: #f3f4fb;
+  border: 1px solid #d8dbe6;
+  border-radius: 7px;
   color: #0b0871;
-  font-size: 26px;
-  line-height: 1;
-
   cursor: pointer;
+  font-size: 17px;
+  font-weight: 900;
+  height: 34px;
+  width: 34px;
 }
 
 .calendar-week,
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 40px);
-  gap: 10px;
+  gap: 6px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
-.calendar-week span {
+.calendar-week {
+  color: #292782;
+  font-size: 11px;
+  font-weight: 900;
+  margin-bottom: 8px;
   text-align: center;
+}
 
-  color: #333;
-  font-size: 13px;
+.calendar-grid button,
+.calendar-grid span {
+  border-radius: 7px;
+  height: 42px;
+  min-height: 0;
 }
 
 .calendar-grid button {
-  height: 42px;
-
-  background: transparent;
-  color: #111;
-
   border: 1px solid transparent;
-  border-radius: 7px;
-
-  cursor: pointer;
+  color: #0b0871;
+  cursor: default;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .calendar-grid button.available {
-  background: #d9f7e3;
-  border-color: #20b564;
-}
-
-.calendar-grid button.limited {
-  background: #fff9d9;
-  border-color: #ead36b;
+  background: #dcfae7;
+  border-color: #24c870;
 }
 
 .calendar-grid button.booked {
-  background: #ffe1e1;
-  border-color: #ff5363;
+  background: #ffe6e8;
+  border-color: #ff5365;
 }
 
 .calendar-grid button.unavailable {
   background: #d9dbe3;
+  border-color: #d9dbe3;
   color: #6e7185;
 }
-
-.calendar-grid button.selected {
-  box-shadow: inset 0 0 0 2px #0b0871;
-}
-
-/* =========================================================
-   LEGEND
-========================================================= */
 
 .calendar-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-
-  margin-top: 18px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .calendar-legend span {
-  display: inline-flex;
   align-items: center;
+  color: #292782;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
   gap: 6px;
-
-  font-size: 10px;
-  color: #222;
 }
 
 .calendar-legend i {
-  width: 8px;
-  height: 8px;
-
-  border-radius: 50%;
+  border-radius: 999px;
+  height: 9px;
+  width: 9px;
 }
 
-.calendar-legend .available {
-  background: #20b564;
+.calendar-legend .available { background: #24c870; }
+.calendar-legend .booked { background: #ff5365; }
+.calendar-legend .unavailable { background: #6e7185; }
+
+.schedule-note {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  color: #9a3412;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 12px 0 0;
+  padding: 9px 10px;
 }
 
-.calendar-legend .limited {
-  background: #ead36b;
-}
-
-.calendar-legend .booked {
-  background: #ff5363;
-}
-
-.calendar-legend .unavailable {
-  background: #6e7185;
+.schedule-note.error {
+  color: #9a3412;
 }
 
 /* =========================================================
@@ -432,41 +516,42 @@ const styles = `
 ========================================================= */
 
 .booking-summary {
-  align-self: start;
-
-  padding: 18px 14px;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
 
   background: #eef0fb;
   border-radius: 8px;
 }
 
 .booking-summary h2 {
-  margin-bottom: 18px;
+  margin: 0 0 22px;
 
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .booking-summary dl {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 
-  margin-bottom: 16px;
+  margin: 0 0 22px;
 }
 
 .booking-summary dt {
   color: #6c6fa8;
 
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .booking-summary dd {
-  margin-top: 3px;
+  margin: 4px 0 0;
 
   color: #0b0871;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 /* =========================================================
@@ -476,7 +561,7 @@ const styles = `
 .confirm-booking,
 .cancel-booking {
   width: 100%;
-  height: 32px;
+  min-height: 40px;
 
   font-size: 12px;
   font-weight: 800;
@@ -486,6 +571,7 @@ const styles = `
 }
 
 .confirm-booking {
+  margin-top: auto;
   background: #0b0871;
   color: #fff;
   border: 1px solid #0b0871;
@@ -508,12 +594,6 @@ const styles = `
   .book-package-grid,
   .book-body-grid {
     grid-template-columns: 1fr;
-  }
-
-  .calendar-week,
-  .calendar-grid {
-    grid-template-columns: repeat(7, minmax(28px, 1fr));
-    gap: 6px;
   }
 }
 `;
