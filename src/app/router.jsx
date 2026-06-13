@@ -28,6 +28,7 @@ import MemberDashboard from "../pages/member/Dashboard";
 import CheckInOutPage from "../pages/member/components/check-in-out/CheckInOut";
 import ProfilePage from "../pages/member/components/profile/Profile";
 import ProfileMembershipPlanPage from "../pages/member/components/profile/MembershipPlan";
+import MemberTransactionsPage from "../pages/member/components/transactions/Transactions";
 import TrainerBookingPage from "../pages/member/components/trainer-booking/TrainerBooking";
 import TrainerCheckoutPage from "../pages/member/components/trainer-packages/TrainerCheckout";
 import WorkoutTrackingPage from "../pages/member/components/workout-tracking/WorkoutTracking";
@@ -156,6 +157,10 @@ const memberRoutes = [
   {
     path: "/member/workout-tracking",
     element: memberOnly(<WorkoutTrackingPage />),
+  },
+  {
+    path: "/member/transactions",
+    element: memberOnly(<MemberTransactionsPage />),
   },
   {
     path: "/member/trainer-checkout",

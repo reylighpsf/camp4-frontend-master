@@ -11,31 +11,6 @@ export default function LandingPage({ scrollToExplore = false }) {
   const [plans, setPlans] = useState(authMembershipPlans);
 
   useEffect(() => {
-    const html = document.documentElement;
-    const root = document.getElementById("root");
-    const previousHtmlOverflow = html.style.overflow;
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousRootHeight = root?.style.height || "";
-    const previousRootOverflow = root?.style.overflow || "";
-
-    html.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    if (root) {
-      root.style.height = "100dvh";
-      root.style.overflow = "hidden";
-    }
-
-    return () => {
-      html.style.overflow = previousHtmlOverflow;
-      document.body.style.overflow = previousBodyOverflow;
-      if (root) {
-        root.style.height = previousRootHeight;
-        root.style.overflow = previousRootOverflow;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     const motionItems = Array.from(document.querySelectorAll(".landing-motion"));
     if (motionItems.length === 0) return undefined;
 
@@ -112,11 +87,10 @@ export default function LandingPage({ scrollToExplore = false }) {
         }
 
         .landing-page {
-          height: 100vh;
-          height: 100dvh;
+          min-height: 100vh;
+          min-height: 100dvh;
           width: 100%;
           overflow-x: hidden;
-          overflow-y: auto;
           background: #f1f2f5;
           color: #0a1185;
           font-family: 'DM Sans', sans-serif;
@@ -1285,6 +1259,16 @@ export default function LandingPage({ scrollToExplore = false }) {
           .landing-home {
             min-height: 100vh;
             min-height: 100dvh;
+            padding-left: 28px;
+            padding-right: 28px;
+          }
+
+          .landing-nav {
+            gap: 18px;
+          }
+
+          .landing-links {
+            gap: 12px 18px;
           }
 
           .explore-grid,
@@ -1304,19 +1288,53 @@ export default function LandingPage({ scrollToExplore = false }) {
           .facility-slide {
             margin: 0 -28px;
           }
+
+          .landing-section,
+          .landing-info,
+          .why-us,
+          .landing-membership,
+          .landing-plan-preview {
+            padding-left: 28px;
+            padding-right: 28px;
+          }
         }
 
         @media (max-width: 620px) {
           .landing-home {
-            padding-top: 18px;
+            padding: 14px 18px 0;
             min-height: 100vh;
             min-height: 100dvh;
+            background:
+              linear-gradient(180deg, rgba(10, 17, 133, 0.98) 0%, rgba(10, 17, 133, 0.88) 58%, rgba(10, 17, 133, 0.62) 100%),
+              var(--hero-image) center / cover;
           }
 
-          .landing-nav,
+          .landing-nav {
+            align-items: center;
+            gap: 12px;
+          }
+
+          .landing-brand {
+            flex: 0 0 auto;
+          }
+
           .landing-links {
-            align-items: flex-start;
-            flex-direction: column;
+            align-items: center;
+            display: grid;
+            gap: 8px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            justify-content: stretch;
+            width: min(100%, 210px);
+          }
+
+          .landing-links a {
+            font-size: 11px;
+            text-align: center;
+          }
+
+          .landing-links .nav-join {
+            grid-column: 1 / -1;
+            padding: 9px 14px;
           }
 
           .explore-grid,
@@ -1346,9 +1364,9 @@ export default function LandingPage({ scrollToExplore = false }) {
           }
 
           .landing-hero {
-            align-items: center;
-            padding-top: 52px;
-            padding-bottom: 86px;
+            align-items: flex-start;
+            padding-top: 42px;
+            padding-bottom: 90px;
           }
 
           .landing-hero-copy {
@@ -1361,6 +1379,58 @@ export default function LandingPage({ scrollToExplore = false }) {
 
           .landing-hero-copy p {
             font-size: 15px;
+            max-width: 310px;
+          }
+
+          .landing-actions {
+            margin-top: 20px;
+          }
+
+          .landing-primary-btn {
+            min-height: 42px;
+            padding: 0 18px;
+            width: 100%;
+            max-width: 220px;
+          }
+
+          .landing-section,
+          .landing-info,
+          .why-us,
+          .landing-membership,
+          .landing-plan-preview {
+            padding-left: 18px;
+            padding-right: 18px;
+          }
+
+          .explore-tabs {
+            justify-content: stretch;
+          }
+
+          .explore-tabs button {
+            flex: 1 1 120px;
+            padding-left: 12px;
+            padding-right: 12px;
+          }
+
+          .explore-card,
+          .membership-plan,
+          .why-card,
+          .benefit-card,
+          .faq-list details,
+          .membership-cta {
+            border-radius: 8px;
+          }
+
+          .info-item {
+            align-items: flex-start;
+            gap: 14px;
+            min-height: auto;
+          }
+
+          .info-item span,
+          .why-card span {
+            height: 58px;
+            width: 58px;
           }
 
           .facilities-track {
@@ -1389,11 +1459,47 @@ export default function LandingPage({ scrollToExplore = false }) {
           }
 
           .facilities-title {
-            min-height: 220px;
+            min-height: 190px;
+            padding-left: 18px;
+            padding-right: 18px;
+          }
+
+          .facilities-title::before {
+            left: 18px;
+          }
+
+          .facilities-title h2 {
+            padding-left: 28px;
+          }
+
+          .facilities-title h2::after {
+            display: none;
           }
 
           .facilities-title p {
+            font-size: 22px;
             margin-top: 32px;
+            padding-left: 28px;
+          }
+
+          .membership-price-row {
+            grid-template-columns: 1fr;
+          }
+
+          .membership-price-row b {
+            white-space: normal;
+          }
+
+          .footer-columns h3 {
+            margin-bottom: 14px;
+          }
+
+          .footer-columns a {
+            margin-bottom: 10px;
+          }
+
+          .footer-contact p {
+            gap: 12px;
           }
         }
       `}</style>

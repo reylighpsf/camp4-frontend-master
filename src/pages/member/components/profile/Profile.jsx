@@ -404,7 +404,7 @@ export default function ProfilePage() {
     const confirmed = await confirmAction({
       confirmButtonColor: "#c73822",
       confirmButtonText: "Ya, Hapus Akun",
-      text: "Akun kamu akan dinonaktifkan dan sesi login saat ini akan dihapus.",
+      text: "Akun kamu akan dinonaktifkan.",
       title: "Hapus Akun?",
     });
     if (!confirmed) return;
