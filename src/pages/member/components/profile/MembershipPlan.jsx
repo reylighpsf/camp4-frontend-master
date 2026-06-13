@@ -87,6 +87,12 @@ const formatTierName = (value) =>
     .toLowerCase()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
+const formatTransactionType = (value) =>
+  String(value || "-")
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
 
@@ -201,6 +207,7 @@ export default function ProfileMembershipPlanPage() {
   const [loading, setLoading] = useState(true);
   const [paymentPlan, setPaymentPlan] = useState(null);
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+  const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("QRIS");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [error, setError] = useState("");
@@ -1020,6 +1027,52 @@ export default function ProfileMembershipPlanPage() {
           color: #25399a;
         }
 
+        .membership-history-btn {
+          background: #ffffff;
+          border: 1px solid #cfd6ee !important;
+          color: #0b0871;
+        }
+
+        .profile-history-list {
+          display: grid;
+          gap: 10px;
+          margin-top: 18px;
+          max-height: min(420px, 58vh);
+          overflow-y: auto;
+        }
+
+        .profile-history-item {
+          background: #f8f9fc;
+          border: 1px solid #e1e4f0;
+          border-radius: 10px;
+          display: grid;
+          gap: 8px;
+          padding: 14px;
+        }
+
+        .profile-history-item strong {
+          color: #0b0871;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .profile-history-item span {
+          color: #565a91;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .profile-history-status {
+          background: #edf4ff;
+          border-radius: 999px;
+          color: #25399a !important;
+          display: inline-flex;
+          font-size: 11px !important;
+          justify-self: start;
+          padding: 5px 10px;
+          text-transform: uppercase;
+        }
+
         .profile-plan-loading {
           color: #565a91;
           font-size: 13px;
@@ -1134,6 +1187,9 @@ export default function ProfileMembershipPlanPage() {
               <button className="membership-renew-btn" onClick={() => currentPaymentPlan && setPaymentPlan(currentPaymentPlan)} type="button">
                 Renew Membership
               </button>
+              <button className="membership-history-btn" onClick={() => setIsPaymentHistoryOpen(true)} type="button">
+                Payment History
+              </button>
             </aside>
           </div>
         </section>
@@ -1182,6 +1238,36 @@ export default function ProfileMembershipPlanPage() {
                 type="button"
               >
                 {paymentLoading ? "Memproses..." : "Buat Payment"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isPaymentHistoryOpen && (
+        <div className="profile-payment-backdrop">
+          <section className="profile-payment-modal" role="dialog" aria-modal="true">
+            <h2>Payment History</h2>
+            <p>Riwayat transaksi membership kamu.</p>
+
+            <div className="profile-history-list">
+              {transactions.length === 0 && (
+                <div className="profile-plan-alert">Belum ada riwayat pembayaran.</div>
+              )}
+              {transactions.map((transaction) => (
+                <article className="profile-history-item" key={transaction.id || transaction.order_id}>
+                  <strong>{formatTransactionType(transaction.transaction_type)}</strong>
+                  <span>Total: {formatCurrency(transaction.amount)}</span>
+                  <span>Metode: {transaction.payment_method || "-"}</span>
+                  <span>Dibuat: {formatDate(transaction.created_at)}</span>
+                  <span className="profile-history-status">{transaction.status || "-"}</span>
+                </article>
+              ))}
+            </div>
+
+            <div className="profile-payment-actions">
+              <button className="profile-payment-submit" onClick={() => setIsPaymentHistoryOpen(false)} type="button">
+                Tutup
               </button>
             </div>
           </section>
