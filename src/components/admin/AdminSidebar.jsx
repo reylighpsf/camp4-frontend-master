@@ -60,12 +60,6 @@ const icons = {
       <path d="M13 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </Icon>
   ),
-  settings: (
-    <Icon>
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M19.4 15a8.4 8.4 0 0 0 .1-1l2-1.5-2-3.5-2.4 1a7.5 7.5 0 0 0-1.7-1L15 6.5h-4L10.6 9a7.5 7.5 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.5a8.4 8.4 0 0 0 .1 2l-2 1.5 2 3.5 2.4-1a7.5 7.5 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 1.7-1l2.4 1 2-3.5-2.2-1.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    </Icon>
-  ),
 };
 
 const navItems = [
@@ -365,10 +359,6 @@ export default function AdminSidebar({ onLogout }) {
           <button className="admin-sidebar__button" type="button" onClick={onLogout}>
             <span className="admin-sidebar__icon">{icons.logout}</span>
             <span className="admin-sidebar__label">LogOut</span>
-          </button>
-          <button className="admin-sidebar__button" type="button">
-            <span className="admin-sidebar__icon">{icons.settings}</span>
-            <span className="admin-sidebar__label">Settings</span>
           </button>
         </div>
       </aside>
