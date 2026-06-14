@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import api from "../../../../components/auth/hooks/authApi";
-import { useAuth } from "../../../../components/auth/hooks/useAuth";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
-import TrainerScheduleBookingModal from "./TrainerScheduleBooking";
-import { getUserTierCode } from "../../../auth/membership/hooks/authPlans";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
@@ -101,14 +98,10 @@ const FilterIcon = () => (
 );
 
 export default function TrainerBookingPage() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
   const [trainers, setTrainers] = useState([]);
-  const [trainerCatalogs, setTrainerCatalogs] = useState([]);
   const [packages, setPackages] = useState([]);
   const [packageSchedules, setPackageSchedules] = useState([]);
   const [selectedTrainer, setSelectedTrainer] = useState(null);
-  const [scheduleTrainer, setScheduleTrainer] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -132,20 +125,11 @@ export default function TrainerBookingPage() {
     setLoading(true);
     setError("");
     try {
-      const [trainerResponse, catalogResponse] = await Promise.all([
-        api.get("/trainers"),
-        api.get("/catalogs/trainer"),
-      ]);
+      const trainerResponse = await api.get("/trainers");
       setTrainers(trainerResponse.data?.data || []);
-      setTrainerCatalogs(
-        (catalogResponse.data?.data || [])
-          .filter((catalog) => catalog.family === "PERSONAL_TRAINER" && catalog.is_active !== false)
-          .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0)),
-      );
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat trainer."));
       setTrainers([]);
-      setTrainerCatalogs([]);
     } finally {
       setLoading(false);
     }
@@ -1498,29 +1482,10 @@ export default function TrainerBookingPage() {
                 <button className="trainer-action secondary" onClick={() => setSelectedTrainer(null)} type="button">
                   Close
                 </button>
-                <button
-                  className="trainer-action primary"
-                  onClick={() => {
-                    setScheduleTrainer(selectedTrainer);
-                    setSelectedTrainer(null);
-                  }}
-                  type="button"
-                >
-                  View Schedule & Book Session
-                </button>
               </div>
             </div>
           </article>
         </div>
-      )}
-      {scheduleTrainer && (
-        <TrainerScheduleBookingModal
-          catalogs={trainerCatalogs}
-          onClose={() => setScheduleTrainer(null)}
-          onConfirm={(catalogCode) => navigate(`/member/trainer-checkout?trainerId=${scheduleTrainer.id}&catalog=${catalogCode}`)}
-          tierCode={getUserTierCode(user)}
-          trainer={scheduleTrainer}
-        />
       )}
     </MemberLayout>
   );
