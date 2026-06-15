@@ -65,13 +65,6 @@ const notificationPreferences = [
 const getPhoneInputDigits = (phoneNumber = "") =>
   phoneNumber.replace(/^\+62/, "").replace(/^0/, "");
 
-const normalizeIndonesianPhone = (value) => {
-  let digits = value.replace(/\D/g, "");
-  if (digits.startsWith("62")) digits = digits.slice(2);
-  if (digits.startsWith("0")) digits = digits.slice(1);
-  return digits ? `+62${digits}` : "";
-};
-
 const getNotificationCategory = (type) => {
   if (["TRANSACTION_CREATED", "TRANSACTION_SUCCESS", "TRANSACTION_FAILED"].includes(type)) return "payment";
   if (type === "SESSION_REMINDER") return "trainer";
@@ -358,47 +351,6 @@ export default function ProfilePage() {
   const isGoogleAccount = Boolean(profile?.is_google_account || profile?.isGoogleAccount);
   const memberId = profile?.id ? `VF${String(profile.id).slice(0, 10).toUpperCase()}` : "VF1234567890";
   const joinDate = formatDate(profile?.created_at);
-
-  const updateField = (field, value) => {
-    if (field === "phoneNumber") {
-      setFormValues((current) => ({
-        ...current,
-        phoneNumber: normalizeIndonesianPhone(value),
-      }));
-      return;
-    }
-
-    setFormValues((current) => ({ ...current, [field]: value }));
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setSaving(true);
-    setMessage("");
-    setError("");
-
-    if (formValues.phoneNumber.trim() && !/^\+628[1-9][0-9]{6,10}$/.test(formValues.phoneNumber.trim())) {
-      setSaving(false);
-      setError("Nomor HP harus memakai format +628xxxxxxxx.");
-      return;
-    }
-
-    const payload = {
-      fullName: formValues.fullName.trim(),
-      phoneNumber: formValues.phoneNumber.trim(),
-    };
-
-    try {
-      const response = await api.put("/users/me", payload);
-      const updatedProfile = response.data?.data || profile;
-      setProfile((current) => ({ ...current, ...updatedProfile }));
-      setMessage("Profile berhasil diperbarui.");
-    } catch (err) {
-      setError(getErrorMessage(err, "Gagal menyimpan profile."));
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleDeleteAccount = async () => {
     const confirmed = await confirmAction({
@@ -1449,16 +1401,15 @@ export default function ProfilePage() {
             <div className="profile-main-column">
               <section className="profile-form-card">
                 <h2>Personal Information</h2>
-                <form className="profile-form" onSubmit={handleSubmit}>
+                <div className="profile-form">
                   <div className="profile-form-grid">
                     <label className="profile-field">
                       Full Name
                       <input
                         className="profile-input"
                         value={formValues.fullName}
-                        onChange={(event) => updateField("fullName", event.target.value)}
                         placeholder="John Doe"
-                        required
+                        disabled
                       />
                     </label>
                     <label className="profile-field">
@@ -1472,8 +1423,8 @@ export default function ProfilePage() {
                         <input
                           className="profile-input"
                           value={getPhoneInputDigits(formValues.phoneNumber)}
-                          onChange={(event) => updateField("phoneNumber", event.target.value)}
                           placeholder="8123456789"
+                          disabled
                         />
                       </span>
                     </label>
@@ -1484,7 +1435,7 @@ export default function ProfilePage() {
                           className="profile-input"
                           type="date"
                           value={formValues.birthDate}
-                          onChange={(event) => updateField("birthDate", event.target.value)}
+                          disabled
                         />
                         <span className="profile-input-icon" aria-hidden="true">
                           <MemberIcon name="calendar" />
@@ -1493,12 +1444,7 @@ export default function ProfilePage() {
                     </label>
                   </div>
 
-                  <div className="profile-actions">
-                    <button className="profile-save" disabled={saving || loading} type="submit">
-                      {saving ? "Saving..." : "Save Changes"}
-                    </button>
-                  </div>
-                </form>
+                </div>
               </section>
 
             </div>
