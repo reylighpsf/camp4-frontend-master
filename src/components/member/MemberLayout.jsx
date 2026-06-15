@@ -16,10 +16,20 @@ const formatNotificationTime = (value) => {
   }).format(new Date(value));
 };
 
+const formatHeaderDate = (value) =>
+  new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "long",
+    timeZone: "Asia/Jakarta",
+    weekday: "long",
+    year: "numeric",
+  }).format(value);
+
 export default function MemberLayout({ active = "Dashboard", children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const notificationRef = useRef(null);
+  const [currentDate, setCurrentDate] = useState(() => new Date());
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -38,6 +48,14 @@ export default function MemberLayout({ active = "Dashboard", children }) {
     await logout();
     navigate("/sign-in");
   };
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -522,7 +540,7 @@ export default function MemberLayout({ active = "Dashboard", children }) {
         <header className="member-topbar">
           <div className="member-greeting">
             <h1>Hi, {displayName}!</h1>
-            <p>Monday, 25 May 2026</p>
+            <p>{formatHeaderDate(currentDate)}</p>
           </div>
           <div className="member-header-actions">
             <div className="member-notification-wrap" ref={notificationRef}>
