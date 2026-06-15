@@ -25,14 +25,15 @@ export const authApi = {
       },
     }),
   signin: (data, turnstileToken = "") => api.post("/auth/login", data, withTurnstile(turnstileToken)),
-  registerGoogle: (data) =>
+  registerGoogle: (data, turnstileToken = "") =>
     data instanceof FormData
       ? api.post("/auth/register/google", data, {
           headers: {
             "Content-Type": "multipart/form-data",
+            ...(turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {}),
           },
         })
-      : api.post("/auth/register/google", data),
+      : api.post("/auth/register/google", data, withTurnstile(turnstileToken)),
   loginGoogle: (data) => api.post("/auth/login/google", data),
   resendVerificationEmail: (data, turnstileToken = "") =>
     api.post("/auth/register/resend", data, withTurnstile(turnstileToken)),

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { AuthFrame, Toast } from "../AuthFrame";
 import { useAuth } from "../../../components/auth/hooks/useAuth";
-import { buildGoogleRegisterPayload } from "./hooks/googleAuthPayload";
+import { buildGoogleRegisterPayload, decodeGoogleCredential } from "./hooks/googleAuthPayload";
 import { getGoogleClientId } from "./hooks/googleClientConfig";
 import useTurnstile from "./hooks/useTurnstile";
 
@@ -39,14 +39,16 @@ export default function Signup() {
     acceptedTerms: false,
     image: null,
   });
+  const [googleCredential, setGoogleCredential] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [googleClientId, setGoogleClientId] = useState("");
   const [googleConfigLoading, setGoogleConfigLoading] = useState(true);
   const [googleConfigError, setGoogleConfigError] = useState("");
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const notice = location.state?.notice;
@@ -61,6 +63,13 @@ export default function Signup() {
 
   useEffect(() => {
     if (!form.image) {
+      if (form.googleImageUrl) {
+        const timeoutId = setTimeout(() => {
+          setImagePreviewUrl(form.googleImageUrl);
+        }, 0);
+        return () => clearTimeout(timeoutId);
+      }
+
       const timeoutId = setTimeout(() => {
         setImagePreviewUrl("");
       }, 0);
@@ -76,7 +85,7 @@ export default function Signup() {
       clearTimeout(timeoutId);
       URL.revokeObjectURL(previewUrl);
     };
-  }, [form.image]);
+  }, [form.googleImageUrl, form.image]);
 
   const handleChange = (e) => {
     const { name, value, files, type, checked } = e.target;
@@ -128,13 +137,13 @@ export default function Signup() {
     if (!form.birthDate) {
       errors.birthDate = "Tanggal lahir wajib diisi";
     }
-    if (form.password.length < 6) {
+    if (!googleCredential && form.password.length < 6) {
       errors.password = "Password minimal 6 karakter";
     }
-    if (form.confirmPassword !== form.password) {
+    if (!googleCredential && form.confirmPassword !== form.password) {
       errors.confirmPassword = "Konfirmasi password tidak sama";
     }
-    if (!form.image) errors.image = "Foto profil wajib diunggah";
+    if (!form.image && !googleCredential) errors.image = "Foto profil wajib diunggah";
     if (!form.acceptedTerms) {
       errors.acceptedTerms = "Kamu perlu menyetujui syarat dan ketentuan";
     }
@@ -186,17 +195,29 @@ export default function Signup() {
 
       setToast("");
 
-      setGoogleLoading(true);
-      try {
-        await signupGoogle(buildGoogleRegisterPayload(response.credential), turnstileToken, { skipFetchMe: true });
-        navigate("/choose-plan", { replace: true });
-      } catch (err) {
-        const res = err.response?.data;
-        setToast(res?.error || res?.message || "Registrasi Google gagal. Coba beberapa saat lagi.");
-      } finally {
-        resetTurnstile();
-        setGoogleLoading(false);
-      }
+      const payload = decodeGoogleCredential(response.credential);
+      const fullName = payload.name || payload.given_name || payload.email?.split("@")[0] || "";
+      const googleRegisterPayload = buildGoogleRegisterPayload(response.credential);
+      setGoogleCredential(response.credential);
+      setForm((current) => ({
+        ...current,
+        fullName: fullName || current.fullName,
+        email: payload.email || current.email,
+        googleImageUrl: payload.picture || "",
+        password: "",
+        confirmPassword: "",
+        googlePassword: googleRegisterPayload.password,
+      }));
+      setFieldErrors((current) => ({
+        ...current,
+        fullName: "",
+        email: "",
+        image: "",
+        password: "",
+        confirmPassword: "",
+      }));
+      setToast("Data Google berhasil diambil. Lengkapi nomor HP, tanggal lahir, dan persetujuan.");
+      resetTurnstile();
     };
 
     const renderGoogleButton = () => {
@@ -255,8 +276,23 @@ export default function Signup() {
 
     setLoading(true);
     try {
-      const formData = new FormData();
       const normalizedEmail = form.email.trim();
+      if (googleCredential) {
+        const googlePayload = buildGoogleRegisterPayload(googleCredential);
+        const googleFormData = new FormData();
+        googleFormData.append("googleToken", googleCredential);
+        googleFormData.append("fullName", form.fullName.trim() || googlePayload.fullName);
+        googleFormData.append("phoneNumber", form.phoneNumber.trim());
+        googleFormData.append("birthDate", form.birthDate);
+        googleFormData.append("password", form.googlePassword || googlePayload.password);
+        if (form.image) googleFormData.append("image", form.image);
+
+        await signupGoogle(googleFormData, turnstileToken, { skipFetchMe: true });
+        navigate("/choose-plan", { replace: true });
+        return;
+      }
+
+      const formData = new FormData();
       formData.append("fullName", form.fullName.trim());
       formData.append("email", normalizedEmail);
       formData.append("phoneNumber", form.phoneNumber.trim());
@@ -391,16 +427,26 @@ export default function Signup() {
 
             <div className="auth-field">
               <label htmlFor="password">Password</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                className={fieldErrors.password ? "has-error" : ""}
-                placeholder="Create a password"
-                autoComplete="new-password"
-              />
+              <div className="signup-password-shell">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  className={fieldErrors.password ? "has-error" : ""}
+                  placeholder="Create a password"
+                  autoComplete="new-password"
+                />
+                <button
+                  className="signup-password-toggle"
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                >
+                  <EyeIcon hidden={showPassword} />
+                </button>
+              </div>
               {fieldErrors.password && (
                 <p className="auth-error">{fieldErrors.password}</p>
               )}
@@ -408,16 +454,26 @@ export default function Signup() {
 
             <div className="auth-field">
               <label htmlFor="confirmPassword">Confirm Password</label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                className={fieldErrors.confirmPassword ? "has-error" : ""}
-                placeholder="Re-enter your password"
-                autoComplete="new-password"
-              />
+              <div className="signup-password-shell">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  className={fieldErrors.confirmPassword ? "has-error" : ""}
+                  placeholder="Re-enter your password"
+                  autoComplete="new-password"
+                />
+                <button
+                  className="signup-password-toggle"
+                  type="button"
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                  aria-label={showConfirmPassword ? "Sembunyikan konfirmasi password" : "Tampilkan konfirmasi password"}
+                >
+                  <EyeIcon hidden={showConfirmPassword} />
+                </button>
+              </div>
               {fieldErrors.confirmPassword && (
                 <p className="auth-error">{fieldErrors.confirmPassword}</p>
               )}
@@ -445,7 +501,7 @@ export default function Signup() {
                 <span className="spinner" /> Loading
               </>
             ) : (
-              "Continue To Verify Email"
+              googleCredential ? "Continue To Choose Plan" : "Continue To Verify Email"
             )}
           </button>
 
@@ -455,11 +511,10 @@ export default function Signup() {
           </div>
 
           <div className="signup-divider"><span>atau</span></div>
-          <div className={`signup-google ${googleLoading ? "is-loading" : ""}`}>
+          <div className="signup-google">
             {googleClientId ? (
               <>
                 <div ref={googleButtonRef} />
-                {googleLoading && <span className="signup-google-loading">Memproses Google...</span>}
               </>
             ) : googleConfigLoading ? (
               <div className="signup-google-config-error">Memuat konfigurasi Google dari backend...</div>
@@ -479,7 +534,59 @@ export default function Signup() {
   );
 }
 
+function EyeIcon({ hidden }) {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      {hidden ? (
+        <>
+          <path d="M2 2l20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M9.9 4.2A10.7 10.7 0 0 1 12 4c5 0 8.8 3.1 10 8a11.8 11.8 0 0 1-3.1 5.1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M6.6 6.6A11.8 11.8 0 0 0 2 12c1.2 4.9 5 8 10 8 1.2 0 2.4-.2 3.4-.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      ) : (
+        <>
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 const signupGoogleStyles = `
+  .signup-password-shell {
+    position: relative;
+  }
+
+  .signup-password-shell input {
+    padding-right: 44px;
+    width: 100%;
+  }
+
+  .signup-password-toggle {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: #0b0871;
+    cursor: pointer;
+    display: inline-flex;
+    height: 36px;
+    justify-content: center;
+    padding: 0;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+  }
+
+  .signup-password-toggle:hover,
+  .signup-password-toggle:focus-visible {
+    color: #ff7415;
+    outline: none;
+  }
+
   .signup-divider {
     align-items: center;
     color: #66709d;
@@ -505,19 +612,6 @@ const signupGoogleStyles = `
     justify-items: center;
     min-height: 44px;
     width: 100%;
-  }
-
-  .signup-google.is-loading {
-    opacity: .72;
-    pointer-events: none;
-  }
-
-  .signup-google-loading {
-    color: #171267;
-    font-size: 12px;
-    font-weight: 800;
-    margin: 0;
-    text-align: center;
   }
 
   .signup-turnstile {
