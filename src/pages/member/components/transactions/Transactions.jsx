@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import MemberLayout from "../../../../components/member/MemberLayout";
 import api from "../../../../components/auth/hooks/authApi";
+import { confirmAction } from "../../../../utils/sweetAlert";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;
@@ -85,6 +86,7 @@ export default function MemberTransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [detailLoadingId, setDetailLoadingId] = useState("");
+  const [cancelLoadingId, setCancelLoadingId] = useState("");
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -129,6 +131,46 @@ export default function MemberTransactionsPage() {
       return;
     }
     setError("Link pembayaran tidak tersedia untuk transaksi ini.");
+  };
+
+  const cancelTransaction = async (transaction) => {
+    const transactionId = transaction?.id;
+    if (!transactionId) {
+      setError("ID transaksi tidak tersedia.");
+      return;
+    }
+
+    const confirmed = await confirmAction({
+      confirmButtonText: "Ya, batalkan",
+      text: "Transaksi pending akan dibatalkan dan tidak bisa dilanjutkan.",
+      title: "Batalkan transaksi?",
+    });
+
+    if (!confirmed) return;
+
+    setCancelLoadingId(transactionId);
+    setError("");
+
+    try {
+      const response = await api.post(`/transactions/${transactionId}/cancel`);
+      const cancelledTransaction = response.data?.data || { ...transaction, status: "FAILED" };
+
+      setTransactions((currentTransactions) =>
+        currentTransactions.map((item) =>
+          item.id === transactionId ? { ...item, ...cancelledTransaction } : item
+        )
+      );
+      setSelectedTransaction((currentTransaction) =>
+        currentTransaction?.id === transactionId
+          ? { ...currentTransaction, ...cancelledTransaction }
+          : currentTransaction
+      );
+    } catch (err) {
+      setError(getErrorMessage(err, "Gagal membatalkan transaksi."));
+    } finally {
+      setCancelLoadingId("");
+      fetchTransactions();
+    }
   };
 
   const downloadReceipt = (transaction) => {
@@ -223,6 +265,8 @@ export default function MemberTransactionsPage() {
         }
 
         .transactions-status.failed,
+        .transactions-status.cancelled,
+        .transactions-status.canceled,
         .transactions-status.expired {
           background: #fee2e2;
           color: #b91c1c;
@@ -239,6 +283,19 @@ export default function MemberTransactionsPage() {
           font-weight: 900;
           min-height: 28px;
           padding: 0 14px;
+        }
+
+        .transactions-row-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .transactions-detail-btn:disabled,
+        .transactions-primary-btn:disabled,
+        .transactions-danger-btn:disabled {
+          cursor: not-allowed;
+          opacity: .62;
         }
 
         .transactions-empty,
@@ -418,12 +475,27 @@ export default function MemberTransactionsPage() {
           padding: 0 16px;
         }
 
+        .transactions-danger-btn {
+          background: #c73822;
+          border: 1px solid #c73822;
+          border-radius: 4px;
+          color: #ffffff;
+          cursor: pointer;
+          font: inherit;
+          font-size: 11px;
+          font-weight: 900;
+          min-height: 30px;
+          min-width: 170px;
+          padding: 0 16px;
+        }
+
         @media (max-width: 760px) {
           .transactions-modal-actions {
             flex-direction: column;
           }
 
           .transactions-modal-actions .transactions-detail-btn,
+          .transactions-danger-btn,
           .transactions-primary-btn {
             width: 100%;
           }
@@ -482,14 +554,26 @@ export default function MemberTransactionsPage() {
                       <td>{transaction.payment_method || "-"}</td>
                       <td><span className={`transactions-status ${status}`}>{status || "-"}</span></td>
                       <td>
-                        <button
-                          className="transactions-detail-btn"
-                          disabled={detailLoadingId === transaction.id}
-                          onClick={() => viewDetails(transaction.id)}
-                          type="button"
-                        >
-                          {detailLoadingId === transaction.id ? "Loading..." : "Detail"}
-                        </button>
+                        <div className="transactions-row-actions">
+                          <button
+                            className="transactions-detail-btn"
+                            disabled={detailLoadingId === transaction.id}
+                            onClick={() => viewDetails(transaction.id)}
+                            type="button"
+                          >
+                            {detailLoadingId === transaction.id ? "Loading..." : "Detail"}
+                          </button>
+                          {status === "pending" && (
+                            <button
+                              className="transactions-detail-btn"
+                              disabled={cancelLoadingId === transaction.id}
+                              onClick={() => cancelTransaction(transaction)}
+                              type="button"
+                            >
+                              {cancelLoadingId === transaction.id ? "Canceling..." : "Cancel"}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -549,9 +633,19 @@ export default function MemberTransactionsPage() {
                 Close
               </button>
               {String(selectedTransaction.status || "").toLowerCase() === "pending" && (
-                <button className="transactions-primary-btn" onClick={() => continuePayment(selectedTransaction)} type="button">
-                  Continue Payment
-                </button>
+                <>
+                  <button
+                    className="transactions-danger-btn"
+                    disabled={cancelLoadingId === selectedTransaction.id}
+                    onClick={() => cancelTransaction(selectedTransaction)}
+                    type="button"
+                  >
+                    {cancelLoadingId === selectedTransaction.id ? "Canceling..." : "Cancel Transaction"}
+                  </button>
+                  <button className="transactions-primary-btn" onClick={() => continuePayment(selectedTransaction)} type="button">
+                    Continue Payment
+                  </button>
+                </>
               )}
               {["success", "completed"].includes(String(selectedTransaction.status || "").toLowerCase()) && (
                 <button className="transactions-primary-btn" onClick={() => downloadReceipt(selectedTransaction)} type="button">

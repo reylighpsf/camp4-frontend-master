@@ -68,11 +68,27 @@ const workoutGuides = [
   },
 ];
 
+const workoutTypeOptions = [
+  "Morning Run",
+  "Strength Training",
+  "Cardio",
+  "HIIT Cardio",
+  "Yoga Session",
+  "Swimming",
+  "Cycling",
+  "Boxing",
+  "Pilates",
+  "Zumba",
+  "Functional Training",
+  "Mobility",
+];
+
 export default function WorkoutTrackingPage() {
   const [activities, setActivities] = useState([]);
   const [formValues, setFormValues] = useState({
     date: new Date().toISOString().slice(0, 10),
     type: "",
+    customType: "",
     duration: "",
   });
   const [showForm, setShowForm] = useState(false);
@@ -113,19 +129,21 @@ export default function WorkoutTrackingPage() {
 
   const handleCreate = async (event) => {
     event.preventDefault();
-    if (formValues.type.trim().length < 2) return;
+    const selectedType = formValues.type === "custom" ? formValues.customType : formValues.type;
+    if (selectedType.trim().length < 2) return;
     setSaving(true);
     setError("");
     try {
       const durationMinutes = Number.parseInt(formValues.duration, 10);
       await api.post("/activities", {
-        taskName: `date: ${formValues.date} | type: ${formValues.type.trim()} | duration: ${formValues.duration.trim()}`,
+        taskName: `date: ${formValues.date} | type: ${selectedType.trim()} | duration: ${formValues.duration.trim()}`,
         targetValue: Number.isFinite(durationMinutes) && durationMinutes > 0 ? durationMinutes : 30,
         unit: "min",
       });
       setFormValues({
         date: new Date().toISOString().slice(0, 10),
         type: "",
+        customType: "",
         duration: "",
       });
       setShowForm(false);
@@ -662,18 +680,36 @@ export default function WorkoutTrackingPage() {
                 </label>
                 <label className="workout-field">
                   <span>Type</span>
-                  <input
+                  <select
                     className="workout-input"
-                    placeholder="Morning Run"
                     value={formValues.type}
                     onChange={(event) => updateField("type", event.target.value)}
-                  />
+                  >
+                    <option value="">Pilih activity</option>
+                    {workoutTypeOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                    <option value="custom">Custom</option>
+                  </select>
                 </label>
+                {formValues.type === "custom" && (
+                  <label className="workout-field">
+                    <span>Custom Type</span>
+                    <input
+                      className="workout-input"
+                      placeholder="Activity lain"
+                      value={formValues.customType}
+                      onChange={(event) => updateField("customType", event.target.value)}
+                    />
+                  </label>
+                )}
                 <label className="workout-field">
                   <span>Duration</span>
                   <input
                     className="workout-input"
-                    placeholder="35 min"
+                    min="1"
+                    placeholder="35"
+                    type="number"
                     value={formValues.duration}
                     onChange={(event) => updateField("duration", event.target.value)}
                   />
