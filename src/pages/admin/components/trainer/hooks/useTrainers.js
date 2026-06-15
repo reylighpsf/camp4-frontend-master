@@ -128,6 +128,28 @@ export default function useTrainers() {
     }
   };
 
+  const fetchAllSessions = async (params = {}) => {
+    setSessionLoading(true);
+    setSessionError("");
+    setSessions([]);
+    setSessionMeta(null);
+
+    try {
+      const response = await api.get("/trainers/admin/sessions", {
+        params: { page: 1, limit: 100, ...params },
+      });
+      setSessions(getResponseList(response));
+      setSessionMeta(response.data?.meta || null);
+      return { ok: true, data: response.data?.data || [] };
+    } catch (err) {
+      const message = getErrorMessage(err, "Gagal memuat semua sesi trainer.");
+      setSessionError(message);
+      return { ok: false, error: message };
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
   const cancelTrainerSession = async (sessionId, reason = "Cancelled by admin") => {
     setSessionError("");
 
@@ -156,6 +178,7 @@ export default function useTrainers() {
     sessionMeta,
     fetchTrainers,
     fetchTrainerSessions,
+    fetchAllSessions,
     cancelTrainerSession,
     createTrainer,
     updateTrainer,

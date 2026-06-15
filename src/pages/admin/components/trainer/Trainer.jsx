@@ -44,6 +44,7 @@ const trainerStyles = `
   }
 
   .trainer-add-btn,
+  .trainer-secondary-btn,
   .trainer-action-btn {
     align-items: center;
     border-radius: 8px;
@@ -66,6 +67,21 @@ const trainerStyles = `
   .trainer-add-btn {
     height: 42px;
     padding: 0 18px;
+  }
+
+  .trainer-secondary-btn {
+    background: #fff;
+    border: 1px solid #080478;
+    color: #080478;
+    height: 42px;
+    padding: 0 18px;
+  }
+
+  .trainer-head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
   }
 
   .trainer-table-wrap {
@@ -673,6 +689,7 @@ export default function TrainerPage() {
   const [image, setImage] = useState(null);
   const [imageError, setImageError] = useState("");
   const [sessionTrainer, setSessionTrainer] = useState(null);
+  const [isAllSessionsOpen, setIsAllSessionsOpen] = useState(false);
   const [sessionCalendarMonth, setSessionCalendarMonth] = useState(() => new Date());
   const [selectedSessionDate, setSelectedSessionDate] = useState(formatDateKey(new Date()));
 
@@ -786,8 +803,26 @@ export default function TrainerPage() {
   };
 
   const handleOpenSessions = async (trainer) => {
+    setIsAllSessionsOpen(false);
     setSessionTrainer(trainer);
     const result = await trainers.fetchTrainerSessions(trainer.id);
+    const firstSession = result?.data?.[0];
+    const firstSessionDate = firstSession?.start_time || firstSession?.startTime;
+    if (firstSessionDate) {
+      const date = new Date(firstSessionDate);
+      setSessionCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+      setSelectedSessionDate(formatDateKey(date));
+    } else {
+      const now = new Date();
+      setSessionCalendarMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+      setSelectedSessionDate(formatDateKey(now));
+    }
+  };
+
+  const handleOpenAllSessions = async () => {
+    setSessionTrainer(null);
+    setIsAllSessionsOpen(true);
+    const result = await trainers.fetchAllSessions();
     const firstSession = result?.data?.[0];
     const firstSessionDate = firstSession?.start_time || firstSession?.startTime;
     if (firstSessionDate) {
@@ -811,9 +846,16 @@ export default function TrainerPage() {
     if (!confirmed) return;
 
     const result = await trainers.cancelTrainerSession(session.id);
-    if (result.ok && sessionTrainer?.id) {
+    if (result.ok && isAllSessionsOpen) {
+      await trainers.fetchAllSessions();
+    } else if (result.ok && sessionTrainer?.id) {
       await trainers.fetchTrainerSessions(sessionTrainer.id);
     }
+  };
+
+  const closeSessionModal = () => {
+    setSessionTrainer(null);
+    setIsAllSessionsOpen(false);
   };
 
   return (
@@ -826,9 +868,14 @@ export default function TrainerPage() {
             <h2>Daftar Trainer</h2>
             <p>Tambah trainer, kontak, bio, spesialisasi, dan foto profil.</p>
           </div>
-          <button className="trainer-add-btn" onClick={handleOpenForm} type="button">
-            Tambah Trainer
-          </button>
+          <div className="trainer-head-actions">
+            <button className="trainer-secondary-btn" onClick={handleOpenAllSessions} type="button">
+              Semua Sesi
+            </button>
+            <button className="trainer-add-btn" onClick={handleOpenForm} type="button">
+              Tambah Trainer
+            </button>
+          </div>
         </div>
 
         <div className="trainer-panel">
@@ -1017,17 +1064,19 @@ export default function TrainerPage() {
           </section>
         </div>
       )}
-      {sessionTrainer && (
+      {(sessionTrainer || isAllSessionsOpen) && (
         <div className="trainer-modal-backdrop">
           <section className="trainer-modal" role="dialog" aria-modal="true">
             <div className="trainer-modal-head">
               <div>
-                <h2>Session Trainer</h2>
+                <h2>{isAllSessionsOpen ? "Semua Session Trainer" : "Session Trainer"}</h2>
                 <p className="trainer-muted">
-                  {sessionTrainer.name} - daftar member yang booking trainer ini.
+                  {isAllSessionsOpen
+                    ? "Daftar semua booking trainer dari seluruh trainer."
+                    : `${sessionTrainer.name} - daftar member yang booking trainer ini.`}
                 </p>
               </div>
-              <button className="trainer-close-btn" onClick={() => setSessionTrainer(null)} type="button">x</button>
+              <button className="trainer-close-btn" onClick={closeSessionModal} type="button">x</button>
             </div>
 
             {trainers.sessionLoading && <p className="trainer-status">Memuat sesi trainer...</p>}
@@ -1035,7 +1084,7 @@ export default function TrainerPage() {
               <p className="trainer-status error">{trainers.sessionError}</p>
             )}
             {!trainers.sessionLoading && !trainers.sessionError && trainers.sessions.length === 0 && (
-              <p className="trainer-status">Belum ada booking untuk trainer ini.</p>
+              <p className="trainer-status">{isAllSessionsOpen ? "Belum ada booking trainer." : "Belum ada booking untuk trainer ini."}</p>
             )}
             {!trainers.sessionLoading && !trainers.sessionError && trainers.sessions.length > 0 && (
               <div className="trainer-session-calendar-layout">
@@ -1113,6 +1162,7 @@ export default function TrainerPage() {
                           <article className="trainer-session-card" key={session.id}>
                             <span className="trainer-session-label booked">BOOKED</span>
                             <strong>{formatTime(session.start_time || session.startTime)} - {formatTime(session.end_time || session.endTime)}</strong>
+                            {isAllSessionsOpen && <span>Trainer: {session.trainer_name || session.trainer?.name || "-"}</span>}
                             <span>Member: {session.booked_by_name || session.member_name || session.user_name || "-"}</span>
                             <span>Package: {session.catalog_name || session.package_name || session.catalog_code || "-"}</span>
                             <button
@@ -1138,6 +1188,7 @@ export default function TrainerPage() {
                           <article className="trainer-session-card" key={session.id}>
                             <span className="trainer-session-label cancelled">CANCELLED</span>
                             <strong>{formatTime(session.start_time || session.startTime)} - {formatTime(session.end_time || session.endTime)}</strong>
+                            {isAllSessionsOpen && <span>Trainer: {session.trainer_name || session.trainer?.name || "-"}</span>}
                             <span>Member: {session.booked_by_name || session.member_name || session.user_name || "-"}</span>
                             <span>Package: {session.catalog_name || session.package_name || session.catalog_code || "-"}</span>
                           </article>
