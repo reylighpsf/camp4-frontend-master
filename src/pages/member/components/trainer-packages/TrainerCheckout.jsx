@@ -145,7 +145,7 @@ export default function TrainerCheckoutPage() {
       if (!selectedTrainerId || !isUuid(selectedTrainerId)) return;
 
       try {
-        const firstResponse = await api.get(`/trainers/${selectedTrainerId}/bookings`, {
+        const firstResponse = await api.get(`/trainers/sessions/trainer/${selectedTrainerId}`, {
           params: { page: 1, limit: 100 },
         });
         if (!mounted) return;
@@ -154,7 +154,7 @@ export default function TrainerCheckoutPage() {
         const pageResponses = totalPages > 1
           ? await Promise.all(
               Array.from({ length: totalPages - 1 }, (_, index) =>
-                api.get(`/trainers/${selectedTrainerId}/bookings`, {
+                api.get(`/trainers/sessions/trainer/${selectedTrainerId}`, {
                   params: { page: index + 2, limit: 100 },
                 }),
               ),

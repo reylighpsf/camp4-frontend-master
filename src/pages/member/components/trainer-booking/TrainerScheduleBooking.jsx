@@ -67,7 +67,9 @@ export default function TrainerScheduleBookingModal({ catalogs = [], onClose, on
       setScheduleLoading(true);
       setScheduleError("");
       try {
-        const response = await api.get(`/trainers/${trainer.id}/bookings`);
+        const response = await api.get(`/trainers/sessions/trainer/${trainer.id}`, {
+          params: { page: 1, limit: 100 },
+        });
         if (mounted) setBookings(normalizeBookings(response.data));
       } catch (err) {
         if (!mounted) return;
