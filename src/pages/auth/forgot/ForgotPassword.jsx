@@ -101,14 +101,33 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const continueToPassword = (event) => {
+  const continueToPassword = async (event) => {
     event.preventDefault();
     clearFeedback();
     if (!/^\d{6}$/.test(otp)) {
       setFieldErrors({ otp: "OTP harus 6 digit angka" });
       return;
     }
-    setStep(STEP_RESET);
+
+    if (!turnstileToken) {
+      setError(turnstileError || "Selesaikan verifikasi captcha terlebih dahulu.");
+      return;
+    }
+
+    setLoading("verify");
+    try {
+      const response = await authApi.verifyForgotPasswordOtp({
+        email: email.trim(),
+        otp,
+      }, turnstileToken);
+      setMessage(response.data?.message || "OTP berhasil diverifikasi. Buat password baru.");
+      setStep(STEP_RESET);
+    } catch (err) {
+      setError(getErrorMessage(err, "Gagal verifikasi OTP."));
+    } finally {
+      resetTurnstile();
+      setLoading("");
+    }
   };
 
   const resetPassword = async (event) => {
@@ -251,7 +270,9 @@ export default function ForgotPasswordPage() {
                 <button className="forgot-secondary" disabled={Boolean(loading)} onClick={() => requestOtp("resend")} type="button">
                   {loading === "resend" ? "Resending..." : "Resend OTP"}
                 </button>
-                <button className="forgot-submit" disabled={Boolean(loading)} type="submit">Verify OTP</button>
+                <button className="forgot-submit" disabled={Boolean(loading)} type="submit">
+                  {loading === "verify" ? "Verifying..." : "Verify OTP"}
+                </button>
               </form>
             )}
 

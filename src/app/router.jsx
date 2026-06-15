@@ -23,6 +23,7 @@ import {
 import NewsUpdatePage from "../pages/admin/components/news-update/NewsUpdate";
 import PaymentHistoryPage from "../pages/admin/components/payments/PaymentHistory";
 import PaymentsPage from "../pages/admin/components/payments/Payments";
+import BroadcastNotificationPage from "../pages/admin/components/notifications/BroadcastNotification";
 import TrainerPage from "../pages/admin/components/trainer/Trainer";
 import MemberDashboard from "../pages/member/Dashboard";
 import CheckInOutPage from "../pages/member/components/check-in-out/CheckInOut";
@@ -118,6 +119,10 @@ const adminRoutes = [
   {
     path: "/admin/payments/history",
     element: adminOnly(<PaymentHistoryPage />),
+  },
+  {
+    path: "/admin/notifications",
+    element: adminOnly(<BroadcastNotificationPage />),
   },
   {
     path: "/admin/active-member",

@@ -37,6 +37,12 @@ const icons = {
       <path d="M3 10h18M7 15h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </Icon>
   ),
+  notifications: (
+    <Icon>
+      <path d="M18 10a6 6 0 1 0-12 0c0 5-2 5.8-2 7h16c0-1.2-2-2-2-7Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.5 20a2.7 2.7 0 0 0 5 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </Icon>
+  ),
   catalog: (
     <Icon>
       <path d="M5 5h14v5H5zM5 14h6v5H5zM15 14h4v5h-4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
@@ -85,6 +91,7 @@ const navItems = [
   },
   { label: "Active Member", icon: icons.members, to: "/admin/active-member" },
   { label: "Trainer", icon: icons.trainer, to: "/admin/trainer" },
+  { label: "Notifications", icon: icons.notifications, to: "/admin/notifications" },
 ];
 
 function SidebarButton({ item }) {

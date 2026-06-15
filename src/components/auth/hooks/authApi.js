@@ -43,6 +43,8 @@ export const authApi = {
   forgotPassword: (data, turnstileToken = "") => api.post("/auth/forgot-password", data, withTurnstile(turnstileToken)),
   resendForgotPassword: (data, turnstileToken = "") =>
     api.post("/auth/forgot-password/resend", data, withTurnstile(turnstileToken)),
+  verifyForgotPasswordOtp: (data, turnstileToken = "") =>
+    api.post("/auth/forgot-password/otp", data, withTurnstile(turnstileToken)),
   resetPassword: (data, turnstileToken = "") =>
     api.post("/auth/forgot-password/reset", data, withTurnstile(turnstileToken)),
 };
