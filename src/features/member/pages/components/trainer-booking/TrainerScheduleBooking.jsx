@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import api from "../../../../../services/authApi";
-import gymImage from "../../../../assets/auth/signup-gym.jpg";
-import { getCatalogPrice } from "../../auth/pages/membership/hooks/authPlans";
+﻿import { useEffect, useMemo, useState } from "react";
+import api from "@/services/authApi";
+import gymImage from "@/features/assets/auth/signup-gym.jpg";
+import { getCatalogPrice } from "@/features/member/pages/auth/pages/membership/hooks/authPlans";
 
 const formatCurrency = (value) =>
   `Rp ${Number(value || 0).toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;

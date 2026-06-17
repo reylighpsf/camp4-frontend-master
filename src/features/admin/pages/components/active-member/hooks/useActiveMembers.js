@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import api from "../../../../../services/authApi.js";
-import { getResponseList } from "../../../../../utils/responseData.js";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import api from "@/features/services/authApi.js";
+import { getResponseList } from "@/features/utils/responseData.js";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;

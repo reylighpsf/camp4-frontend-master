@@ -1,4 +1,4 @@
-import AdminLayout from "../../../../components/admin/AdminLayout";
+﻿import AdminLayout from "@/components/admin/AdminLayout";
 import usePaymentHistory from "./hooks/usePaymentHistory";
 import {
   formatCurrency,

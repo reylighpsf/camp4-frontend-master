@@ -1,7 +1,7 @@
-import { useState } from "react";
-import AdminLayout from "../../../../components/admin/AdminLayout";
+﻿import { useState } from "react";
+import AdminLayout from "@/components/admin/AdminLayout";
 import useActiveMembers from "./hooks/useActiveMembers";
-import { confirmAction } from "../../../../utils/sweetAlert";
+import { confirmAction } from "@/utils/sweetAlert";
 
 const activeMemberStyles = `
   .active-member-page {

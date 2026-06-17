@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
-import { useAuth } from "../../../hooks/useAuth.js";
-import api from "../../../services/authApi.js";
+import { useAuth } from "@/hooks/useAuth.js";
+import api from "@/services/authApi.js";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
-import MemberIcon from "./MemberIcon";
-import memberMenuItems from "./hooks/memberMenuItems";
+import MemberIcon from "@/features/member/components/MemberIcon";
+import memberMenuItems from "@/features/member/components/hooks/memberMenuItems";
 import "../../../styles/member/layout/base.css";
 import "../../../styles/member/layout/responsive.css";
 

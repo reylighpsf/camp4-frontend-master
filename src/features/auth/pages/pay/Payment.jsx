@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { AuthFrame } from "../AuthFrame";
+import { AuthFrame } from "@/features/auth/pages/AuthFrame";
 import {
   authMembershipPlans,
   getAuthMembershipPlan,
   getTransactionTypeFromPlanId,
   getUserTierCode,
   mapCatalogsToMembershipPlans,
-} from "../membership/hooks/authPlans";
-import api from "../../../../services/authApi";
-import { requestTurnstileToken } from "../../../../hooks/turnstileToken";
-import useTurnstile from "../sign/hooks/useTurnstile";
+} from "@/features/auth/pages/membership/hooks/authPlans";
+import api from "@/services/authApi";
+import { requestTurnstileToken } from "@/hooks/turnstileToken";
+import useTurnstile from "@/features/auth/pages/sign/hooks/useTurnstile";
 
 const paymentMethods = [
   { id: "qris", paymentMethod: "QRIS", title: "QRIS / VA Bank", subtitle: "Bayar lewat QRIS atau virtual account bank", icon: "bank" },

@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import gymImage from "../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
-import api from "../../auth/hooks/authApi";
+import api from "@/components/auth/hooks/authApi";
 import { authMembershipPlans, mapCatalogsToMembershipPlans } from "../../../pages/auth/membership/hooks/authPlans";
-import MembershipPlanCards from "./MembershipPlanCards";
+import MembershipPlanCards from "@/components/landing/membership/MembershipPlanCards";
 
 const steps = [
   ["Create Account", "Sign up and complete your member profile."],

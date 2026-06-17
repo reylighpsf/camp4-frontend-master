@@ -1,6 +1,6 @@
-import { useNavigate } from "react-router";
-import { useAuth } from "../auth/hooks/useAuth";
-import AdminSidebar from "./AdminSidebar";
+﻿import { useNavigate } from "react-router";
+import { useAuth } from "@/components/auth/hooks/useAuth";
+import AdminSidebar from "@/components/admin/AdminSidebar";
 
 export default function AdminLayout({ title, subtitle, children }) {
   const { logout } = useAuth();

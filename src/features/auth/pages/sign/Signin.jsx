@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { useAuth } from "../../../../hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import signupGym from "../../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../../assets/auth/vocafit-logo.png";
-import { getGoogleClientId } from "./hooks/googleClientConfig";
-import useTurnstile from "./hooks/useTurnstile";
+import { getGoogleClientId } from "@/features/auth/pages/sign/hooks/googleClientConfig";
+import useTurnstile from "@/features/auth/pages/sign/hooks/useTurnstile";
 
 const isAdminRole = (role) => role === "pengurus" || role === "admin";
 

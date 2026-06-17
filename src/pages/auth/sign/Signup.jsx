@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { AuthFrame, Toast } from "../AuthFrame";
-import { useAuth } from "../../../components/auth/hooks/useAuth";
+import { useAuth } from "@/components/auth/hooks/useAuth";
 import { buildGoogleRegisterPayload, decodeGoogleCredential } from "./hooks/googleAuthPayload";
 import { getGoogleClientId } from "./hooks/googleClientConfig";
 import useTurnstile from "./hooks/useTurnstile";

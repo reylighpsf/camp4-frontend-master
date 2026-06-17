@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { AuthFrame, Toast } from "../AuthFrame";
-import { useAuth } from "../../../../hooks/useAuth";
-import { buildGoogleRegisterPayload, decodeGoogleCredential } from "./hooks/googleAuthPayload";
-import { getGoogleClientId } from "./hooks/googleClientConfig";
-import useTurnstile from "./hooks/useTurnstile";
+import { AuthFrame, Toast } from "@/features/auth/pages/AuthFrame";
+import { useAuth } from "@/hooks/useAuth";
+import { buildGoogleRegisterPayload, decodeGoogleCredential } from "@/features/auth/pages/sign/hooks/googleAuthPayload";
+import { getGoogleClientId } from "@/features/auth/pages/sign/hooks/googleClientConfig";
+import useTurnstile from "@/features/auth/pages/sign/hooks/useTurnstile";
 
 const getPhoneInputDigits = (phoneNumber) =>
   phoneNumber.replace(/^\+62/, "").replace(/^0/, "");

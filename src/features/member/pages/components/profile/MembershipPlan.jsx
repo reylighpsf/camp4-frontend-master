@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import MemberLayout from "../../../components/MemberLayout";
-import MemberIcon from "../../../components/MemberIcon";
-import api from "../../../../../services/authApi";
-import { requestTurnstileToken } from "../../../../../hooks/turnstileToken.js";
+import MemberLayout from "@/features/member/components/MemberLayout";
+import MemberIcon from "@/features/member/components/MemberIcon";
+import api from "@/services/authApi";
+import { requestTurnstileToken } from "@/hooks/turnstileToken.js";
 import {
   authMembershipPlans,
   getCatalogPrice,
@@ -12,8 +12,8 @@ import {
   getPlanIdFromCatalogCode,
   getTransactionTypeFromPlanId,
   getUserTierCode,
-} from "../../../../auth/pages/membership/hooks/authPlans";
-import useTurnstile from "../../../../auth/pages/sign/hooks/useTurnstile";
+} from "@/features/auth/pages/membership/hooks/authPlans";
+import useTurnstile from "@/features/auth/pages/sign/hooks/useTurnstile";
 
 const tabs = [
   { label: "Account Settings", icon: "profile", to: "/member/profile" },

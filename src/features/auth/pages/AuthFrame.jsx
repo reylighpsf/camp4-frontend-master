@@ -1,6 +1,6 @@
-import { Link, useNavigate } from "react-router";
+﻿import { Link, useNavigate } from "react-router";
 import { useEffect } from "react";
-import { authMembershipPlans, getAuthMembershipPlan } from "./membership/hooks/authPlans";
+import { authMembershipPlans, getAuthMembershipPlan } from "@/features/auth/pages/membership/hooks/authPlans";
 
 const steps = [
   "Register",

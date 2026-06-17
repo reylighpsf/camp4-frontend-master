@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { authApi } from "./hooks/authApi";
-import { AuthContext } from "./hooks/authContextValue";
+﻿import { useEffect, useState } from "react";
+import { authApi } from "@/components/auth/hooks/authApi";
+import { AuthContext } from "@/components/auth/hooks/authContextValue";
 
 const SKIP_ME_PATHS = [
   "/choose-plan",

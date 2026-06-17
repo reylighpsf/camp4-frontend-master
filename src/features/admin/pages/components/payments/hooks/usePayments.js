@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import api from "../../../../../services/authApi.js";
-import { getResponseList } from "../../../../../utils/responseData.js";
-import { enrichTransactionMembers } from "./paymentHelpers";
+﻿import { useCallback, useEffect, useState } from "react";
+import api from "@/features/services/authApi.js";
+import { getResponseList } from "@/features/utils/responseData.js";
+import { enrichTransactionMembers } from "@/features/admin/pages/components/payments/hooks/paymentHelpers";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;

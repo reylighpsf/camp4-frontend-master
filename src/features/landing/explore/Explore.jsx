@@ -1,5 +1,5 @@
-import { Link } from "react-router";
-import useExploreNews from "./hooks/useExploreNews";
+﻿import { Link } from "react-router";
+import useExploreNews from "@/features/landing/explore/hooks/useExploreNews";
 
 const services = [
   {

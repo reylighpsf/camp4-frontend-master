@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import api from "../../../../components/auth/hooks/authApi";
+﻿import { useEffect, useMemo, useState } from "react";
+import api from "@/components/auth/hooks/authApi";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
 import { getCatalogPrice } from "../../../auth/membership/hooks/authPlans";
 

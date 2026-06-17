@@ -1,6 +1,6 @@
-import { useState } from "react";
-import AdminLayout from "../../../../components/admin/AdminLayout";
-import api from "../../../../components/auth/hooks/authApi";
+﻿import { useState } from "react";
+import AdminLayout from "@/components/admin/AdminLayout";
+import api from "@/components/auth/hooks/authApi";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;

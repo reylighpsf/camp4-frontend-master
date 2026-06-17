@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import api from "../../../../services/authApi";
+﻿import { useCallback, useEffect, useState } from "react";
+import api from "@/services/authApi";
 
 const emptyDashboard = {
   statCards: [

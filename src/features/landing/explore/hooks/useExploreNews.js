@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import api from "../../../../services/authApi";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import api from "@/services/authApi";
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
 

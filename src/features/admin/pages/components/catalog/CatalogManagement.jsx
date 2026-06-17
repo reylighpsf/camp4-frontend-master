@@ -1,6 +1,6 @@
-import AdminLayout from "../../../components/AdminLayout";
-import { formatCurrency } from "./hooks/catalogConstants";
-import useCatalogManagement from "./hooks/useCatalogManagement";
+﻿import AdminLayout from "@/features/admin/components/AdminLayout";
+import { formatCurrency } from "@/features/admin/pages/components/catalog/hooks/catalogConstants";
+import useCatalogManagement from "@/features/admin/pages/components/catalog/hooks/useCatalogManagement";
 
 function CatalogManagementPage({ family = "MEMBERSHIP" }) {
   const {

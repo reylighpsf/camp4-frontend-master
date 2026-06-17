@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import MemberLayout from "../../../components/MemberLayout";
-import api from "../../../services/authApi.js";
-import { requestTurnstileToken } from "../../../hooks/turnstileToken.js";
-import { useAuth } from "../../../hooks/useAuth.js";
-import { getCatalogPrice, getUserTierCode } from "../../../../auth/pages/membership/hooks/authPlans";
-import useTurnstile from "../../../../auth/pages/sign/hooks/useTurnstile";
+import MemberLayout from "@/features/member/components/MemberLayout";
+import api from "@/features/member/services/authApi.js";
+import { requestTurnstileToken } from "@/features/member/hooks/turnstileToken.js";
+import { useAuth } from "@/features/member/hooks/useAuth.js";
+import { getCatalogPrice, getUserTierCode } from "@/features/auth/pages/membership/hooks/authPlans";
+import useTurnstile from "@/features/auth/pages/sign/hooks/useTurnstile";
 
 const formatCurrency = (value) =>
   `Rp ${Number(value || 0).toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;

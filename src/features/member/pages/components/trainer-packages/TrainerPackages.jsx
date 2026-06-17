@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import MemberLayout from "../../../components/MemberLayout";
-import api from "../../../../../services/authApi";
+import MemberLayout from "@/features/member/components/MemberLayout";
+import api from "@/services/authApi";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;

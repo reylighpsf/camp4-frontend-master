@@ -1,2 +1,2 @@
-export { authApi } from './authApi';
-export { getSocket } from './socket/socketClient';
+﻿export { authApi } from '@/services/authApi';
+export { getSocket } from '@/services/socket/socketClient';

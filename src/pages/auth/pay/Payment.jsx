@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { AuthFrame } from "../AuthFrame";
 import {
@@ -8,8 +8,8 @@ import {
   getUserTierCode,
   mapCatalogsToMembershipPlans,
 } from "../membership/hooks/authPlans";
-import api from "../../../components/auth/hooks/authApi";
-import { requestTurnstileToken } from "../../../components/auth/hooks/turnstileToken";
+import api from "@/components/auth/hooks/authApi";
+import { requestTurnstileToken } from "@/components/auth/hooks/turnstileToken";
 import useTurnstile from "../sign/hooks/useTurnstile";
 
 const paymentMethods = [

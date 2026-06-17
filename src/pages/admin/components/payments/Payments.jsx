@@ -1,4 +1,4 @@
-import AdminLayout from "../../../../components/admin/AdminLayout";
+﻿import AdminLayout from "@/components/admin/AdminLayout";
 import usePayments from "./hooks/usePayments";
 import {
   formatCurrency,
@@ -6,7 +6,7 @@ import {
   formatTransactionType,
   paymentStyles,
 } from "./hooks/paymentHelpers";
-import { confirmAction } from "../../../../utils/sweetAlert";
+import { confirmAction } from "@/utils/sweetAlert";
 
 export default function PaymentsPage() {
   const payments = usePayments();

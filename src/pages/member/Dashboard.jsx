@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import MemberIcon from "../../components/member/MemberIcon";
-import MemberLayout from "../../components/member/MemberLayout";
-import api from "../../components/auth/hooks/authApi";
-import { useAuth } from "../../components/auth/hooks/useAuth";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import MemberIcon from "@/components/member/MemberIcon";
+import MemberLayout from "@/components/member/MemberLayout";
+import api from "@/components/auth/hooks/authApi";
+import { useAuth } from "@/components/auth/hooks/useAuth";
 
 const GYM_CAPACITY = 100;
 

@@ -1,5 +1,5 @@
-import { Navigate } from "react-router";
-import { useAuth } from "../../../hooks/useAuth";
+﻿import { Navigate } from "react-router";
+import { useAuth } from "@/hooks/useAuth";
 
 const AllowRole = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useAuth();

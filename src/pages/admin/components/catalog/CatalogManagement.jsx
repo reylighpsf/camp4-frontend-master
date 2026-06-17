@@ -1,4 +1,4 @@
-import AdminLayout from "../../../../components/admin/AdminLayout";
+﻿import AdminLayout from "@/components/admin/AdminLayout";
 import { formatCurrency } from "./hooks/catalogConstants";
 import useCatalogManagement from "./hooks/useCatalogManagement";
 

@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import vocafitLogo from "../../../../assets/auth/vocafit-logo.png";
-import api from "../../../../services/authApi";
-import { useAuth } from "../../../../hooks/useAuth";
-import { AuthFrame } from "../AuthFrame";
-import { getAuthMembershipPlan } from "../membership/hooks/authPlans";
+import api from "@/services/authApi";
+import { useAuth } from "@/hooks/useAuth";
+import { AuthFrame } from "@/features/auth/pages/AuthFrame";
+import { getAuthMembershipPlan } from "@/features/auth/pages/membership/hooks/authPlans";
 
 const formatDate = (value) => {
   const date = value ? new Date(value) : new Date();

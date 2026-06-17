@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import api from "../../../../../services/authApi.js";
-import { confirmAction } from "../../../../../utils/sweetAlert.js";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import api from "@/features/services/authApi.js";
+import { confirmAction } from "@/features/utils/sweetAlert.js";
 import {
   accountTiers,
   buildPricesPayload,
@@ -8,7 +8,7 @@ import {
   emptyForm,
   familyLabels,
   normalizeCatalogToForm,
-} from "./catalogConstants";
+} from "@/features/admin/pages/components/catalog/hooks/catalogConstants";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;

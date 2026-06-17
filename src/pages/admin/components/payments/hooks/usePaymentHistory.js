@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
-import api from "../../../../../components/auth/hooks/authApi";
-import { getResponseList } from "../../../../../utils/responseData";
+﻿import { useCallback, useEffect, useState } from "react";
+import api from "@/components/auth/hooks/authApi";
+import { getResponseList } from "@/utils/responseData";
 import { enrichTransactionMembers } from "./paymentHelpers";
 
 const getErrorMessage = (err, fallback) =>

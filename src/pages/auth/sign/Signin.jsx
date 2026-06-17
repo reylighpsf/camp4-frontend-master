@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { useAuth } from "../../../components/auth/hooks/useAuth";
+import { useAuth } from "@/components/auth/hooks/useAuth";
 import signupGym from "../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
 import { getGoogleClientId } from "./hooks/googleClientConfig";

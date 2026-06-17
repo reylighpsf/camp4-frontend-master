@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { AuthFrame } from "../AuthFrame";
-import { authApi } from "../../../components/auth/hooks/authApi";
+import { authApi } from "@/components/auth/hooks/authApi";
 
 const verificationRequests = new Map();
 

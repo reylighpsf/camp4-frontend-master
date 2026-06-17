@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
-import Home from "../../components/landing/home/Home";
-import Explore from "../../components/landing/explore/Explore";
-import MembershipPlanCards from "../../components/landing/membership/MembershipPlanCards";
-import Facilities from "../../components/landing/facilities/Facilities";
-import Footer from "../../components/landing/footer/Footer";
-import api from "../../components/auth/hooks/authApi";
+﻿import { useEffect, useState } from "react";
+import Home from "@/components/landing/home/Home";
+import Explore from "@/components/landing/explore/Explore";
+import MembershipPlanCards from "@/components/landing/membership/MembershipPlanCards";
+import Facilities from "@/components/landing/facilities/Facilities";
+import Footer from "@/components/landing/footer/Footer";
+import api from "@/components/auth/hooks/authApi";
 import { authMembershipPlans, mapCatalogsToMembershipPlans } from "../auth/membership/hooks/authPlans";
 
 export default function LandingPage({ scrollToExplore = false }) {

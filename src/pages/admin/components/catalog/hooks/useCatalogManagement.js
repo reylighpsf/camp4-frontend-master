@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import api from "../../../../../components/auth/hooks/authApi";
-import { confirmAction } from "../../../../../utils/sweetAlert";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import api from "@/components/auth/hooks/authApi";
+import { confirmAction } from "@/utils/sweetAlert";
 import {
   accountTiers,
   buildPricesPayload,

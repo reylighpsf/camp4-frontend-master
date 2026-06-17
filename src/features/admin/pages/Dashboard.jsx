@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { useAuth } from "../../../hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import gymImage from "../../../assets/auth/signup-gym.jpg";
-import AdminSidebar, { Icon } from "../components/AdminSidebar";
-import useAdminDashboard from "./hooks/useAdminDashboard";
-import getSocket from "../../../services/socket/socketClient";
+import AdminSidebar, { Icon } from "@/features/admin/components/AdminSidebar";
+import useAdminDashboard from "@/features/admin/pages/hooks/useAdminDashboard";
+import getSocket from "@/services/socket/socketClient";
 
 const getScanNotification = (payload) => {
   const data = payload?.data || payload || {};

@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { AuthFrame } from "../AuthFrame";
 import Swal from "sweetalert2";
-import { authApi } from "../../../components/auth/hooks/authApi";
+import { authApi } from "@/components/auth/hooks/authApi";
 import useTurnstile from "../sign/hooks/useTurnstile";
 
 const RESEND_COOLDOWN_MS = 2 * 60 * 1000;

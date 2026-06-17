@@ -1,38 +1,39 @@
-import { Navigate, createBrowserRouter } from "react-router";
+﻿import { Navigate, createBrowserRouter } from "react-router";
 
-import PrivateAuth from "../features/auth/components/PrivateAuth";
-import PublicAuth from "../features/auth/components/PublicAuth";
-import AllowRole from "../features/auth/components/AllowRole";
+import PrivateAuth from "@/features/auth/components/PrivateAuth";
+import PublicAuth from "@/features/auth/components/PublicAuth";
+import AllowRole from "@/features/auth/components/AllowRole";
 import LandingPage from "../pages/landing";
-import MembershipPage from "../features/landing/membership/Membership";
-import ChoosePlanPage from "../features/auth/pages/membership/ChoosePlan";
-import SigninPage from "../features/auth/pages/sign/Signin";
-import SignupPage from "../features/auth/pages/sign/Signup";
-import ForgotPasswordPage from "../features/auth/pages/forgot/ForgotPassword";
-import VerifyEmailPage from "../features/auth/pages/verify/VerifyEmail";
-import VerifyEmailResultPage from "../features/auth/pages/verify/VerifyEmailResult";
-import PaymentPage from "../features/auth/pages/pay/Payment";
-import PaymentSuccessPage from "../features/auth/pages/pay/PaymentSuccess";
-import NewsDetailPage from "../pages/news/NewsDetail";
-import AdminPage from "../features/admin/pages/Dashboard";
-import ActiveMemberPage from "../features/admin/pages/components/active-member/ActiveMember";
+import MembershipPage from "@/features/landing/membership/Membership";
+import ChoosePlanPage from "@/features/auth/pages/membership/ChoosePlan";
+import SigninPage from "@/features/auth/pages/sign/Signin";
+import SignupPage from "@/features/auth/pages/sign/Signup";
+import ForgotPasswordPage from "@/features/auth/pages/forgot/ForgotPassword";
+import VerifyEmailPage from "@/features/auth/pages/verify/VerifyEmail";
+import VerifyEmailResultPage from "@/features/auth/pages/verify/VerifyEmailResult";
+import PaymentPage from "@/features/auth/pages/pay/Payment";
+import PaymentSuccessPage from "@/features/auth/pages/pay/PaymentSuccess";
+import NewsDetailPage from "@/features/landing/explore/NewsDetailPage";
+import AdminPage from "@/features/admin/pages/Dashboard";
+import ActivityManagement from "@/features/admin/pages/components/activities/ActivityManagement";
+import ActiveMemberPage from "@/features/admin/pages/components/active-member/ActiveMember";
 import {
   MembershipCatalogPage,
   TrainerCatalogPage,
-} from "../features/admin/pages/components/catalog/CatalogManagement";
-import NewsUpdatePage from "../features/admin/pages/components/news-update/NewsUpdate";
-import PaymentHistoryPage from "../features/admin/pages/components/payments/PaymentHistory";
-import PaymentsPage from "../features/admin/pages/components/payments/Payments";
-import BroadcastNotificationPage from "../features/admin/pages/components/notifications/BroadcastNotification";
-import TrainerPage from "../features/admin/pages/components/trainer/Trainer";
-import MemberDashboard from "../features/member/pages/Dashboard";
-import CheckInOutPage from "../features/member/pages/components/check-in-out/CheckInOut";
-import ProfilePage from "../features/member/pages/components/profile/Profile";
-import ProfileMembershipPlanPage from "../features/member/pages/components/profile/MembershipPlan";
-import MemberTransactionsPage from "../features/member/pages/components/transactions/Transactions";
-import TrainerBookingPage from "../features/member/pages/components/trainer-booking/TrainerBooking";
-import TrainerCheckoutPage from "../features/member/pages/components/trainer-packages/TrainerCheckout";
-import WorkoutTrackingPage from "../features/member/pages/components/workout-tracking/WorkoutTracking";
+} from "@/features/admin/pages/components/catalog/CatalogManagement";
+import NewsUpdatePage from "@/features/admin/pages/components/news-update/NewsUpdate";
+import PaymentHistoryPage from "@/features/admin/pages/components/payments/PaymentHistory";
+import PaymentsPage from "@/features/admin/pages/components/payments/Payments";
+import BroadcastNotificationPage from "@/features/admin/pages/components/notifications/BroadcastNotification";
+import TrainerPage from "@/features/admin/pages/components/trainer/Trainer";
+import MemberDashboard from "@/features/member/pages/Dashboard";
+import CheckInOutPage from "@/features/member/pages/components/check-in-out/CheckInOut";
+import ProfilePage from "@/features/member/pages/components/profile/Profile";
+import ProfileMembershipPlanPage from "@/features/member/pages/components/profile/MembershipPlan";
+import MemberTransactionsPage from "@/features/member/pages/components/transactions/Transactions";
+import TrainerBookingPage from "@/features/member/pages/components/trainer-booking/TrainerBooking";
+import TrainerCheckoutPage from "@/features/member/pages/components/trainer-packages/TrainerCheckout";
+import WorkoutTrackingPage from "@/features/member/pages/components/workout-tracking/WorkoutTracking";
 import UnauthorizedPage from "../pages/Unauthorized";
 import NotFound from "../pages/NotFound";
 
@@ -131,6 +132,10 @@ const adminRoutes = [
   {
     path: "/admin/trainer",
     element: adminOnly(<TrainerPage />),
+  },
+  {
+    path: "/admin/activities",
+    element: adminOnly(<ActivityManagement />),
   },
   {
     path: "/admin/catalogs",

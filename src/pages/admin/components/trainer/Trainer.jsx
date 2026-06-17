@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
-import AdminLayout from "../../../../components/admin/AdminLayout";
+﻿import { useMemo, useState } from "react";
+import AdminLayout from "@/components/admin/AdminLayout";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
 import useTrainers from "./hooks/useTrainers";
-import { confirmAction } from "../../../../utils/sweetAlert";
+import { confirmAction } from "@/utils/sweetAlert";
 
 const trainerStyles = `
   .trainer-head {

@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { io } from "socket.io-client";
-import MemberLayout from "../../../components/MemberLayout";
-import MemberIcon from "../../../components/MemberIcon";
-import api from "../../../../../services/authApi";
-import { useAuth } from "../../../../../hooks/useAuth";
-import { getAuthMembershipPlan } from "../../../../auth/pages/membership/hooks/authPlans";
-import { confirmAction } from "../../../../../utils/sweetAlert";
+import MemberLayout from "@/features/member/components/MemberLayout";
+import MemberIcon from "@/features/member/components/MemberIcon";
+import api from "@/services/authApi";
+import { useAuth } from "@/hooks/useAuth";
+import { getAuthMembershipPlan } from "@/features/auth/pages/membership/hooks/authPlans";
+import { confirmAction } from "@/utils/sweetAlert";
 
 const tabs = [
   { label: "Account Settings", icon: "profile", section: "account" },

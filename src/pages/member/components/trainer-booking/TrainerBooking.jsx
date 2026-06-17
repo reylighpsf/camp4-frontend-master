@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import MemberLayout from "../../../../components/member/MemberLayout";
-import api from "../../../../components/auth/hooks/authApi";
+import MemberLayout from "@/components/member/MemberLayout";
+import api from "@/components/auth/hooks/authApi";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
 
 const getErrorMessage = (err, fallback) =>

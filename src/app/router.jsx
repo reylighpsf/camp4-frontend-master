@@ -1,10 +1,10 @@
-import { Navigate, createBrowserRouter } from "react-router";
+﻿import { Navigate, createBrowserRouter } from "react-router";
 
-import PrivateAuth from "../components/auth/PrivateAuth";
-import PublicAuth from "../components/auth/PublicAuth";
-import AllowRole from "../components/auth/AllowRole";
+import PrivateAuth from "@/components/auth/PrivateAuth";
+import PublicAuth from "@/components/auth/PublicAuth";
+import AllowRole from "@/components/auth/AllowRole";
 import LandingPage from "../pages/landing";
-import MembershipPage from "../components/landing/membership/Membership";
+import MembershipPage from "@/components/landing/membership/Membership";
 import ChoosePlanPage from "../pages/auth/membership/ChoosePlan";
 import SigninPage from "../pages/auth/sign/Signin";
 import SignupPage from "../pages/auth/sign/Signup";

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import MemberLayout from "../../../../components/member/MemberLayout";
-import api from "../../../../components/auth/hooks/authApi";
-import { confirmAction } from "../../../../utils/sweetAlert";
+﻿import { useCallback, useEffect, useState } from "react";
+import MemberLayout from "@/components/member/MemberLayout";
+import api from "@/components/auth/hooks/authApi";
+import { confirmAction } from "@/utils/sweetAlert";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;

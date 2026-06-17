@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import MemberLayout from "../../../../components/member/MemberLayout";
-import api from "../../../../components/auth/hooks/authApi";
-import { requestTurnstileToken } from "../../../../components/auth/hooks/turnstileToken";
-import { useAuth } from "../../../../components/auth/hooks/useAuth";
+import MemberLayout from "@/components/member/MemberLayout";
+import api from "@/components/auth/hooks/authApi";
+import { requestTurnstileToken } from "@/components/auth/hooks/turnstileToken";
+import { useAuth } from "@/components/auth/hooks/useAuth";
 import { getCatalogPrice, getUserTierCode } from "../../../auth/membership/hooks/authPlans";
 import useTurnstile from "../../../auth/sign/hooks/useTurnstile";
 

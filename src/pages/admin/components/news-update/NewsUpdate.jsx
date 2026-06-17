@@ -1,13 +1,13 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router";
-import AdminSidebar, { Icon } from "../../../../components/admin/AdminSidebar";
-import api from "../../../../components/auth/hooks/authApi";
-import { useAuth } from "../../../../components/auth/hooks/useAuth";
+import AdminSidebar, { Icon } from "@/components/admin/AdminSidebar";
+import api from "@/components/auth/hooks/authApi";
+import { useAuth } from "@/components/auth/hooks/useAuth";
 import gymImage from "../../../../assets/auth/signup-gym.jpg";
 import useNewsActions from "./hooks/useNewsActions";
 import useNewsForm from "./hooks/useNewsForm";
 import useNewsImageUpload from "./hooks/useNewsImageUpload";
-import { confirmAction } from "../../../../utils/sweetAlert";
+import { confirmAction } from "@/utils/sweetAlert";
 
 const newsUpdateStyles = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');

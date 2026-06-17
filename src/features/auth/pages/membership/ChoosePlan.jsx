@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import api from "../../../../services/authApi";
-import { useAuth } from "../../../../hooks/useAuth";
-import { AuthFrame, MembershipPlanCards } from "../AuthFrame";
-import { authMembershipPlans, getUserTierCode, mapCatalogsToMembershipPlans } from "./hooks/authPlans";
+import api from "@/services/authApi";
+import { useAuth } from "@/hooks/useAuth";
+import { AuthFrame, MembershipPlanCards } from "@/features/auth/pages/AuthFrame";
+import { authMembershipPlans, getUserTierCode, mapCatalogsToMembershipPlans } from "@/features/auth/pages/membership/hooks/authPlans";
 
 export default function ChoosePlan() {
   const { user } = useAuth();

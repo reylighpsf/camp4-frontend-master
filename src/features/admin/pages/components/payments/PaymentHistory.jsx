@@ -1,11 +1,11 @@
-import AdminLayout from "../../../components/AdminLayout";
-import usePaymentHistory from "./hooks/usePaymentHistory";
+﻿import AdminLayout from "@/features/admin/components/AdminLayout";
+import usePaymentHistory from "@/features/admin/pages/components/payments/hooks/usePaymentHistory";
 import {
   formatCurrency,
   formatDateTime,
   formatTransactionType,
   paymentStyles,
-} from "./hooks/paymentHelpers";
+} from "@/features/admin/pages/components/payments/hooks/paymentHelpers";
 
 export default function PaymentHistoryPage() {
   const history = usePaymentHistory();

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import api from "../../../components/auth/hooks/authApi";
-import { useAuth } from "../../../components/auth/hooks/useAuth";
+import api from "@/components/auth/hooks/authApi";
+import { useAuth } from "@/components/auth/hooks/useAuth";
 import { AuthFrame, MembershipPlanCards } from "../AuthFrame";
 import { authMembershipPlans, getUserTierCode, mapCatalogsToMembershipPlans } from "./hooks/authPlans";
 

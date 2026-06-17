@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
-import api from "../../../../../components/auth/hooks/authApi";
-import { getResponseList } from "../../../../../utils/responseData";
+﻿import { useCallback, useEffect, useState } from "react";
+import api from "@/components/auth/hooks/authApi";
+import { getResponseList } from "@/utils/responseData";
 
 const getErrorMessage = (err, fallback) =>
   err.response?.data?.error || err.response?.data?.message || err.message || fallback;

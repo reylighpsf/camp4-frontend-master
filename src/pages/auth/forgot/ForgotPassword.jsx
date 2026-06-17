@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { authApi } from "../../../components/auth/hooks/authApi";
+import { authApi } from "@/components/auth/hooks/authApi";
 import signupGym from "../../../assets/auth/signup-gym.jpg";
 import vocafitLogo from "../../../assets/auth/vocafit-logo.png";
 import useTurnstile from "../sign/hooks/useTurnstile";

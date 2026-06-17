@@ -1,5 +1,5 @@
-import { NavLink, useLocation } from "react-router";
-import vocafitLogo from "../../assets/auth/vocafit-logo.png";
+﻿import { NavLink, useLocation } from "react-router";
+import vocafitLogo from "@/features/assets/auth/vocafit-logo.png";
 
 const iconProps = {
   width: 22,
