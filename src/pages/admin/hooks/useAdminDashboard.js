@@ -12,6 +12,7 @@ const emptyDashboard = {
   payments: [],
   activities: [],
   transactionsChart: [],
+  news: [],
 };
 
 const getPayload = (response) => response?.data?.data || response?.data || {};
@@ -114,6 +115,15 @@ const normalizeTransactionsChart = (payload) => {
   }));
 };
 
+const normalizeNews = (payload) => {
+  const news = Array.isArray(payload) ? payload : payload.latest_news || [];
+  return news.slice(0, 3).map((item) => ({
+    id: item.id,
+    title: item.title,
+    imageUrl: item.image_url || "",
+  }));
+};
+
 export default function useAdminDashboard() {
   const [dashboard, setDashboard] = useState(emptyDashboard);
   const [loading, setLoading] = useState(true);
@@ -133,6 +143,7 @@ export default function useAdminDashboard() {
         payments: normalizePayments(payload),
         activities: normalizeActivities(payload),
         transactionsChart: normalizeTransactionsChart(payload),
+        news: normalizeNews(payload),
       });
     } catch (err) {
       setError(getErrorMessage(err, "Gagal memuat dashboard admin."));

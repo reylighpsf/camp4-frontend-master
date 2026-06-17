@@ -877,8 +877,7 @@ export default function ActiveMemberPage() {
             <div className="membership-detail-top">
               <div>
                 <h2>Detail Member</h2>
-                <p>Seluruh profile pengguna yang tersedia dari database.</p>
-              </div>
+             </div>
               <button className="active-member-action delete" onClick={() => setSelectedMember(null)} type="button">
                 Tutup
               </button>
@@ -904,7 +903,6 @@ export default function ActiveMemberPage() {
               <section className="membership-detail-section">
                 <h3>Profile</h3>
                 <div className="membership-detail-grid">
-                  <div className="membership-detail-item"><span>User ID</span><strong>{selectedMember.id || "-"}</strong></div>
                   <div className="membership-detail-item"><span>No. HP</span><strong>{selectedMember.phone_number || "-"}</strong></div>
                   <div className="membership-detail-item"><span>Tanggal Lahir</span><strong>{formatDate(selectedMember.date_of_birth)}</strong></div>
                   <div className="membership-detail-item"><span>Penalty</span><strong>{String(selectedMember.penalty_amount ?? 0)}</strong></div>
@@ -921,14 +919,6 @@ export default function ActiveMemberPage() {
                   <div className="membership-detail-item"><span>Membership End Date</span><strong>{formatDateTime(selectedMember.membership?.end_date)}</strong></div>
                   <div className="membership-detail-item"><span>Tier Harga</span><strong>{selectedMember.tier || selectedMember.membership_price_code || "-"}</strong></div>
                   <div className="membership-detail-item"><span>Status</span><strong>{selectedMember.membership_status_label || "-"}</strong></div>
-                </div>
-              </section>
-
-              <section className="membership-detail-section">
-                <h3>Activity</h3>
-                <div className="membership-detail-grid">
-                  <div className="membership-detail-item"><span>Check In</span><strong>{formatTime(selectedMember.check_in_at)}</strong></div>
-                  <div className="membership-detail-item"><span>Check Out</span><strong>{formatTime(selectedMember.check_out_at)}</strong></div>
                 </div>
               </section>
             </div>

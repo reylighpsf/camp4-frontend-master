@@ -28,6 +28,7 @@ export default function AdminPage() {
     payments,
     activities,
     transactionsChart,
+    news,
     loading,
     error,
   } = useAdminDashboard();
@@ -308,7 +309,7 @@ export default function AdminPage() {
         .bottom-grid {
           grid-column: 1 / -1;
           display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1fr);
           gap: 16px;
         }
 
@@ -341,6 +342,46 @@ export default function AdminPage() {
           width: 30px;
           height: 30px;
           border-radius: 50%;
+        }
+
+        .news-preview-panel {
+          padding: 22px 24px;
+        }
+
+        .news-preview-title {
+          font-size: 18px;
+          line-height: 1;
+          font-weight: 800;
+          margin: 0 0 16px;
+        }
+
+        .news-preview-list {
+          display: grid;
+          gap: 18px;
+        }
+
+        .news-preview-item {
+          display: grid;
+          grid-template-columns: 38px 1fr;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+
+        .news-preview-image {
+          width: 34px;
+          height: 34px;
+          border-radius: 8px;
+          object-fit: cover;
+          background: #eceef3;
+        }
+
+        .news-preview-text {
+          font-size: 11px;
+          font-weight: 700;
+          line-height: 1.25;
+          color: #05050c;
+          min-width: 0;
         }
 
         .trainer-name {
@@ -440,7 +481,12 @@ export default function AdminPage() {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
-          .content,
+          .content {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 760px) {
           .bottom-grid {
             grid-template-columns: 1fr;
           }
@@ -621,6 +667,18 @@ export default function AdminPage() {
                 </table>
               </article>
 
+              <article className="panel news-preview-panel">
+                <h2 className="news-preview-title">News Update Preview</h2>
+                <div className="news-preview-list">
+                  {news.length === 0 && <p className="empty-state">Belum ada berita.</p>}
+                  {news.map((item) => (
+                    <div className="news-preview-item" key={item.id}>
+                      <img className="news-preview-image" src={item.imageUrl || gymImage} alt="" />
+                      <span className="news-preview-text">{item.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </article>
             </section>
           </div>
         </section>
