@@ -32,10 +32,8 @@ const formatMonth = (date) =>
 
 const normalizeBookings = (payload) => {
   const data = payload?.data || payload || [];
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.bookings)) return data.bookings;
-  if (Array.isArray(data.sessions)) return data.sessions;
-  return [];
+  if (!Array.isArray(data)) return [];
+  return data;
 };
 
 export default function TrainerScheduleBookingModal({ catalogs = [], onClose, onConfirm, tierCode = "", trainer }) {
@@ -70,7 +68,9 @@ export default function TrainerScheduleBookingModal({ catalogs = [], onClose, on
         const response = await api.get(`/trainers/sessions/trainer/${trainer.id}`, {
           params: { page: 1, limit: 100 },
         });
-        if (mounted) setBookings(normalizeBookings(response.data));
+        if (mounted) {
+          setBookings(normalizeBookings(response.data));
+        }
       } catch (err) {
         if (!mounted) return;
         setBookings([]);

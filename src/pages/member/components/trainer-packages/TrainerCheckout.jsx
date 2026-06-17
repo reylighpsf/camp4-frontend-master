@@ -76,6 +76,8 @@ const getCalendarDays = (monthDate) => {
 };
 
 const getBookingStartValue = (booking) => booking?.start_time || booking?.startTime || booking?.date || "";
+const isBookingForTrainer = (booking, trainerId) =>
+  !trainerId || booking?.trainer?.id === trainerId || booking?.trainer_id === trainerId;
 
 const paymentMethods = [
   { id: "qris", value: "QRIS", label: "QRIS" },
@@ -145,7 +147,7 @@ export default function TrainerCheckoutPage() {
       if (!selectedTrainerId || !isUuid(selectedTrainerId)) return;
 
       try {
-        const firstResponse = await api.get(`/trainers/sessions/trainer/${selectedTrainerId}`, {
+        const firstResponse = await api.get("/trainers/sessions/my", {
           params: { page: 1, limit: 100 },
         });
         if (!mounted) return;
@@ -154,7 +156,7 @@ export default function TrainerCheckoutPage() {
         const pageResponses = totalPages > 1
           ? await Promise.all(
               Array.from({ length: totalPages - 1 }, (_, index) =>
-                api.get(`/trainers/sessions/trainer/${selectedTrainerId}`, {
+                api.get("/trainers/sessions/my", {
                   params: { page: index + 2, limit: 100 },
                 }),
               ),
@@ -164,7 +166,7 @@ export default function TrainerCheckoutPage() {
         setTrainerBookings([
           ...firstPage,
           ...pageResponses.flatMap((response) => response.data?.data || []),
-        ]);
+        ].filter((booking) => isBookingForTrainer(booking, selectedTrainerId)));
       } catch {
         if (mounted) setBookingError("Data booking trainer belum tersedia.");
       }
