@@ -31,6 +31,7 @@ export default function AdminPage() {
     news,
     loading,
     error,
+    refetch,
   } = useAdminDashboard();
   const [scanNotifications, setScanNotifications] = useState([]);
   const chart = useMemo(() => {
@@ -75,6 +76,7 @@ export default function AdminPage() {
     const handleScanEvent = (payload) => {
       const notification = getScanNotification(payload);
       setScanNotifications((current) => [notification, ...current].slice(0, 3));
+      refetch();
     };
 
     scanEvents.forEach((eventName) => socket.on(eventName, handleScanEvent));
@@ -83,7 +85,7 @@ export default function AdminPage() {
     return () => {
       scanEvents.forEach((eventName) => socket.off(eventName, handleScanEvent));
     };
-  }, []);
+  }, [refetch]);
 
   return (
     <>

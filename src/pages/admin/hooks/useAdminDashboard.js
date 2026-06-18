@@ -3,7 +3,7 @@ import api from "@/components/auth/hooks/authApi";
 
 const emptyDashboard = {
   statCards: [
-    { label: "Total Pengguna", value: "0", caption: "TERDAFTAR", icon: "users" },
+    { label: "Member Sedang Tap In", value: "0", caption: "DI DALAM GYM", icon: "users" },
     { label: "Total Berita", value: "0", caption: "DIPUBLIKASIKAN", icon: "news" },
     { label: "Total Member", value: "0", caption: "AKTIF", icon: "members" },
     { label: "Total Trainer", value: "0", caption: "AKTIF", icon: "trainer" },
@@ -41,11 +41,11 @@ const activityLabels = {
   registration: "Member baru terdaftar",
 };
 
-const normalizeSummary = (counts = {}) => [
+const normalizeSummary = (counts = {}, membersTapIn = 0) => [
   {
-    label: "Total Pengguna",
-    value: formatNumber(counts.total_users),
-    caption: "TERDAFTAR",
+    label: "Member Sedang Tap In",
+    value: formatNumber(membersTapIn),
+    caption: "DI DALAM GYM",
     icon: "users",
   },
   {
@@ -134,11 +134,19 @@ export default function useAdminDashboard() {
     setError("");
 
     try {
-      const response = await api.get("/admin/metrics");
+      const [response, crowdResponse] = await Promise.all([
+        api.get("/admin/metrics"),
+        api.get("/visits/crowd").catch(() => null),
+      ]);
       const payload = getPayload(response);
+      const membersTapIn = Number(
+        crowdResponse?.data?.data?.count ??
+        payload.counts?.members_tap_in ??
+        0
+      );
 
       setDashboard({
-        statCards: normalizeSummary(payload.counts),
+        statCards: normalizeSummary(payload.counts, membersTapIn),
         trainers: normalizeTrainers(payload),
         payments: normalizePayments(payload),
         activities: normalizeActivities(payload),
