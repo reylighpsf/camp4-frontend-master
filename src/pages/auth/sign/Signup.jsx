@@ -382,7 +382,7 @@ export default function Signup() {
                 value={form.email}
                 onChange={handleChange}
                 className={fieldErrors.email ? "has-error" : ""}
-                placeholder="your.email@example.com"
+                placeholder="your.email@unesa.ac.id"
                 autoComplete="email"
               />
               {fieldErrors.email && (
