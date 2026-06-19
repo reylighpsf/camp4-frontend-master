@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "@/components/auth/hooks/authApi";
 import { getResponseList } from "@/utils/responseData";
 
@@ -56,9 +56,7 @@ export default function useTrainers() {
     setSubmitSuccessMessage("");
 
     try {
-      const response = await api.post("/trainers", buildTrainerPayload({ values, image }), {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await api.post("/trainers", buildTrainerPayload({ values, image }));
       setSubmitSuccessMessage("Trainer berhasil ditambahkan.");
       return { ok: true, data: response.data?.data };
     } catch (err) {
@@ -76,9 +74,7 @@ export default function useTrainers() {
     setSubmitSuccessMessage("");
 
     try {
-      const response = await api.put(`/trainers/${trainerId}`, buildTrainerPayload({ values, image }), {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await api.put(`/trainers/${trainerId}`, buildTrainerPayload({ values, image }));
       setSubmitSuccessMessage("Trainer berhasil diperbarui.");
       return { ok: true, data: response.data?.data };
     } catch (err) {
